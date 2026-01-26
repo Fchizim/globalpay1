@@ -1,21 +1,13 @@
-<<<<<<< HEAD
-=======
 import 'dart:io';
->>>>>>> c30d5f6 (initial commit)
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide TextDirection;
 import 'package:flutter/rendering.dart';
-<<<<<<< HEAD
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import '../home/currency_con.dart'; // ✅ CurrencyConfig
-=======
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
 import '../home/currency_con.dart'; // ✅ CurrencyConfig
 // import 'package:media_store_plus/media_store_plus.dart';
->>>>>>> c30d5f6 (initial commit)
 
 class ReceiptPage extends StatefulWidget {
   final String bankName;
@@ -44,24 +36,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
 
   Future<void> _saveReceiptAsImage() async {
     try {
-<<<<<<< HEAD
-      RenderRepaintBoundary boundary =
-      _receiptKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData =
-      await image.toByteData(format: ui.ImageByteFormat.png);
-      Uint8List pngBytes = byteData!.buffer.asUint8List();
-
-      await ImageGallerySaver.saveImage(
-        Uint8List.fromList(pngBytes),
-        quality: 100,
-        name: "receipt_${DateTime.now().millisecondsSinceEpoch}",
-      );
-
-=======
       final boundary =
-          _receiptKey.currentContext!.findRenderObject()
-              as RenderRepaintBoundary;
+      _receiptKey.currentContext!.findRenderObject()
+      as RenderRepaintBoundary;
 
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final ByteData? byteData = await image.toByteData(
@@ -96,7 +73,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
         'media_scanner',
       ).invokeMethod('scanFile', {'path': filePath});
 
->>>>>>> c30d5f6 (initial commit)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("✅ Receipt saved to gallery!")),
@@ -104,15 +80,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
       }
     } catch (e) {
       if (mounted) {
-<<<<<<< HEAD
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Error saving receipt: $e")),
-        );
-=======
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("❌ Error saving receipt: $e")));
->>>>>>> c30d5f6 (initial commit)
       }
     }
   }
@@ -211,12 +181,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
                               _buildInfoRow("Recipient", widget.recipientName),
                               _buildInfoRow("Account", widget.accountNumber),
                               _buildInfoRow("Bank", widget.bankName),
-<<<<<<< HEAD
-                              _buildInfoRow("Payment Method", widget.paymentMethod),
-                              _buildInfoRow("Date", formattedDate),
-                              _buildInfoRow("Reference",
-                                  "#TXN${DateTime.now().millisecondsSinceEpoch}"),
-=======
                               _buildInfoRow(
                                 "Payment Method",
                                 widget.paymentMethod,
@@ -226,7 +190,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
                                 "Reference",
                                 "#TXN${DateTime.now().millisecondsSinceEpoch}",
                               ),
->>>>>>> c30d5f6 (initial commit)
                               const SizedBox(height: 20),
                               Container(
                                 padding: const EdgeInsets.all(12),
@@ -242,15 +205,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
                                 ),
                                 child: const Text(
                                   "Enjoy Seamless and Unlimited Free Transfers to All Banks.\n"
-<<<<<<< HEAD
                                       "Get cashbacks in Airtime & data top-up!\n"
                                       "Up to 150k Naira credit lines & 16 days interest free!\n"
                                       "Enjoy all at PalmPay!",
-=======
-                                  "Get cashbacks in Airtime & data top-up!\n"
-                                  "Up to 150k Naira credit lines & 16 days interest free!\n"
-                                  "Enjoy all at PalmPay!",
->>>>>>> c30d5f6 (initial commit)
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 14,
@@ -275,27 +232,19 @@ class _ReceiptPageState extends State<ReceiptPage> {
         height: 80,
         decoration: BoxDecoration(
           border: Border(
-<<<<<<< HEAD
-              top: BorderSide(color: colorScheme.outlineVariant, width: 1)),
-=======
             top: BorderSide(color: colorScheme.outlineVariant, width: 1),
           ),
->>>>>>> c30d5f6 (initial commit)
           color: colorScheme.surface,
         ),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-<<<<<<< HEAD
-            _bottomAction(Icons.image_outlined, "Save as Image", _saveReceiptAsImage),
-=======
             _bottomAction(
               Icons.image_outlined,
               "Save as Image",
               _saveReceiptAsImage,
             ),
->>>>>>> c30d5f6 (initial commit)
             _bottomAction(Icons.picture_as_pdf_outlined, "Share as PDF", () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("📄 Share as PDF coming soon")),
@@ -314,10 +263,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-<<<<<<< HEAD
-          Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: color)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-=======
           Text(
             title,
             style: TextStyle(fontWeight: FontWeight.w500, color: color),
@@ -326,7 +271,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
             value,
             style: TextStyle(fontWeight: FontWeight.bold, color: color),
           ),
->>>>>>> c30d5f6 (initial commit)
         ],
       ),
     );
@@ -370,10 +314,6 @@ class TearPainter extends CustomPainter {
     const waveHeight = 8.0;
 
     for (double x = 0; x <= size.width; x += waveWidth) {
-<<<<<<< HEAD
-      path.quadraticBezierTo(x + waveWidth / 4, waveHeight, x + waveWidth / 2, 0);
-      path.quadraticBezierTo(x + 3 * waveWidth / 4, -waveHeight, x + waveWidth, 0);
-=======
       path.quadraticBezierTo(
         x + waveWidth / 4,
         waveHeight,
@@ -386,7 +326,6 @@ class TearPainter extends CustomPainter {
         x + waveWidth,
         0,
       );
->>>>>>> c30d5f6 (initial commit)
     }
 
     path.lineTo(size.width, size.height);
@@ -409,13 +348,9 @@ class WatermarkPainter extends CustomPainter {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
     const watermarkText = "GlobalPay";
     final textStyle = TextStyle(
-<<<<<<< HEAD
-      color: isDark ? Colors.grey.shade900.withOpacity(0.1) : Colors.grey.shade100,
-=======
       color: isDark
           ? Colors.grey.shade900.withOpacity(0.1)
           : Colors.grey.shade100,
->>>>>>> c30d5f6 (initial commit)
       fontSize: 18,
       fontWeight: FontWeight.bold,
     );

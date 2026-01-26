@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:marquee/marquee.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:globalpay/help_page/help_screen.dart';
 import 'package:globalpay/profile_details/profile_details.dart';
+
 import '../Market/business_page.dart';
 import '../market/market_page.dart';
 import '../convert/convert_page.dart';
@@ -11,18 +12,9 @@ import '../home/home_page.dart';
 import '../me/me_page.dart';
 import '../home/card/card_page.dart';
 
-/// Helper class for storing user name
-class LocalUser {
-  static Future<String?> getName() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username');
-  }
-
-  static Future<void> setName(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', name);
-  }
-}
+// 🔥 ADD THESE
+import '../models/user_model.dart';
+import '../services/secure_storage_service.dart';
 
 class MyAppsPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -35,17 +27,26 @@ class MyAppsPage extends StatefulWidget {
 
 class _MyAppsPageState extends State<MyAppsPage> {
   int _selectedIndex = 0;
-  String? userName;
+
+  // 🔥 USER STATE (replaces SharedPreferences)
+  UserModel? _user;
+  bool _loadingUser = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUser();
   }
 
-  Future<void> _loadUserName() async {
-    userName = await LocalUser.getName();
-    if (mounted) setState(() {});
+  Future<void> _loadUser() async {
+    final user = await SecureStorageService.getUser();
+
+    if (!mounted) return;
+
+    setState(() {
+      _user = user;
+      _loadingUser = false;
+    });
   }
 
   void _onItemTapped(int index) {
@@ -64,6 +65,14 @@ class _MyAppsPageState extends State<MyAppsPage> {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
 
+    if (_loadingUser) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.deepOrange),
+        ),
+      );
+    }
+
     final List<Widget> pages = [
       const HomePage(),
       const FinancePage(),
@@ -80,7 +89,9 @@ class _MyAppsPageState extends State<MyAppsPage> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? darkCard : Colors.white,
-          border: const Border(top: BorderSide(color: Colors.black12, width: 0.5)),
+          border: const Border(
+            top: BorderSide(color: Colors.black12, width: 0.5),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -169,13 +180,12 @@ class _MyAppsPageState extends State<MyAppsPage> {
 
     return AppBar(
       automaticallyImplyLeading: false,
-      //scrolledUnderElevation: 0,
       backgroundColor: isDark ? darkBackground : Colors.grey.shade100,
       title: GestureDetector(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) =>  ProfileDetails()),
+            MaterialPageRoute(builder: (context) => ProfileDetails()),
           );
         },
         child: Row(
@@ -183,7 +193,9 @@ class _MyAppsPageState extends State<MyAppsPage> {
             CircleAvatar(
               radius: 24,
               backgroundColor: accentColor.withOpacity(0.1),
-              backgroundImage: const AssetImage('assets/images/png/gold.jpg'),
+              backgroundImage: _user?.image != null && _user!.image.isNotEmpty
+                  ? NetworkImage(_user!.image) as ImageProvider
+                  : const AssetImage('assets/images/png/gold.jpg'),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -193,15 +205,18 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   Row(
                     children: [
                       Text(
-                        "Hi, ${userName ?? 'Guest'}",
+                        "Hi, ${_user?.name ?? 'Guest'}",
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           color: textColor,
                           fontSize: 16,
                         ),
                       ),
-                      const Icon(Icons.verified,
-                          color: Colors.deepOrange, size: 16),
+                      const Icon(
+                        Icons.verified,
+                        color: Colors.deepOrange,
+                        size: 16,
+                      ),
                     ],
                   ),
                   SizedBox(
@@ -209,14 +224,8 @@ class _MyAppsPageState extends State<MyAppsPage> {
                     child: Marquee(
                       text: "Let's GlobalPay   ",
                       style: TextStyle(color: textColor, fontSize: 14),
-                      scrollAxis: Axis.horizontal,
                       blankSpace: 30.0,
                       velocity: 30.0,
-                      startPadding: 0.0,
-                      accelerationDuration: const Duration(seconds: 1),
-                      accelerationCurve: Curves.linear,
-                      decelerationDuration: const Duration(milliseconds: 500),
-                      decelerationCurve: Curves.easeOut,
                     ),
                   ),
                 ],
@@ -234,7 +243,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) =>  HelpScreen()),
+                    MaterialPageRoute(builder: (context) => HelpScreen()),
                   );
                 },
                 child: Container(

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:country_flags/country_flags.dart';
 
-<<<<<<< HEAD
-
-=======
->>>>>>> c30d5f6 (initial commit)
 class CountryListPage extends StatelessWidget {
   final List<Map<String, String>> countries = [
     {"name": "United States", "iso2": "US"},
@@ -27,17 +23,10 @@ class CountryListPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final country = countries[index];
           return ListTile(
-<<<<<<< HEAD
-            leading: CountryFlag.fromCountryCode(
-              country["iso2"]!,
-              width: 40,
-              height: 30,
-=======
             leading: SizedBox(
               width: 40,
               height: 30,
               child: CountryFlag.fromCountryCode(country["iso2"]!),
->>>>>>> c30d5f6 (initial commit)
             ),
             title: Text(country["name"]!),
           );

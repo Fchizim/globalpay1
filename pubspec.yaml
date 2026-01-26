@@ -9,63 +9,60 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   cupertino_icons: any
-  google_fonts: any
-
-  # UI / Animation
   iconsax_plus: any
   phosphor_flutter: any
-  lucide_icons_flutter: ^3.1.5
   smooth_page_indicator: any
   flutter_spinkit: any
-  flutter_animate: any
-  glassmorphism: ^2.0.0
-  glassmorphism_ui: any
-  blur: any
+  flutter_svg: any
+  flutter_map: any
+  latlong2: any
+  image_picker: any
+  confetti: any
+  intl: any
+  share_plus: any
+  screenshot: any
+  flutter_secure_storage: ^10.0.0
+  pdf: any
+  #  equatable: ^2.0.8
+  printing: any
+  http: ^1.6.0
+  path_provider: any
+  #  image_gallery_saver: ^2.0.3
+  open_filex: any
+  country_flags: any
+  country_pickers: any
+  #  media_store_plus: ^0.1.3
+  fl_chart: any
+  #  provider: any
+  dropdown_search: ^5.0.6
   carousel_slider: any
   flip_card: any
-  marquee: ^2.2.3
-  reorderables: ^0.4.2
-
-  # Media & Files
-  image_picker: any
-  screenshot: any
-  pdf: any
-  printing: any
-  path_provider: any
-  open_filex: any
-  qr_flutter: any
-  mobile_scanner: any
-
-  # Network & Storage
-  dio: ^5.9.0
-  http: any
-  flutter_secure_storage: ^10.0.0
-  shared_preferences: any
-
-  # State / Utils
-  provider: ^6.1.2
-  equatable: ^2.0.7
-  intl: any
+  blur: any
+  glassmorphism_ui: any
   intl_phone_field: any
   intl_phone_number_input: any
   pinput: any
-  dropdown_search: ^5.0.6
-
-  # Maps & Location
-  flutter_map: any
-  latlong2: any
-
-  # Country / Phone
-  country_flags: any
-  country_pickers: any
-
-  # Misc
-  confetti: any
+  google_fonts: any
+  dio: ^5.9.0
+  #  http: any
   webview_flutter: any
+  shared_preferences: any
+  flutter_animate: any
+  marquee: ^2.2.3
+  reorderables: ^0.4.2
+  glassmorphism: ^2.0.0
+  qr_flutter: any
+  provider: ^6.1.2
+  mobile_scanner: any
+  flutter_native_splash: ^2.4.0
+  equatable: ^2.0.7
+  lucide_icons_flutter: ^3.1.5
+  #  gallery_saver: ^2.3.2
   mailer: ^6.6.0
   device_info_plus: ^12.2.0
+
+
 
 dev_dependencies:
   flutter_test:

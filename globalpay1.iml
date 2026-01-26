@@ -189,6 +189,15 @@
       <excludeFolder url="file://$MODULE_DIR$/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/ios/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/ios/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/ios/build" />
+      <excludeFolder url="file://$MODULE_DIR$/ios_backup/ios/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/ios_backup/ios/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/ios_backup/ios/build" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Dart SDK" level="project" />

@@ -1,13 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-<<<<<<< HEAD
-import 'package:untitle1/home/all_asset.dart';
-import 'package:untitle1/home/finance/spend_save.dart';
-=======
 import 'package:globalpay/home/all_asset.dart';
 import 'package:globalpay/home/finance/spend_save.dart';
->>>>>>> c30d5f6 (initial commit)
 
 import '../home/finance/budgeting_page.dart';
 import '../home/finance/create_target_page.dart';

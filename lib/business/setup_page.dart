@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:untitle1/business/verify_page.dart';
-=======
 import 'package:globalpay/business/verify_page.dart';
->>>>>>> c30d5f6 (initial commit)
 import 'package:flutter_animate/flutter_animate.dart';
 
 class SetupPage extends StatefulWidget {
@@ -34,11 +30,7 @@ class _SetupPageState extends State<SetupPage> {
             onTap: () {
               Navigator.push(
                 context,
-<<<<<<< HEAD
-                MaterialPageRoute(builder: (context) => const VerifyPage()),
-=======
                 MaterialPageRoute(builder: (context) =>  VerifyPage()),
->>>>>>> c30d5f6 (initial commit)
               );
             },
             child: Padding(

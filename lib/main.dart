@@ -1,21 +1,13 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'splash_screen/splash_screen.dart';
-=======
 import 'package:provider/provider.dart';
 import 'splash_screen/splash_screen.dart';
 import 'provider/authprovider.dart';
 import 'home/home_page.dart';
 import 'apps/apps.dart';
->>>>>>> c30d5f6 (initial commit)
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-<<<<<<< HEAD
-  // 🟢 Launch the app directly (no Firebase anymore)
-  runApp(const MyApp());
-=======
   runApp(
     MultiProvider(
       providers: [
@@ -24,7 +16,6 @@ Future<void> main() async {
       child: const MyApp(),
     ),
   );
->>>>>>> c30d5f6 (initial commit)
 }
 
 class MyApp extends StatefulWidget {
@@ -44,52 +35,6 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
-<<<<<<< HEAD
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'GlobalPay',
-
-      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
-
-      // 🌞 Light theme
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.white,
-        colorScheme: const ColorScheme.light(
-          primary: Colors.deepOrange,
-          secondary: Colors.deepOrange,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.black),
-          titleTextStyle: TextStyle(color: Colors.black, fontSize: 18),
-        ),
-      ),
-
-      // 🌙 Dark theme
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF000000),
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.deepOrange,
-          secondary: Colors.deepOrange,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF000000),
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.white),
-          titleTextStyle: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-      ),
-
-      // 🏁 Start from SplashScreen
-      home: SplashScreen(onToggleTheme: toggleTheme),
-    );
-  }
-}
-=======
   void initState() {
     super.initState();
     Future.microtask(_tryAutoLogin);
@@ -142,4 +87,3 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
->>>>>>> c30d5f6 (initial commit)

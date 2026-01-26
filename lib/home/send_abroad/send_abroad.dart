@@ -78,11 +78,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
   String _paymentMethod =
       'Wallet Balance'; // Debit Card | Bank Transfer | Mobile Money | Wallet Balance
   final TextEditingController _paymentNotes =
-<<<<<<< HEAD
   TextEditingController(); // optional notes
-=======
-      TextEditingController(); // optional notes
->>>>>>> c30d5f6 (initial commit)
 
   // FX
   double? _fxRate; // USD -> dest currency
@@ -179,11 +175,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
     final theme = Theme.of(context);
     showModalBottomSheet(
       backgroundColor:
-<<<<<<< HEAD
       theme.bottomSheetTheme.backgroundColor ?? theme.colorScheme.surface,
-=======
-          theme.bottomSheetTheme.backgroundColor ?? theme.colorScheme.surface,
->>>>>>> c30d5f6 (initial commit)
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -221,12 +213,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
 
     final result = await showModalBottomSheet<String>(
       isScrollControlled: true,
-<<<<<<< HEAD
-      backgroundColor:
-      theme.bottomSheetTheme.backgroundColor ?? cs.surface,
-=======
       backgroundColor: theme.bottomSheetTheme.backgroundColor ?? cs.surface,
->>>>>>> c30d5f6 (initial commit)
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -339,16 +326,11 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                       const SizedBox(height: 10),
                       Column(
                         children: [
-<<<<<<< HEAD
-                          Icon(Icons.check_circle,
-                              color: cs.tertiary, size: 30),
-=======
                           Icon(
                             Icons.check_circle,
                             color: cs.tertiary,
                             size: 30,
                           ),
->>>>>>> c30d5f6 (initial commit)
                           _receiptRow("Transaction", "Successful", theme),
                           _receiptRow(
                             "You paid",
@@ -362,14 +344,10 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                           ),
                           _receiptRow("To", rcName, theme),
                           _receiptRow(
-<<<<<<< HEAD
-                              "Country", _selectedCountry?.name ?? '', theme),
-=======
                             "Country",
                             _selectedCountry?.name ?? '',
                             theme,
                           ),
->>>>>>> c30d5f6 (initial commit)
                           _receiptRow("Delivery", _deliveryMethod, theme),
                           _receiptRow("Payment", _paymentMethod, theme),
                           _receiptRow(
@@ -424,18 +402,12 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-<<<<<<< HEAD
-          Text(a, style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          )),
-=======
           Text(
             a,
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
->>>>>>> c30d5f6 (initial commit)
           Text(
             b,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -466,12 +438,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
       body: Column(
         children: [
           // Step Header (not swipeable; tappable)
-<<<<<<< HEAD
-          Container
-            (
-=======
           Container(
->>>>>>> c30d5f6 (initial commit)
             color: theme.colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -486,20 +453,13 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                         Text(
                           tabs[i],
                           style: theme.textTheme.labelLarge?.copyWith(
-<<<<<<< HEAD
-                            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                            color: active
-                                ? cs.primary
-                                : theme.textTheme.labelLarge?.color?.withOpacity(0.7),
-=======
                             fontWeight: active
                                 ? FontWeight.w700
                                 : FontWeight.w500,
                             color: active
                                 ? cs.primary
                                 : theme.textTheme.labelLarge?.color
-                                      ?.withOpacity(0.7),
->>>>>>> c30d5f6 (initial commit)
+                                ?.withOpacity(0.7),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -683,17 +643,6 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                     child: Row(
                       children: [
                         if (_selectedCountry != null)
-<<<<<<< HEAD
-                          CountryFlag.fromCountryCode(
-                            _selectedCountry!.iso2,
-                            width: 32,
-                            height: 24,
-                            borderRadius: 6,
-                          )
-                        else
-                          Icon(Icons.flag_outlined,
-                              color: theme.iconTheme.color?.withOpacity(0.6)),
-=======
                           SizedBox(
                             width: 32,
                             height: 24,
@@ -707,7 +656,6 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                             Icons.flag_outlined,
                             color: theme.iconTheme.color?.withOpacity(0.6),
                           ),
->>>>>>> c30d5f6 (initial commit)
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -716,11 +664,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                               fontWeight: FontWeight.w600,
                               color: _selectedCountry == null
                                   ? theme.textTheme.bodyLarge?.color
-<<<<<<< HEAD
                                   ?.withOpacity(0.7)
-=======
-                                        ?.withOpacity(0.7)
->>>>>>> c30d5f6 (initial commit)
                                   : theme.textTheme.bodyLarge?.color,
                             ),
                           ),
@@ -735,12 +679,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                   Text(
                     "We send to ${_selectedCountry!.name} every day.",
                     style: theme.textTheme.bodySmall?.copyWith(
-<<<<<<< HEAD
-                      color:
-                      theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-=======
                       color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
->>>>>>> c30d5f6 (initial commit)
                     ),
                   ),
               ],
@@ -791,12 +730,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                         ? "Select a country to see the rate."
                         : "Exchange rate • 1 USD = ${_fxRate?.toStringAsFixed(4) ?? '--'} ${_selectedCountry!.currencyCode}",
                     style: theme.textTheme.bodySmall?.copyWith(
-<<<<<<< HEAD
-                      color:
-                      theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-=======
                       color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
->>>>>>> c30d5f6 (initial commit)
                     ),
                   ),
                 ),
@@ -868,25 +802,14 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
     );
   }
 
-<<<<<<< HEAD
-  Widget _toggleChip({
-    required String label,
-    required bool selected,
-  }) {
-=======
   Widget _toggleChip({required String label, required bool selected}) {
->>>>>>> c30d5f6 (initial commit)
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
     return Expanded(
       child: InkWell(
-<<<<<<< HEAD
-        onTap: () => setState(() => _existingReceiver = label == "Existing receiver"),
-=======
         onTap: () =>
             setState(() => _existingReceiver = label == "Existing receiver"),
->>>>>>> c30d5f6 (initial commit)
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -925,18 +848,12 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-<<<<<<< HEAD
-          Text(label, style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-          )),
-=======
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
             ),
           ),
->>>>>>> c30d5f6 (initial commit)
           Row(
             children: [
               if (prefix != null)
@@ -990,18 +907,12 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-<<<<<<< HEAD
-          Text(label, style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-          )),
-=======
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
             ),
           ),
->>>>>>> c30d5f6 (initial commit)
           const SizedBox(height: 4),
           Text(
             value,
@@ -1132,19 +1043,11 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
   }
 
   Widget _input(
-<<<<<<< HEAD
       String label,
       TextEditingController c, {
         TextInputType keyboard = TextInputType.text,
         int maxLines = 1,
       }) {
-=======
-    String label,
-    TextEditingController c, {
-    TextInputType keyboard = TextInputType.text,
-    int maxLines = 1,
-  }) {
->>>>>>> c30d5f6 (initial commit)
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
@@ -1290,15 +1193,11 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-<<<<<<< HEAD
-                _row("You pay", "\$${_sendAmountUsd.toStringAsFixed(2)}", theme),
-=======
                 _row(
                   "You pay",
                   "\$${_sendAmountUsd.toStringAsFixed(2)}",
                   theme,
                 ),
->>>>>>> c30d5f6 (initial commit)
                 _row(
                   "Receiver gets",
                   "$destCcy ${_receiverGets.toStringAsFixed(2)}",
@@ -1360,18 +1259,12 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(a, style: theme.textTheme.bodyMedium),
-<<<<<<< HEAD
-          Text(b, style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          )),
-=======
           Text(
             b,
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
->>>>>>> c30d5f6 (initial commit)
         ],
       ),
     );
@@ -1412,15 +1305,9 @@ class _CountryModalState extends State<CountryModal> {
       filteredCountries = widget.countries
           .where(
             (c) =>
-<<<<<<< HEAD
         c.name.toLowerCase().contains(query.toLowerCase()) ||
             c.currencyCode.toLowerCase().contains(query.toLowerCase()),
       )
-=======
-                c.name.toLowerCase().contains(query.toLowerCase()) ||
-                c.currencyCode.toLowerCase().contains(query.toLowerCase()),
-          )
->>>>>>> c30d5f6 (initial commit)
           .toList();
     });
   }
@@ -1467,13 +1354,6 @@ class _CountryModalState extends State<CountryModal> {
               itemBuilder: (context, index) {
                 final country = filteredCountries[index];
                 return ListTile(
-<<<<<<< HEAD
-                  leading: CountryFlag.fromCountryCode(
-                    country.iso2,
-                    width: 32,
-                    height: 24,
-                    borderRadius: 4,
-=======
                   leading: SizedBox(
                     width: 32,
                     height: 24,
@@ -1481,7 +1361,6 @@ class _CountryModalState extends State<CountryModal> {
                       country.iso2,
                       // borderRadius: 4, // uncomment if your package supports it
                     ),
->>>>>>> c30d5f6 (initial commit)
                   ),
                   title: Text(country.name),
                   subtitle: Text(

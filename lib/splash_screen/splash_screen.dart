@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import '../onboarding_screen/auto_choice_page.dart';
-=======
 import 'package:provider/provider.dart';
 import '../onboarding_screen/auto_choice_page.dart';
 import '../provider/authprovider.dart';
 import '../home/home_page.dart';
->>>>>>> c30d5f6 (initial commit)
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -24,23 +20,6 @@ class _SplashScreenState extends State<SplashScreen> {
     _startSplash();
   }
 
-<<<<<<< HEAD
-  void _startSplash() {
-    // Wait 1 second before navigating with fade transition
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 300),
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              AuthChoicePage(onToggleTheme: widget.onToggleTheme),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      );
-    });
-=======
   void _startSplash() async {
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
@@ -60,7 +39,6 @@ class _SplashScreenState extends State<SplashScreen> {
         },
       ),
     );
->>>>>>> c30d5f6 (initial commit)
   }
 
   @override
@@ -78,10 +56,6 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-<<<<<<< HEAD
-                // Stack: makes rectangle overlap circle
-=======
->>>>>>> c30d5f6 (initial commit)
                 Stack(
                   alignment: Alignment.centerLeft,
                   children: [
@@ -105,12 +79,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         ),
                       ),
                     ),
-<<<<<<< HEAD
-
-                    // Circular logo on top
-=======
                     // Circular logo
->>>>>>> c30d5f6 (initial commit)
                     Container(
                       decoration: const BoxDecoration(
                         color: Colors.white,
@@ -124,10 +93,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ],
                 ),
-<<<<<<< HEAD
-
-=======
->>>>>>> c30d5f6 (initial commit)
                 const SizedBox(height: 20),
               ],
             ),
@@ -136,8 +101,4 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c30d5f6 (initial commit)

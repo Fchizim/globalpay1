@@ -8,9 +8,11 @@ import 'package:globalpay/home/fund_wallet/fund_wallet.dart';
 import 'package:globalpay/home/send_money.dart';
 import 'package:intl/intl.dart';
 import 'package:globalpay/home/user_page.dart';
+import '../models/user_model.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
 import '../qrcode_send/qrcode_send.dart' hide UserBalance;
+import '../services/secure_storage_service.dart';
 import 'airtime_page.dart';
 import 'all_asset.dart';
 import 'card/card_page.dart';
@@ -31,8 +33,29 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
+  UserModel? _user;
+  bool _loadingUser = true;
   bool isRefreshing = false;
   bool _showFullFormat = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await SecureStorageService.getUser();
+    setState(() {
+      _user = user;
+      _loadingUser = false;
+    });
+
+    // sync wallet with balance singleton (optional)
+    if (user != null) {
+      UserBalance.instance.balance = user.wallet;
+    }
+  }
 
   @override
   void dispose() {
@@ -71,7 +94,17 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    double balance = UserBalance.instance.balance;
+    if (_loadingUser) {
+      return const Scaffold(
+        body: Center(
+          child: SpinKitFadingCube(
+            color: Colors.deepOrange,
+            size: 55,
+          ),
+        ),
+      );
+    }
+    double balance = _user?.wallet ?? 0.0;
     final bool canToggle = balance >= 1000000;
     final String displayedBalance = (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)

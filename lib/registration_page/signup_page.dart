@@ -305,7 +305,10 @@ class _SignupPageState extends State<SignupPage> {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
           onPressed: _gotoOtpScreen,
-          child: const Text("Send Code"),
+          child: const Text(
+              "Send Code",
+            selectionColor:Colors.black87,
+          ),
         )
       ],
     );

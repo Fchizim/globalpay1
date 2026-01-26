@@ -76,7 +76,8 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => MyAppsPage(onToggleTheme: widget.onToggleTheme),
+          builder: (_) => MyAppsPage(
+              onToggleTheme: widget.onToggleTheme),
         ),
             (_) => false,
       );
@@ -206,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: const Text(
                         "Sign Up",
                         style: TextStyle(
-                          color: Colors.deepOrange,
+                          color: Colors.black87,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

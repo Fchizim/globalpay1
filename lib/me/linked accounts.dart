@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-<<<<<<< HEAD
-import 'package:untitle1/me/profile_upgrade.dart';
-=======
 import 'package:globalpay/me/profile_upgrade.dart';
->>>>>>> c30d5f6 (initial commit)
 
 class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({super.key});
@@ -27,13 +23,9 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     final bgColor = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF7F7F7);
     final containerColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-<<<<<<< HEAD
-    final secondaryTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-=======
     final secondaryTextColor = isDark
         ? Colors.grey.shade400
         : Colors.grey.shade600;
->>>>>>> c30d5f6 (initial commit)
     final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Scaffold(
@@ -54,18 +46,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           // ACCOUNT SECTION
           _buildSectionTitle("Account", secondaryTextColor),
           _buildContainer(containerColor, [
-<<<<<<< HEAD
-            _buildTile(IconsaxPlusBold.link, "Linked Accounts", textColor, onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const KycLevelsPage()),
-              );
-            }),
-            _divider(dividerColor),
-            _buildTile(Icons.block, "Freeze Account", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(Icons.warning, "Report Suspicious Activities", textColor, onTap: () {}),
-=======
             _buildTile(
               IconsaxPlusBold.link,
               "Linked Accounts",
@@ -86,7 +66,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               textColor,
               onTap: () {},
             ),
->>>>>>> c30d5f6 (initial commit)
           ]),
 
           const SizedBox(height: 20),
@@ -94,20 +73,11 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           // SECURITY SECTION
           _buildSectionTitle("Security", secondaryTextColor),
           _buildContainer(containerColor, [
-<<<<<<< HEAD
-            _buildSwitchTile(Icons.fingerprint, "Use Biometrics", biometric, (val) => setState(() => biometric = val), isDark),
-            _divider(dividerColor),
-            _buildTile(IconsaxPlusBold.lock, "Change Password / Pin", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(IconsaxPlusBold.security_safe, "Two-Factor Auth (2FA)", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(Icons.history, "Login history / Active session", textColor, onTap: () {}),
-=======
             _buildSwitchTile(
               Icons.fingerprint,
               "Use Biometrics",
               biometric,
-              (val) => setState(() => biometric = val),
+                  (val) => setState(() => biometric = val),
               isDark,
             ),
             _divider(dividerColor),
@@ -131,7 +101,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               textColor,
               onTap: () {},
             ),
->>>>>>> c30d5f6 (initial commit)
           ]),
 
           const SizedBox(height: 20),
@@ -139,13 +108,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           // TRANSACTION SECURITY
           _buildSectionTitle("Transaction Security", secondaryTextColor),
           _buildContainer(containerColor, [
-<<<<<<< HEAD
-            _buildTile(IconsaxPlusBold.password_check, "Transaction Pin", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(Icons.timelapse, "Limit daily/Weekly transactions", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(Icons.public, "Enable / Disable\nInternational Transactions", textColor, onTap: () {}),
-=======
             _buildTile(
               IconsaxPlusBold.password_check,
               "Transaction Pin",
@@ -166,7 +128,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               textColor,
               onTap: () {},
             ),
->>>>>>> c30d5f6 (initial commit)
           ]),
 
           const SizedBox(height: 20),
@@ -174,17 +135,13 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           // NOTIFICATIONS
           _buildSectionTitle("Notifications", secondaryTextColor),
           _buildContainer(containerColor, [
-<<<<<<< HEAD
-            _buildSwitchTile(IconsaxPlusBold.notification, "App Notifications", notifications, (val) => setState(() => notifications = val), isDark),
-=======
             _buildSwitchTile(
               IconsaxPlusBold.notification,
               "App Notifications",
               notifications,
-              (val) => setState(() => notifications = val),
+                  (val) => setState(() => notifications = val),
               isDark,
             ),
->>>>>>> c30d5f6 (initial commit)
           ]),
 
           const SizedBox(height: 20),
@@ -192,15 +149,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           // APP
           _buildSectionTitle("App", secondaryTextColor),
           _buildContainer(containerColor, [
-<<<<<<< HEAD
-            _buildTile(IconsaxPlusBold.language_circle, "Language", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(IconsaxPlusBold.info_circle, "About App", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(IconsaxPlusBold.clipboard_close, "Close Account", textColor, onTap: () {}),
-            _divider(dividerColor),
-            _buildTile(IconsaxPlusBold.logout, "Logout", textColor, onTap: () {}),
-=======
             _buildTile(
               IconsaxPlusBold.language_circle,
               "Language",
@@ -228,7 +176,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               textColor,
               onTap: () {},
             ),
->>>>>>> c30d5f6 (initial commit)
           ]),
         ],
       ),
@@ -248,9 +195,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   Widget _buildSectionTitle(String title, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-<<<<<<< HEAD
-      child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color)),
-=======
       child: Text(
         title,
         style: TextStyle(
@@ -259,7 +203,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           color: color,
         ),
       ),
->>>>>>> c30d5f6 (initial commit)
     );
   }
 
@@ -270,13 +213,9 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-<<<<<<< HEAD
-            color: bgColor == Colors.white ? Colors.grey.shade200 : Colors.black.withOpacity(0.2),
-=======
             color: bgColor == Colors.white
                 ? Colors.grey.shade200
                 : Colors.black.withOpacity(0.2),
->>>>>>> c30d5f6 (initial commit)
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -286,19 +225,12 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildTile(IconData icon, String title, Color textColor, {VoidCallback? onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.deepOrange),
-      title: Text(title, style: TextStyle(color: textColor)),
-      trailing: Icon(IconsaxPlusLinear.arrow_right_3, color: textColor.withOpacity(0.5)),
-=======
   Widget _buildTile(
-    IconData icon,
-    String title,
-    Color textColor, {
-    VoidCallback? onTap,
-  }) {
+      IconData icon,
+      String title,
+      Color textColor, {
+        VoidCallback? onTap,
+      }) {
     return ListTile(
       leading: Icon(icon, color: Colors.deepOrange),
       title: Text(title, style: TextStyle(color: textColor)),
@@ -306,31 +238,23 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         IconsaxPlusLinear.arrow_right_3,
         color: textColor.withOpacity(0.5),
       ),
->>>>>>> c30d5f6 (initial commit)
       onTap: onTap,
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildSwitchTile(IconData icon, String title, bool value, Function(bool) onChanged, bool isDark) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: Colors.deepOrange),
-      title: Text(title, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
-=======
   Widget _buildSwitchTile(
-    IconData icon,
-    String title,
-    bool value,
-    Function(bool) onChanged,
-    bool isDark,
-  ) {
+      IconData icon,
+      String title,
+      bool value,
+      Function(bool) onChanged,
+      bool isDark,
+      ) {
     return SwitchListTile(
       secondary: Icon(icon, color: Colors.deepOrange),
       title: Text(
         title,
         style: TextStyle(color: isDark ? Colors.white : Colors.black87),
       ),
->>>>>>> c30d5f6 (initial commit)
       value: value,
       activeColor: Colors.deepOrange,
       onChanged: onChanged,
