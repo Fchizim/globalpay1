@@ -1,0 +1,88 @@
+name: globalpay
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: any
+  google_fonts: any
+
+  # UI / Animation
+  iconsax_plus: any
+  phosphor_flutter: any
+  lucide_icons_flutter: ^3.1.5
+  smooth_page_indicator: any
+  flutter_spinkit: any
+  flutter_animate: any
+  glassmorphism: ^2.0.0
+  glassmorphism_ui: any
+  blur: any
+  carousel_slider: any
+  flip_card: any
+  marquee: ^2.2.3
+  reorderables: ^0.4.2
+
+  # Media & Files
+  image_picker: any
+  screenshot: any
+  pdf: any
+  printing: any
+  path_provider: any
+  open_filex: any
+  qr_flutter: any
+  mobile_scanner: any
+
+  # Network & Storage
+  dio: ^5.9.0
+  http: any
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: any
+
+  # State / Utils
+  provider: ^6.1.2
+  equatable: ^2.0.7
+  intl: any
+  intl_phone_field: any
+  intl_phone_number_input: any
+  pinput: any
+  dropdown_search: ^5.0.6
+
+  # Maps & Location
+  flutter_map: any
+  latlong2: any
+
+  # Country / Phone
+  country_flags: any
+  country_pickers: any
+
+  # Misc
+  confetti: any
+  webview_flutter: any
+  mailer: ^6.6.0
+  device_info_plus: ^12.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: any
+  flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/png/globalpay_icon.png"
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/png/
+    - assets/images/svg/
+    - assets/icons/png/
+    - assets/data/countries.json

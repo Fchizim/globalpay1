@@ -1,0 +1,54 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "globalpay2",
+          "appId": "1:955141136589:android:b713917debcdfe511b8984",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "globalpay2",
+          "appId": "1:955141136589:ios:4559e79a447ed6981b8984",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "globalpay2",
+          "appId": "1:955141136589:ios:4559e79a447ed6981b8984",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "globalpay2",
+          "configurations": {
+            "android": "1:955141136589:android:b713917debcdfe511b8984",
+            "ios": "1:955141136589:ios:4559e79a447ed6981b8984",
+            "macos": "1:955141136589:ios:4559e79a447ed6981b8984",
+            "web": "1:955141136589:web:9f7cd800eeef29f91b8984",
+            "windows": "1:955141136589:web:dbf76cb2978a20621b8984"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

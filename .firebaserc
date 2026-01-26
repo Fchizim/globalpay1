@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "dev": "globalpay2",
+    "default": "globalpay2"
+  },
+  "targets": {},
+  "etags": {}
+}
