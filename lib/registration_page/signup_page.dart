@@ -60,9 +60,9 @@ class _SignupPageState extends State<SignupPage> {
 
   void _gotoOtpScreen() async {
     if (!_isValidEmail(emailController.text.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter valid email")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter valid email")));
       return;
     }
 
@@ -77,9 +77,9 @@ class _SignupPageState extends State<SignupPage> {
         "phone": phoneController.text.trim().isEmpty
             ? "0000000000"
             : phoneController.text.trim(),
-        "gender": selectedGender,   // ✅ ADD THIS
+        "gender": selectedGender, // ✅ ADD THIS
         "pin": "0000",
-        "address": "Not set"
+        "address": "Not set",
       }),
     );
 
@@ -93,17 +93,18 @@ class _SignupPageState extends State<SignupPage> {
         curve: Curves.easeInOut,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'])),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(data['message'])));
     }
   }
 
   void _verifyOtp() async {
-    if (otpController.text.length != 4) {  // match PHP OTP
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter valid 4-digit OTP")),
-      );
+    if (otpController.text.length != 4) {
+      // match PHP OTP
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter valid 4-digit OTP")));
       return;
     }
 
@@ -130,14 +131,14 @@ class _SignupPageState extends State<SignupPage> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'])),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Network error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Network error: $e")));
     } finally {
       setState(() => isLoading = false);
     }
@@ -145,11 +146,10 @@ class _SignupPageState extends State<SignupPage> {
 
   void _nextPage() {
     if (currentPage == 0) {
-      if (fullNameController.text.isEmpty ||
-          selectedGender == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please fill all fields")),
-        );
+      if (fullNameController.text.isEmpty || selectedGender == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
         return;
       }
     }
@@ -169,19 +169,59 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  void _back() {
+    if (currentPage == 0) {
+      Navigator.pop(context);
+    } else {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lightBg = const Color(0xFFF5F6F8);
     final darkBg = const Color(0xFF121212);
 
+    final Color lightTop = const Color(0xFFF5F6F8);
+    final Color lightBottom = Colors.grey.shade200;
+
+    final Color darkTop = const Color(0xFF121212);
+    final Color darkBottom = Colors.grey.shade900;
+
+    final Color cardLight = Colors.white;
+    final Color cardDark = const Color(0xFF1E1E1E);
+
+    final Color textLight = Colors.black87;
+    final Color textDark = Colors.white;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Sign Up"),
-        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: Container(
+          // decoration: BoxDecoration(
+          //   gradient: LinearGradient(
+          //     colors: isDark ? [darkTop, darkBottom] : [lightTop, lightBottom],
+          //     begin: Alignment.topCenter,
+          //     end: Alignment.bottomCenter,
+          //   ),
+          // ),
+        ),
+        title: Text(
+          "Sign Up",
+          style: TextStyle(color: isDark ? textDark : textLight),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.deepOrange),
+        leading: IconButton(
+          onPressed: _back,
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepOrange),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -255,8 +295,9 @@ class _SignupPageState extends State<SignupPage> {
                     "Email",
                     style: TextStyle(
                       color: useEmail ? Colors.deepOrange : Colors.grey,
-                      fontWeight:
-                      useEmail ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: useEmail
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -268,8 +309,9 @@ class _SignupPageState extends State<SignupPage> {
                     "Phone",
                     style: TextStyle(
                       color: !useEmail ? Colors.deepOrange : Colors.grey,
-                      fontWeight:
-                      !useEmail ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: !useEmail
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -301,15 +343,17 @@ class _SignupPageState extends State<SignupPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.deepOrange,
             minimumSize: const Size(double.infinity, 55),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           onPressed: _gotoOtpScreen,
           child: const Text(
-              "Send Code",
-            selectionColor:Colors.black87,
+            "Send Code",
+            style: TextStyle(color: Colors.black),
+            selectionColor: Colors.black87,
           ),
-        )
+        ),
       ],
     );
   }
@@ -331,16 +375,12 @@ class _SignupPageState extends State<SignupPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.deepOrange,
             minimumSize: const Size(double.infinity, 55),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          onPressed: _verifyOtp,
-          child: const Text(
-            "Continue",
-            style: TextStyle(
-              color: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
+          onPressed: _verifyOtp,
+          child: const Text("Continue", style: TextStyle(color: Colors.black)),
         ),
       ],
     );
@@ -377,11 +417,11 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Widget _textField(
-      String label,
-      TextEditingController controller,
-      bool isDark, {
-        TextInputType? keyboardType,
-      }) {
+    String label,
+    TextEditingController controller,
+    bool isDark, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
@@ -431,12 +471,7 @@ class _SignupPageState extends State<SignupPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       onPressed: _nextPage,
-      child: const Text(
-        "Next",
-        style: TextStyle(
-          color: Colors.black,
-        ),
-      ),
+      child: const Text("Next", style: TextStyle(color: Colors.black)),
     );
   }
 }

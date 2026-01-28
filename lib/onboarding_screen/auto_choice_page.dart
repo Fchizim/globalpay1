@@ -105,13 +105,13 @@ class AuthChoicePage extends StatelessWidget {
                   shadowColor: Colors.deepOrange.withOpacity(0.4),
                 ),
                 onPressed: () {
-                  Navigator.pushAndRemoveUntil(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => SignupPage(
                         onToggleTheme: onToggleTheme, onLoginSuccess: () {  },),
                     ),
-                        (route) => false,
+
                   );
                 },
                 label: const Text(
