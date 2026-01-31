@@ -7,6 +7,9 @@ import 'package:globalpay/profile_details/email_binding.dart';
 import 'package:globalpay/profile_details/invite.dart';
 import 'package:globalpay/profile_details/kyc_level.dart';
 
+import '../models/user_model.dart';
+import '../services/secure_storage_service.dart';
+
 /// Helper class for storing user name
 class LocalUser {
   static Future<String?> getName() async {
@@ -28,21 +31,39 @@ class ProfileDetails extends StatefulWidget {
 }
 
 class _ProfileDetailsState extends State<ProfileDetails> {
-  String? userName;
+  UserModel? _user;
+  bool _loadingUser = true;
+  // String? userName;
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    // _loadUserName(); // existing
+    _loadUser();     // new
   }
 
-  Future<void> _loadUserName() async {
-    userName = await LocalUser.getName();
-    if (mounted) setState(() {});
+  Future<void> _loadUser() async {
+    final user = await SecureStorageService.getUser();
+    if (!mounted) return;
+
+    setState(() {
+      _user = user;
+      _loadingUser = false;
+    });
   }
+
+  // Future<void> _loadUserName() async {
+  //   userName = await LocalUser.getName();
+  //   if (mounted) setState(() {});
+  // }
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingUser) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -79,8 +100,10 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                       children: [
                         CircleAvatar(
                           radius: 45,
-                          backgroundImage: const AssetImage('assets/images/png/gold.jpg'),
                           backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                          backgroundImage: _user?.image != null && _user!.image.isNotEmpty
+                              ? NetworkImage(_user!.image) as ImageProvider
+                              : const AssetImage('assets/images/png/gold.jpg'),
                         ),
                         CircleAvatar(
                           radius: 16,
@@ -97,7 +120,7 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                       Row(
                         children: [
                           Text(
-                            'Hi, ${userName ?? 'Gold'}',
+                            'Hi, ${_user?.name ?? 'Welcome'}',
                             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(width: 6),
@@ -107,7 +130,8 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                       const SizedBox(height: 6),
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const KycLevelsPage()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) =>
+                          const KycLevelsPage()));
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -115,15 +139,15 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                             color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'President',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                                _user?.kycLevel ?? '',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                               ),
-                              SizedBox(width: 4),
-                              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white),
                             ],
                           ),
                         ),
@@ -156,12 +180,12 @@ class _ProfileDetailsState extends State<ProfileDetails> {
               context,
               cardColor: cardColor,
               items: [
-                _infoRow("Account Number", "1234567890"),
-                _infoRow("Email", "Add Email", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmailBinding()))),
-                _infoRow("Full Name", userName ?? "GOLD EMMANUEL"),
-                _infoRow("Nickname", "Goldy"),
-                _infoRow("Mobile Number", "+1 234 567 8900"),
-                _infoRow("Gender", "Male"),
+                _infoRow("Account Number", _user?.accountNumber ?? "—"),
+                _infoRow("Email", _user?.email?.isNotEmpty == true ? _user!.email : "Add Email",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmailBinding()))),
+                _infoRow("Full Name", _user?.name ?? "—"),
+                _infoRow("Mobile Number", _user?.phone ?? "—"),
+                _infoRow("Gender", _user?.gender ?? "—"),
               ],
             ),
 
@@ -172,10 +196,10 @@ class _ProfileDetailsState extends State<ProfileDetails> {
               context,
               cardColor: cardColor,
               items: [
-                _infoRow("Date of Birth", "2005-05-17"),
-                _infoRow("Address", "123, Enugu, Nigeria"),
-                _infoRow("Location", "USA"),
-                _infoRow("KYC Level", "President", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KycLevel()))),
+                _infoRow("Date of Birth", _user?.dob ?? "—"),
+                _infoRow("Address", _user?.address ?? "—"),
+                _infoRow("Location", _user?.location ?? "—"),
+                _infoRow("KYC Level", _user?.kycLevel ?? "—", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KycLevel()))),
               ],
             ),
 

@@ -11,7 +11,11 @@ class UserModel {
   final String role;
   final String status;
   final String address;
-  final int kycStatus;
+  final String accountNumber;
+  final String accountName;
+  final String dob;
+  final String location;
+  final String kycLevel;
   final bool isVerified;
 
   UserModel({
@@ -27,7 +31,11 @@ class UserModel {
     required this.role,
     required this.status,
     required this.address,
-    required this.kycStatus,
+    required this.accountNumber,
+    required this.accountName,
+    required this.dob,
+    required this.location,
+    required this.kycLevel,
     required this.isVerified,
   });
 
@@ -45,7 +53,12 @@ class UserModel {
       role: json['role'] ?? '',
       status: json['status'] ?? '',
       address: json['address'] ?? '',
-      kycStatus: int.tryParse(json['kyc_status'].toString()) ?? 0,
+      accountNumber: json['accountNumber'] ?? '',
+      dob: json['dob'] ?? '',
+      location: json['location'] ?? '',
+      kycLevel: json['kycLevel'] ?? '',
+      accountName: json['accountName'] ?? '',
+      // kycStatus: int.tryParse(json['kyc_status'].toString()) ?? 0,
       isVerified: json['is_verified'].toString() == '1',
     );
   }
@@ -64,7 +77,11 @@ class UserModel {
       'role': role,
       'status': status,
       'address': address,
-      'kyc_status': kycStatus,
+      'account_number': accountNumber,
+      'account_name': accountName,
+      'dob': dob,
+      'location': location,
+      'kycLevel': kycLevel,
       'is_verified': isVerified ? 1 : 0,
     };
   }

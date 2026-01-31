@@ -79,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
           builder: (_) => MyAppsPage(
               onToggleTheme: widget.onToggleTheme),
         ),
-            (_) => false,
+            (_) => false
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -12,6 +13,7 @@ import '../models/user_model.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
 import '../qrcode_send/qrcode_send.dart' hide UserBalance;
+import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
 import 'airtime_page.dart';
 import 'all_asset.dart';
@@ -38,29 +40,81 @@ class _HomePageState extends State<HomePage> {
   bool isRefreshing = false;
   bool _showFullFormat = false;
 
+  Timer? _autoRefreshTimer; // <-- Added auto-refresh timer
+
   @override
   void initState() {
     super.initState();
     _loadUser();
-  }
 
-  Future<void> _loadUser() async {
-    final user = await SecureStorageService.getUser();
-    setState(() {
-      _user = user;
-      _loadingUser = false;
+    // Auto-refresh every 10 seconds
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      await _refreshUserData();
     });
-
-    // sync wallet with balance singleton (optional)
-    if (user != null) {
-      UserBalance.instance.balance = user.wallet;
-    }
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _autoRefreshTimer?.cancel(); // cancel timer to avoid memory leaks
     super.dispose();
+  }
+
+  Future<void> _loadUser() async {
+    // 1. Load user from local storage immediately
+    final localUser = await SecureStorageService.getUser();
+    setState(() {
+      _user = localUser;
+      _loadingUser = false;
+    });
+
+    if (localUser == null) return;
+
+    // 2. Fetch latest profile from backend
+    final freshUser = await ProfileService.getProfile(localUser.userId);
+    if (freshUser != null) {
+      await SecureStorageService.saveUser(freshUser);
+      setState(() {
+        _user = freshUser;
+        UserBalance.instance.balance = freshUser.wallet;
+      });
+    }
+  }
+
+  // Extracted refresh logic for auto-refresh
+  Future<void> _refreshUserData() async {
+    final localUser = await SecureStorageService.getUser();
+    if (localUser != null) {
+      final freshUser = await ProfileService.getProfile(localUser.userId);
+      if (freshUser != null) {
+        await SecureStorageService.saveUser(freshUser);
+        if (mounted) {
+          setState(() {
+            _user = freshUser;
+            UserBalance.instance.balance = freshUser.wallet;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() => isRefreshing = true);
+
+    await _refreshUserData();
+
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() => isRefreshing = false);
+  }
+
+  Future<void> _navigateWithLoader(Widget page) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LoaderWrapper(child: page)),
+    );
+
+    // Refresh profile after returning
+    await _refreshUserData();
   }
 
   String formatFull(double amount) {
@@ -77,19 +131,6 @@ class _HomePageState extends State<HomePage> {
       final formatter = NumberFormat("#,##0.00", "en_US");
       return "${CurrencyConfig().symbol}${formatter.format(amount)}";
     }
-  }
-
-  Future<void> _refresh() async {
-    setState(() => isRefreshing = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => isRefreshing = false);
-  }
-
-  Future<void> _navigateWithLoader(Widget page) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => LoaderWrapper(child: page)),
-    );
   }
 
   @override
@@ -121,17 +162,14 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: scaffoldColor,
-      body: Stack(
-        children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification.metrics.pixels <= -100 && !isRefreshing) {
-                _refresh();
-              }
-              return false;
-            },
-            child: SingleChildScrollView(
-              child: Column(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: Colors.deepOrange,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              Column(
                 children: [
                   const SizedBox(height: 20),
                   Padding(
@@ -357,25 +395,25 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-
                   const SizedBox(height: 15),
                   _buildRecentTransactions(
                       context, cardColor, textColor, hintColor),
                   const SizedBox(height: 70),
                 ],
               ),
-            ),
+              if (isRefreshing)
+                const Positioned(
+                  top: 20,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: SpinKitCircle(color: Colors.deepOrange, size: 55),
+                  ),
+                ),
+            ],
           ),
-          if (isRefreshing)
-            const Positioned(
-              top: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SpinKitCircle(color: Colors.deepOrange, size: 55),
-              ),
-            ),
-        ],
+        ),
+
       ),
     );
   }
