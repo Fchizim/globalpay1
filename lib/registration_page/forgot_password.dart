@@ -1,446 +1,400 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mailer/mailer.dart';
-import 'package:mailer/smtp_server.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   final String email;
-  const ForgotPasswordPage({super.key, required this.email, required String phoneNumber});
+
+  const ForgotPasswordPage({
+    super.key,
+    required this.email,
+    required String phoneNumber,
+  });
 
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _ForgotPasswordPageState extends State<ForgotPasswordPage>
-    with SingleTickerProviderStateMixin {
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  // EMAIL
+  late final TextEditingController _emailController;
+  String? _emailError;
+
+  // OTP
   final List<TextEditingController> _otpControllers =
   List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _pinController = TextEditingController();
-  final TextEditingController _confirmPinController = TextEditingController();
+  final List<FocusNode> _otpFocusNodes =
+  List.generate(6, (_) => FocusNode());
+  String? _otpError;
 
-  bool _isLoading = false;
+  // PIN
+  final _pinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
+  String? _pinError;
+  String? _confirmPinError;
+
   bool _codeSent = false;
-  bool _showPinFields = false;
+  bool _verifyingOtp = false;
   bool _otpVerified = false;
   bool _showSuccess = false;
-  String? _message;
-  int _counter = 60;
+
   Timer? _timer;
-
-  late AnimationController _animController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _opacityAnimation;
-
-  String _generatedCode = '';
-
-  // ✅ Gmail credentials for sending OTPs
-  final String _gmailUsername = 'globalpay.otpsender@gmail.com';
-  final String _gmailAppPassword = 'csfeihqjhlecomvt'; // 16-char app password
+  int _secondsLeft = 60;
 
   @override
   void initState() {
     super.initState();
-    _emailController.text = widget.email;
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _scaleAnimation =
-        CurvedAnimation(parent: _animController, curve: Curves.elasticOut);
-    _opacityAnimation =
-        CurvedAnimation(parent: _animController, curve: Curves.easeIn);
-  }
-
-  String get maskedEmail {
-    String email = _emailController.text.trim();
-    int atIndex = email.indexOf('@');
-    if (atIndex <= 1) return email;
-    return email[0] + '*' * (atIndex - 1) + email.substring(atIndex);
-  }
-
-  Future<void> _sendResetCode() async {
-    final email = _emailController.text.trim().toLowerCase();
-    if (email.isEmpty) {
-      setState(() => _message = 'Please enter your email');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _message = 'Generating verification code...';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 800)); // realism delay
-
-    try {
-      _generatedCode = (100000 + Random().nextInt(900000)).toString();
-
-      final smtpServer = gmail(_gmailUsername, _gmailAppPassword);
-
-      final message = Message()
-        ..from = Address(_gmailUsername, 'GlobalPay')
-        ..recipients.add(email)
-        ..subject = 'Your GlobalPay OTP'
-        ..text =
-            'Your OTP to reset your PIN is $_generatedCode. It is valid for 5 minutes.';
-
-      await send(message, smtpServer);
-
-      setState(() {
-        _isLoading = false;
-        _codeSent = true;
-        _message = 'OTP sent to $maskedEmail';
-      });
-
-      _startTimer();
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _message = 'Error sending code: $e';
-      });
-    }
-  }
-
-  void _startTimer() {
-    _counter = 60;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_counter == 0) {
-        timer.cancel();
-      } else {
-        setState(() => _counter--);
-      }
-    });
-  }
-
-  void _checkOtpAndShowPin() {
-    String otp = _otpControllers.map((c) => c.text).join();
-    if (otp.length == 6 && !_otpVerified) {
-      if (otp == _generatedCode) {
-        setState(() {
-          _otpVerified = true;
-          _showPinFields = true;
-          _message = 'OTP verified, almost there...';
-        });
-      } else {
-        setState(() => _message = 'Incorrect code, try again');
-      }
-    }
-  }
-
-  void _confirmPin() async {
-    String pin = _pinController.text.trim();
-    String confirmPin = _confirmPinController.text.trim();
-
-    if (pin.length != 4 || confirmPin.length != 4) {
-      setState(() => _message = 'Enter 4-digit PIN in both fields');
-      return;
-    }
-
-    if (pin != confirmPin) {
-      setState(() => _message = 'PINs do not match');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _message = 'PIN successfully changed!';
-      _showSuccess = true;
-    });
-
-    _animController.forward(from: 0);
-
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) Navigator.pop(context);
-
-    setState(() => _isLoading = false);
+    _emailController = TextEditingController(text: widget.email);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _animController.dispose();
-    for (var c in _otpControllers) c.dispose();
-    for (var f in _otpFocusNodes) f.dispose();
     _emailController.dispose();
+    for (final c in _otpControllers) c.dispose();
+    for (final f in _otpFocusNodes) f.dispose();
     _pinController.dispose();
     _confirmPinController.dispose();
+    _timer?.cancel();
     super.dispose();
+  }
+
+  // ---------------- BACK BUTTON LOGIC ----------------
+  void _handleBack() {
+    if (_showSuccess) {
+      Navigator.pop(context);
+      return;
+    }
+
+    if (_otpVerified) {
+      setState(() {
+        _otpVerified = false;
+        _pinController.clear();
+        _confirmPinController.clear();
+        _pinError = null;
+        _confirmPinError = null;
+      });
+      return;
+    }
+
+    if (_codeSent) {
+      setState(() {
+        _codeSent = false;
+        _verifyingOtp = false;
+        _otpError = null;
+        for (final c in _otpControllers) c.clear();
+        _timer?.cancel();
+      });
+      return;
+    }
+
+    Navigator.pop(context);
+  }
+
+  // ---------------- EMAIL VALIDATION ----------------
+  bool _isValidEmail(String email) {
+    return RegExp(
+      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+    ).hasMatch(email);
+  }
+
+  // ---------------- SEND CODE ----------------
+  void _sendCode() {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty || !_isValidEmail(email)) {
+      setState(() => _emailError = "Enter a valid email address");
+      return;
+    }
+
+    setState(() {
+      _emailError = null;
+      _codeSent = true;
+      _secondsLeft = 60;
+    });
+
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_secondsLeft == 0) {
+        t.cancel();
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
+  }
+
+  // ---------------- OTP ----------------
+  void _onOtpTap(int index) {
+    if (index > 0 && _otpControllers[index - 1].text.isEmpty) {
+      setState(() => _otpError = "Fill previous box first");
+      return;
+    }
+    _otpFocusNodes[index].requestFocus();
+  }
+
+  void _onOtpChanged(int index, String value) async {
+    if (value.isEmpty) return;
+
+    if (index < 5) {
+      _otpFocusNodes[index + 1].requestFocus();
+    }
+
+    final otp = _otpControllers.map((e) => e.text).join();
+    if (otp.length == 6) {
+      setState(() {
+        _verifyingOtp = true;
+        _otpError = null;
+      });
+
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!mounted) return;
+      setState(() {
+        _verifyingOtp = false;
+        _otpVerified = true;
+      });
+    }
+  }
+
+  // ---------------- CONFIRM PIN ----------------
+  void _confirmPin() async {
+    setState(() {
+      _pinError = null;
+      _confirmPinError = null;
+    });
+
+    if (_pinController.text.length != 4) {
+      setState(() => _pinError = "PIN must be 4 digits");
+      return;
+    }
+
+    if (_pinController.text != _confirmPinController.text) {
+      setState(() => _confirmPinError = "PINs do not match");
+      return;
+    }
+
+    setState(() => _showSuccess = true);
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Colors.deepOrange;
-    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subTextColor = isDark ? Colors.white70 : Colors.black54;
-    final inputFill = isDark ? Colors.grey.shade900 : Colors.grey.shade100;
+    final bg = isDark ? const Color(0xFF121212) : Colors.white;
+    final fill = isDark ? Colors.grey.shade900 : Colors.grey.shade100;
+    final text = isDark ? Colors.white : Colors.black87;
+    final subText = isDark ? Colors.white70 : Colors.black54;
+    final primary = Colors.deepOrange;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        title: Text("Reset PIN", style: TextStyle(color: textColor)),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: textColor),
-          onPressed: () => Navigator.pop(context),
+    return WillPopScope(
+      onWillPop: () async {
+        _handleBack();
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: bg,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleBack,
+          ),
+          title: const Text("Reset PIN"),
+          backgroundColor: bg,
+          elevation: 0,
+          foregroundColor: text,
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: bg,
+            statusBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+          ),
         ),
-        backgroundColor: bgColor,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: bgColor,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        ),
-      ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        child: _showSuccess
-            ? _buildSuccessMessage(primaryColor)
-            : Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: SingleChildScrollView(
-            child: _codeSent
-                ? _buildOtpForm(primaryColor, textColor, subTextColor, inputFill)
-                : _buildEmailForm(primaryColor, textColor, subTextColor, inputFill),
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          child: _showSuccess
+              ? _successView(primary)
+              : Padding(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: !_codeSent
+                ? _emailView(primary, text, subText, fill)
+                : _otpVerified
+                ? _pinView(primary, fill)
+                : _otpView(primary, fill, text, subText),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildEmailForm(Color primary, Color text, Color subText, Color fill) {
+  // ---------------- EMAIL ----------------
+  Widget _emailView(
+      Color primary, Color text, Color subText, Color fill) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 30),
+        Text("Forgot your PIN?",
+            style: TextStyle(
+                fontSize: 26, fontWeight: FontWeight.bold, color: text)),
         const SizedBox(height: 10),
-        Text('Forgot your PIN?',
-            style: TextStyle(fontSize: 24, color: text, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        Text('Enter your email to receive a verification code.',
-            style: TextStyle(color: subText, fontSize: 15)),
+        Text("Enter your email address",
+            style: TextStyle(color: subText)),
         const SizedBox(height: 30),
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
-            labelText: 'Email',
-            labelStyle: TextStyle(color: text),
+            labelText: "Email",
+            errorText: _emailError,
             filled: true,
             fillColor: fill,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: primary),
-            ),
+            border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
           ),
-          style: TextStyle(color: text),
+          onChanged: (_) => setState(() => _emailError = null),
         ),
-        const SizedBox(height: 25),
+        const Spacer(),
         ElevatedButton(
-          onPressed: _isLoading ? null : _sendResetCode,
+          onPressed: _sendCode,
           style: ElevatedButton.styleFrom(
             backgroundColor: primary,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            minimumSize: const Size(double.infinity, 56),
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: _isLoading
-              ? Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white)),
-              SizedBox(width: 12),
-              Text('Processing...', style: TextStyle(color: Colors.white)),
-            ],
-          )
-              : const Text('Send code',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          child:
+          const Text("Send Code", style: TextStyle(color: Colors.black)),
         ),
-        if (_message != null) ...[
-          const SizedBox(height: 12),
-          Text(_message!,
-              style: const TextStyle(color: Colors.redAccent, fontSize: 14)),
-        ],
       ],
     );
   }
 
-  Widget _buildOtpForm(Color primary, Color text, Color subText, Color fill) {
+  // ---------------- OTP ----------------
+  Widget _otpView(
+      Color primary, Color fill, Color text, Color subText) {
     return Column(
       children: [
-        const SizedBox(height: 20),
-        if (!_otpVerified) ...[
-          Text('Verification Code',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: text)),
-          const SizedBox(height: 10),
-          Text('Enter the 6-digit code sent to $maskedEmail',
-              style: TextStyle(color: subText, fontSize: 15),
-              textAlign: TextAlign.center),
-        ],
-        const SizedBox(height: 30),
-        _otpVerified
-            ? _buildVerifiedView(primary, text)
-            : _buildOtpFields(primary, text, fill),
-        const SizedBox(height: 20),
-        if (!_otpVerified && _counter > 0)
-          Text('Request new code in $_counter s',
-              style: TextStyle(
-                  color: _counter <= 10 ? primary : subText,
-                  fontWeight: _counter <= 10 ? FontWeight.bold : FontWeight.normal)),
-        const SizedBox(height: 30),
-        if (_showPinFields) ..._buildPinFields(primary, text, fill),
-        if (_message != null) ...[
-          const SizedBox(height: 10),
-          Text(_message!,
-              style: TextStyle(
-                  color: _message!.contains('success') ? Colors.green : Colors.redAccent)),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildOtpFields(Color primary, Color text, Color fill) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(
-        6,
-            (index) => SizedBox(
-          width: 45,
-          child: TextField(
-            controller: _otpControllers[index],
-            focusNode: _otpFocusNodes[index],
-            maxLength: 1,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, color: text),
-            decoration: InputDecoration(
-              counterText: '',
-              filled: true,
-              fillColor: fill,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: primary, width: 2)),
+        Text("Verification Code",
+            style: TextStyle(
+                fontSize: 22, fontWeight: FontWeight.bold, color: text)),
+        const SizedBox(height: 8),
+        Text("Enter the 6-digit code",
+            style: TextStyle(color: subText)),
+        const SizedBox(height: 25),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(
+            6,
+                (i) => SizedBox(
+              width: 46,
+              child: TextField(
+                controller: _otpControllers[i],
+                focusNode: _otpFocusNodes[i],
+                maxLength: 1,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  counterText: "",
+                  filled: true,
+                  fillColor: fill,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onTap: () => _onOtpTap(i),
+                onChanged: (v) => _onOtpChanged(i, v),
+              ),
             ),
-            onChanged: (value) {
-              if (value.isNotEmpty && index < 5) {
-                _otpFocusNodes[index + 1].requestFocus();
-              } else if (value.isEmpty && index > 0) {
-                _otpFocusNodes[index - 1].requestFocus();
-              }
-              _checkOtpAndShowPin();
-            },
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildVerifiedView(Color primary, Color text) {
-    return Column(
-      children: [
-        Container(
-            height: 120,
-            width: 120,
-            decoration:
-            BoxDecoration(shape: BoxShape.circle, color: primary.withOpacity(0.1)),
-            child: Icon(Icons.verified_rounded, color: primary, size: 70)),
-        const SizedBox(height: 10),
-        Text('Verification successful!',
-            style: TextStyle(fontSize: 18, color: primary, fontWeight: FontWeight.bold)),
-        Text('You can now reset your PIN below.',
-            style: TextStyle(color: text.withOpacity(0.7), fontSize: 14),
-            textAlign: TextAlign.center),
+        if (_otpError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child:
+            Text(_otpError!, style: const TextStyle(color: Colors.red)),
+          ),
+        const SizedBox(height: 30),
+        if (_verifyingOtp) const CircularProgressIndicator(),
+        const SizedBox(height: 30),
+        _secondsLeft > 0
+            ? Text("Resend code in $_secondsLeft s",
+            style: TextStyle(color: subText))
+            : TextButton(
+          onPressed: _sendCode,
+          child: const Text("Didn’t receive code? Send again"),
+        ),
       ],
     );
   }
 
-  List<Widget> _buildPinFields(Color primary, Color text, Color fill) {
-    return [
-      TextField(
-        controller: _pinController,
-        maxLength: 4,
-        obscureText: true,
-        keyboardType: TextInputType.number,
-        style: TextStyle(color: text),
-        decoration: InputDecoration(
-          labelText: 'Enter new 4-digit PIN',
-          labelStyle: TextStyle(color: text),
-          filled: true,
-          fillColor: fill,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: primary, width: 2)),
+  // ---------------- PIN ----------------
+  Widget _pinView(Color primary, Color fill) {
+    return Column(
+      children: [
+        TextField(
+          controller: _pinController,
+          maxLength: 4,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: "New PIN",
+            errorText: _pinError,
+            filled: true,
+            fillColor: fill,
+            border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          onChanged: (_) => setState(() => _pinError = null),
         ),
-      ),
-      const SizedBox(height: 14),
-      TextField(
-        controller: _confirmPinController,
-        maxLength: 4,
-        obscureText: true,
-        keyboardType: TextInputType.number,
-        style: TextStyle(color: text),
-        decoration: InputDecoration(
-          labelText: 'Confirm new PIN',
-          labelStyle: TextStyle(color: text),
-          filled: true,
-          fillColor: fill,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: primary, width: 2)),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _confirmPinController,
+          maxLength: 4,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: "Confirm PIN",
+            errorText: _confirmPinError,
+            filled: true,
+            fillColor: fill,
+            border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          onChanged: (_) =>
+              setState(() => _confirmPinError = null),
         ),
-      ),
-      const SizedBox(height: 20),
-      ElevatedButton(
-        onPressed: _confirmPin,
-        style: ElevatedButton.styleFrom(
+        const SizedBox(height: 30),
+        ElevatedButton(
+          onPressed: _confirmPin,
+          style: ElevatedButton.styleFrom(
             backgroundColor: primary,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-        child: _isLoading
-            ? Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-            SizedBox(width: 12),
-            Text('Processing...', style: TextStyle(color: Colors.white)),
-          ],
-        )
-            : const Text('Confirm PIN',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      ),
-    ];
+            minimumSize: const Size(double.infinity, 56),
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: const Text("Confirm PIN",
+              style: TextStyle(color: Colors.black)),
+        ),
+      ],
+    );
   }
 
-  Widget _buildSuccessMessage(Color primary) {
+  // ---------------- SUCCESS ----------------
+  Widget _successView(Color primary) {
     return Center(
-      child: AnimatedBuilder(
-        animation: _animController,
-        builder: (context, child) {
-          return Opacity(
-            opacity: _opacityAnimation.value,
-            child: Transform.scale(scale: _scaleAnimation.value, child: child),
-          );
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(height: 70),
-            Icon(Icons.task_alt_rounded, color: primary, size: 110),
-            const SizedBox(height: 25),
-            Text('PIN successfully changed!',
-                style: TextStyle(fontSize: 22, color: primary, fontWeight: FontWeight.bold)),
-          ],
-        ),
+      child: Column(
+        children: [
+          Icon(Icons.check_circle, size: 110, color: primary),
+          const SizedBox(height: 20),
+          const Text(
+            "PIN successfully changed!",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

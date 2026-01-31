@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../apps/apps.dart';
+import 'forgot_password.dart';
 import 'signup_page.dart';
 import '../models/user_model.dart';
 import '../services/secure_storage_service.dart';
@@ -159,11 +160,34 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                // 🔹 FORGOT PIN BUTTON ----------------------------------
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordPage(email: '', phoneNumber: '',),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Forgot PIN?",
+                      style: TextStyle(
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
 
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 55),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -181,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                const SizedBox(height: 25),
+                const SizedBox(height: 20),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -204,11 +228,10 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         );
                       },
-                      child: const Text(
-                        "Sign Up",
+                      child: Text(
+                        "Click to sign Up!",
                         style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
+                          color: Colors.deepOrange,
                         ),
                       ),
                     ),
