@@ -96,7 +96,6 @@ class _LoginPageState extends State<LoginPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lightBg = const Color(0xFFF5F6F8);
     final darkBg = const Color(0xFF121212);
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
