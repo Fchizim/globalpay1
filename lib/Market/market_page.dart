@@ -4,7 +4,6 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:globalpay/Market/seller_chart.dart';
 import 'chat.dart';
 import 'editors_profile.dart';
-import 'package:globalpay/Market/users_pages.dart';
 
 class CardPage extends StatefulWidget {
   const CardPage({super.key});
@@ -50,19 +49,25 @@ class _CardPageState extends State<CardPage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  Widget buildGrid(List<Map> items, bool isDarkMode) {
+  // Responsive scale function
+  double s(double value, BuildContext context) {
+    final sw = MediaQuery.of(context).size.width;
+    return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
+  }
+
+  Widget buildGrid(List<Map> items, bool isDarkMode, BuildContext context) {
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: s(4, context), vertical: s(8, context)),
       itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+        mainAxisSpacing: s(8, context),
+        crossAxisSpacing: s(8, context),
         childAspectRatio: 0.73,
       ),
       itemBuilder: (context, index) {
-        return ProductCard(items[index], isDarkMode: isDarkMode);
+        return ProductCard(items[index], isDarkMode: isDarkMode, context: context);
       },
     );
   }
@@ -88,16 +93,16 @@ class _CardPageState extends State<CardPage> with SingleTickerProviderStateMixin
                 Navigator.push(context, MaterialPageRoute(builder: (context) => OwnerPage()));
               },
               child: CircleAvatar(
-                radius: 18,
+                radius: s(18, context),
                 backgroundImage: const AssetImage('assets/images/png/temu.jpeg'),
                 backgroundColor: Colors.deepOrange.shade100,
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: s(10, context)),
             Text(
               'Marketplace',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: s(24, context),
                 fontWeight: FontWeight.w600,
                 color: isDarkMode ? Colors.white : Colors.black,
               ),
@@ -105,7 +110,6 @@ class _CardPageState extends State<CardPage> with SingleTickerProviderStateMixin
           ],
         ),
         actions: [
-          // Small cart icon
           IconButton(
             icon: Icon(IconsaxPlusLinear.shopping_cart,
                 color: isDarkMode ? Colors.white : Colors.black),
@@ -128,29 +132,28 @@ class _CardPageState extends State<CardPage> with SingleTickerProviderStateMixin
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            height: _isTabVisible ? 56 : 0,
+            height: _isTabVisible ? s(56, context) : 0,
             curve: Curves.easeInOut,
             child: _isTabVisible
                 ? Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              margin: EdgeInsets.symmetric(horizontal: s(12, context), vertical: s(6, context)),
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? Colors.white10
                     : Colors.deepOrange.shade50.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(s(30, context)),
               ),
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
                   color: Colors.deepOrange,
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(s(25, context)),
                 ),
                 labelColor: Colors.white,
-                unselectedLabelColor:
-                isDarkMode ? Colors.white70 : Colors.black54,
+                unselectedLabelColor: isDarkMode ? Colors.white70 : Colors.black54,
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
-                tabs: const [
+                tabs: [
                   Tab(text: 'Versatile'),
                   Tab(text: 'Clothing'),
                   Tab(text: 'Food'),
@@ -163,9 +166,9 @@ class _CardPageState extends State<CardPage> with SingleTickerProviderStateMixin
             child: TabBarView(
               controller: _tabController,
               children: [
-                buildGrid(products, isDarkMode),
-                buildGrid(products, isDarkMode),
-                buildGrid(products, isDarkMode),
+                buildGrid(products, isDarkMode, context),
+                buildGrid(products, isDarkMode, context),
+                buildGrid(products, isDarkMode, context),
               ],
             ),
           ),
@@ -178,7 +181,13 @@ class _CardPageState extends State<CardPage> with SingleTickerProviderStateMixin
 class ProductCard extends StatelessWidget {
   final Map p;
   final bool isDarkMode;
-  const ProductCard(this.p, {super.key, this.isDarkMode = false});
+  final BuildContext context;
+  const ProductCard(this.p, {super.key, this.isDarkMode = false, required this.context});
+
+  double s(double value) {
+    final sw = MediaQuery.of(context).size.width;
+    return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +210,7 @@ class ProductCard extends StatelessWidget {
         );
       },
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(s(12))),
         elevation: 3,
         color: cardColor,
         child: Column(
@@ -209,35 +218,37 @@ class ProductCard extends StatelessWidget {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(s(12))),
                 child: Image.asset(p['image'], fit: BoxFit.cover, width: double.infinity),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(6.0),
+              padding: EdgeInsets.all(s(6)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(p['name'],
                       style: TextStyle(
-                          fontWeight: FontWeight.bold, color: textColor)),
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          fontSize: s(14))),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(p['price'],
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Colors.green,
-                              fontWeight: FontWeight.w600)),
+                              fontWeight: FontWeight.w600,
+                              fontSize: s(14))),
                       IconButton(
-                        icon: const Icon(IconsaxPlusLinear.add_circle),
+                        icon: Icon(IconsaxPlusLinear.add_circle, size: s(22)),
                         color: Colors.deepOrange,
                         onPressed: () {},
                       ),
                     ],
                   ),
                   Text(p['seller'],
-                      style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 12)),
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: s(12))),
                 ],
               ),
             ),
@@ -276,29 +287,34 @@ class ProductDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double s(double value) {
+      final sw = MediaQuery.of(context).size.width;
+      return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
+    }
+
     final bgColor = isDarkMode ? const Color(0xFF121212) : Colors.grey.shade100;
     final textColor = isDarkMode ? Colors.white : Colors.black;
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text(name, style: TextStyle(color: textColor)),
+        title: Text(name, style: TextStyle(color: textColor, fontSize: s(20))),
         backgroundColor: bgColor,
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              height: 350,
-              padding: const EdgeInsets.all(16.0),
-              child: Image.asset(image, fit: BoxFit.contain),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Row(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: s(15)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                height: s(350),
+                padding: EdgeInsets.all(s(16)),
+                child: Image.asset(image, fit: BoxFit.contain),
+              ),
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
@@ -306,16 +322,16 @@ class ProductDetailsPage extends StatelessWidget {
                     children: [
                       Text(name,
                           style: TextStyle(
-                              fontSize: 22,
+                              fontSize: s(22),
                               fontWeight: FontWeight.bold,
                               color: textColor)),
                       Text(price,
-                          style: const TextStyle(
-                              fontSize: 20,
+                          style: TextStyle(
+                              fontSize: s(20),
                               color: Colors.green,
                               fontWeight: FontWeight.w600)),
                       Text("Sold by: $seller",
-                          style: TextStyle(fontSize: 16, color: textColor)),
+                          style: TextStyle(fontSize: s(16), color: textColor)),
                     ],
                   ),
                   Row(
@@ -323,33 +339,34 @@ class ProductDetailsPage extends StatelessWidget {
                       _actionButton(context, IconsaxPlusLinear.message, 'Message', () {
                         Navigator.push(context,
                             MaterialPageRoute(builder: (_) => ChatScreen()));
-                      }),
-                      const SizedBox(width: 20),
-                      _actionButton(context, IconsaxPlusLinear.coin_1, 'Send offer', () {}),
+                      }, s),
+                      SizedBox(width: s(20)),
+                      _actionButton(context, IconsaxPlusLinear.coin_1, 'Send offer', () {}, s),
                     ],
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _actionButton(
-      BuildContext context, IconData icon, String label, VoidCallback onTap) {
+      BuildContext context, IconData icon, String label, VoidCallback onTap, double Function(double) s) {
     return InkWell(
       onTap: onTap,
       child: Column(
         children: [
           Container(
-              height: 40,
-              width: 40,
+              height: s(40),
+              width: s(40),
               decoration: BoxDecoration(
                   shape: BoxShape.circle, color: Colors.blue.shade100),
-              child: Icon(icon)),
-          Text(label),
+              child: Icon(icon, size: s(22))),
+          SizedBox(height: s(4)),
+          Text(label, style: TextStyle(fontSize: s(12))),
         ],
       ),
     );

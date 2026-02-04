@@ -8,12 +8,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:globalpay/pages/home.dart';
 import 'package:globalpay/main.dart';
 
 
 // import 'package:globalpay1/main.dart';
-import 'package:globalpay/main.dart';
 
 
 void main() {

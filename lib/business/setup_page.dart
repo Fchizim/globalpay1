@@ -21,9 +21,9 @@ class _SetupPageState extends State<SetupPage> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: colorScheme.background,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         actions: [
           GestureDetector(
@@ -84,7 +84,7 @@ class _SetupPageState extends State<SetupPage> {
                 textAlign: TextAlign.center,
                 style: textTheme.bodyLarge?.copyWith(
                   fontSize: 18,
-                  color: colorScheme.onBackground.withOpacity(0.7),
+                  color: colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             )
@@ -150,7 +150,7 @@ class _SetupPageState extends State<SetupPage> {
           labelText: label,
           labelStyle: textTheme.titleLarge?.copyWith(
             fontSize: 20,
-            color: colorScheme.onBackground,
+            color: colorScheme.onSurface,
           ),
           hintText: hint,
           focusedBorder: OutlineInputBorder(

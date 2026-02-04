@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'airtime_successful_page.dart';
 
 class AirtimePage extends StatefulWidget {
-  const AirtimePage({Key? key}) : super(key: key);
+  const AirtimePage({super.key});
 
   @override
   State<AirtimePage> createState() => _AirtimePageState();
@@ -60,7 +60,9 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     _tabController.dispose();
     phoneController.dispose();
     manualAmountController.dispose();
-    for (var b in bulkItems) b.dispose();
+    for (var b in bulkItems) {
+      b.dispose();
+    }
     super.dispose();
   }
 

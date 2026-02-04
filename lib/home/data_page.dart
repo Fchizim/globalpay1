@@ -363,7 +363,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                   ),
                   // Cashback toggle
                   SwitchListTile(
-                    activeColor: primary,
+                    activeThumbColor: primary,
                     value: cashback,
                     onChanged: (val) {
                       setStateSheet(() => cashback = val);

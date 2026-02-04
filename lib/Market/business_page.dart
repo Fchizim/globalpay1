@@ -133,7 +133,7 @@ class _BusinessPageState extends State<BusinessPage> {
                   .animate(delay: (500 + index * 150).ms)
                   .fadeIn(duration: 500.ms)
                   .slideY(begin: 0.2, duration: 500.ms);
-            }).toList(),
+            }),
           ],
         ),
       ),

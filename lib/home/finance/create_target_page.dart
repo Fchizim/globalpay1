@@ -5,7 +5,7 @@ import 'package:globalpay/home/finance/target_save.dart';
 
 
 class CreateTargetPage extends StatefulWidget {
-  const CreateTargetPage({Key? key}) : super(key: key);
+  const CreateTargetPage({super.key});
 
   @override
   State<CreateTargetPage> createState() => _CreateTargetPageState();
@@ -435,7 +435,7 @@ class _CreateTargetPageState extends State<CreateTargetPage> {
               child: SwitchListTile(
                 value: disableInterest,
                 onChanged: (v) => setState(() => disableInterest = v),
-                activeColor: Colors.deepOrange,
+                activeThumbColor: Colors.deepOrange,
                 title: const Text('Enable Strict Saving Mode: Lock my funds until the target maturity date, with no option to cancel or withdraw early.',
                   style: TextStyle(
                       fontSize: 12

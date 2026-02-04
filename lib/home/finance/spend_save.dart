@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SpendAndSavePage extends StatefulWidget {
-  const SpendAndSavePage({Key? key}) : super(key: key);
+  const SpendAndSavePage({super.key});
 
   @override
   State<SpendAndSavePage> createState() => _SpendAndSavePageState();

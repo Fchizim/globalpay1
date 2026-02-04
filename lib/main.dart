@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'splash_screen/splash_screen.dart';
 import 'provider/authprovider.dart';
-import 'home/home_page.dart';
 import 'apps/apps.dart';
 
 Future<void> main() async {

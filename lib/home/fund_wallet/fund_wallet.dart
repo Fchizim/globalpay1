@@ -58,7 +58,7 @@ class _FundWalletState extends State<FundWallet>
       appBar: AppBar(
         backgroundColor: scaffoldColor,
         elevation: 0,
-        iconTheme: IconThemeData(color: theme.colorScheme.onBackground),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -77,7 +77,7 @@ class _FundWalletState extends State<FundWallet>
                     'Fund Wallet',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),

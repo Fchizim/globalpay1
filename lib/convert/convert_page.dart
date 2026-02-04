@@ -9,7 +9,7 @@ import '../home/finance/create_target_page.dart';
 import '../home/finance/target_save.dart';
 
 class FinancePage extends StatefulWidget {
-  const FinancePage({Key? key}) : super(key: key);
+  const FinancePage({super.key});
 
   @override
   State<FinancePage> createState() => _FinancePageState();
@@ -41,14 +41,21 @@ class _FinancePageState extends State<FinancePage>
     super.dispose();
   }
 
+  double s(double value, BuildContext context) {
+    final sw = MediaQuery.of(context).size.width;
+    return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.deepOrange.shade50.withOpacity(0.2),
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : Colors.deepOrange.shade50.withOpacity(0.2),
       appBar: AppBar(
         scrolledUnderElevation: 0,
         backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
@@ -57,7 +64,7 @@ class _FinancePageState extends State<FinancePage>
           "Finance",
           style: TextStyle(
               color: isDark ? Colors.white : Colors.black87,
-              fontSize: 24,
+              fontSize: s(24, context),
               fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -70,14 +77,15 @@ class _FinancePageState extends State<FinancePage>
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _balanceCard(isDark),
+                  padding: EdgeInsets.all(s(16, context)),
+                  child: _balanceCard(isDark, context),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: s(16, context)),
                   child: Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
+                    spacing: s(16, context),
+                    runSpacing: s(16, context),
                     children: [
                       InkWell(
                         onTap: () {
@@ -90,18 +98,21 @@ class _FinancePageState extends State<FinancePage>
                             icon: Icons.flag,
                             title: "Target Save",
                             subtitle: "Set savings goals",
-                            isDark: isDark),
+                            isDark: isDark,
+                            context: context),
                       ),
                       _financeCard(width,
                           icon: Icons.savings,
                           title: "Safebox",
                           subtitle: "Hidden stash",
-                          isDark: isDark),
+                          isDark: isDark,
+                          context: context),
                       _financeCard(width,
                           icon: Icons.request_quote,
                           title: "Loan",
                           subtitle: "Quick cash",
-                          isDark: isDark),
+                          isDark: isDark,
+                          context: context),
                       InkWell(
                         onTap: () {
                           Navigator.push(
@@ -113,7 +124,8 @@ class _FinancePageState extends State<FinancePage>
                             icon: IconsaxPlusBold.money_3,
                             title: "Spend & Save",
                             subtitle: "Save a percentage everytime you spend",
-                            isDark: isDark),
+                            isDark: isDark,
+                            context: context),
                       ),
                       InkWell(
                         onTap: () {
@@ -126,12 +138,13 @@ class _FinancePageState extends State<FinancePage>
                             icon: Icons.pie_chart_outline,
                             title: "Budgeting",
                             subtitle: "Track expenses",
-                            isDark: isDark),
+                            isDark: isDark,
+                            context: context),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: s(30, context)),
               ],
             ),
           ),
@@ -140,17 +153,17 @@ class _FinancePageState extends State<FinancePage>
     );
   }
 
-  Widget _balanceCard(bool isDark) {
+  Widget _balanceCard(bool isDark, BuildContext context) {
     return InkWell(
-      onTap: (){
-        Navigator.push(context, MaterialPageRoute(builder: (context)=> AllAsset()));
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => AllAsset()));
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         width: double.infinity,
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(s(16, context)),
           boxShadow: [
             BoxShadow(
                 color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
@@ -162,20 +175,21 @@ class _FinancePageState extends State<FinancePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 5,
+              height: s(5, context),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Colors.purple.shade400, Colors.deepOrange.shade300],
                 ),
-                borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(s(16, context)),
+                    topRight: Radius.circular(s(16, context))),
               ),
             ),
             Stack(
               children: [
                 Positioned.fill(child: CustomPaint(painter: _PatchPainter())),
                 Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: EdgeInsets.all(s(20, context)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -190,9 +204,9 @@ class _FinancePageState extends State<FinancePage>
                                       color: isDark
                                           ? Colors.white70
                                           : Colors.grey[700],
-                                      fontSize: 14,
+                                      fontSize: s(14, context),
                                       fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 5),
+                              SizedBox(height: s(5, context)),
                               Text(
                                   _hideBalances
                                       ? "*****"
@@ -201,7 +215,7 @@ class _FinancePageState extends State<FinancePage>
                                       color: isDark
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: 28,
+                                      fontSize: s(28, context),
                                       fontWeight: FontWeight.bold)),
                             ],
                           ),
@@ -212,7 +226,7 @@ class _FinancePageState extends State<FinancePage>
                                   _hideBalances
                                       ? Icons.visibility_off
                                       : Icons.visibility,
-                                  size: 24,
+                                  size: s(24, context),
                                   color: isDark
                                       ? Colors.white70
                                       : Colors.grey[700],
@@ -226,40 +240,38 @@ class _FinancePageState extends State<FinancePage>
                                       _showDetails
                                           ? Icons.keyboard_arrow_up
                                           : Icons.keyboard_arrow_down,
-                                      size: 28,
+                                      size: s(28, context),
                                       color: isDark
                                           ? Colors.white70
-                                          : Colors.grey[700]
-                                  ),
-                                  onPressed: () => setState(
-                                          () => _showDetails = !_showDetails)
-                              )
+                                          : Colors.grey[700]),
+                                  onPressed: () =>
+                                      setState(() => _showDetails = !_showDetails))
                             ],
                           )
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: s(10, context)),
                       AnimatedCrossFade(
                         firstChild: const SizedBox.shrink(),
                         secondChild: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             InkWell(
-                              onTap: (){
+                              onTap: () {
                                 Navigator.push(context, MaterialPageRoute(builder: (context)=> SpendAndSavePage()));
                               },
                               child: _subBalance("Spend & Save", "₦300,000.00",
-                                  isDark),
+                                  isDark, context),
                             ),
-                            _subBalance("Safebox Balance", "₦200,000.00", isDark),
+                            _subBalance("Safebox Balance", "₦200,000.00", isDark, context),
                             InkWell(
                               onTap: (){
                                 Navigator.push(context, MaterialPageRoute(builder: (context)=> TargetSavingsPage()));
                               },
                               child: _subBalance("Target Save Balance", "₦150,000.00",
-                                  isDark),
+                                  isDark, context),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: s(10, context)),
                           ],
                         ),
                         crossFadeState: _showDetails
@@ -267,11 +279,12 @@ class _FinancePageState extends State<FinancePage>
                             : CrossFadeState.showFirst,
                         duration: const Duration(milliseconds: 300),
                       ),
-                      const SizedBox(height: 15),
+                      SizedBox(height: s(15, context)),
                       _actionButton(
                           title: "Set a New Saving Goal",
                           icon: Icons.add_task,
-                          onTap: () {}),
+                          onTap: () {},
+                          context: context),
                     ],
                   ),
                 ),
@@ -283,20 +296,20 @@ class _FinancePageState extends State<FinancePage>
     );
   }
 
-  Widget _subBalance(String label, String amount, bool isDark) {
+  Widget _subBalance(String label, String amount, bool isDark, BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: EdgeInsets.only(bottom: s(8, context)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
               style: TextStyle(
                   color: isDark ? Colors.white70 : Colors.grey.shade700,
-                  fontSize: 14)),
+                  fontSize: s(14, context))),
           Text(_hideBalances ? "*****" : amount,
               style: TextStyle(
                   color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 15,
+                  fontSize: s(15, context),
                   fontWeight: FontWeight.w600)),
         ],
       ),
@@ -306,28 +319,30 @@ class _FinancePageState extends State<FinancePage>
   Widget _actionButton(
       {required String title,
         required IconData icon,
-        required VoidCallback onTap}) {
+        required VoidCallback onTap,
+        required BuildContext context}) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(s(12, context)),
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: EdgeInsets.symmetric(
+            vertical: s(14, context), horizontal: s(12, context)),
         decoration: BoxDecoration(
           color: Colors.purple,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(s(12, context)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
+            Icon(icon, color: Colors.white, size: s(18, context)),
+            SizedBox(width: s(8, context)),
             Flexible(
               child: Text(title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Colors.white,
-                      fontSize: 13,
+                      fontSize: s(13, context),
                       fontWeight: FontWeight.w600)),
             ),
           ],
@@ -340,13 +355,15 @@ class _FinancePageState extends State<FinancePage>
       {required IconData icon,
         required String title,
         required String subtitle,
-        required bool isDark}) {
+        required bool isDark,
+        required BuildContext context}) {
+    final cardWidth = (width - s(48, context)) / 2;
     return Container(
-      width: (width - 48) / 2,
-      height: 130,
+      width: cardWidth,
+      height: s(130, context),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(s(18, context)),
         boxShadow: [
           BoxShadow(
             color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
@@ -355,14 +372,13 @@ class _FinancePageState extends State<FinancePage>
           )
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(s(16, context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gradient avatar container
           Container(
-            width: 36,
-            height: 36,
+            width: s(36, context),
+            height: s(36, context),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -370,18 +386,18 @@ class _FinancePageState extends State<FinancePage>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight),
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Icon(icon, color: Colors.white, size: s(20, context)),
           ),
           const Spacer(),
           Text(title,
               style: TextStyle(
                   color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 16,
+                  fontSize: s(16, context),
                   fontWeight: FontWeight.bold)),
           Text(subtitle,
               style: TextStyle(
                   color: isDark ? Colors.white70 : Colors.grey.shade600,
-                  fontSize: 12,
+                  fontSize: s(12, context),
                   fontWeight: FontWeight.w400)),
         ],
       ),

@@ -229,7 +229,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
       secondary: Icon(icon, color: Colors.deepOrange),
       title: Text(title, style: TextStyle(color: isDark ? Colors.white : Colors.black)),
       value: value,
-      activeColor: Colors.deepOrange,
+      activeThumbColor: Colors.deepOrange,
       onChanged: onChanged,
     );
   }

@@ -443,7 +443,7 @@ class _SignupPageState extends State<SignupPage> {
 
   Widget _genderDropdown(bool isDark) {
     return DropdownButtonFormField<String>(
-      value: selectedGender,
+      initialValue: selectedGender,
       decoration: InputDecoration(
         labelText: "Gender",
         prefixIcon: const Icon(Icons.person_2, color: Colors.deepOrange),

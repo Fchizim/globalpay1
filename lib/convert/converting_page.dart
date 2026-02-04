@@ -41,17 +41,17 @@ class _ConvertingPageState extends State<ConvertingPage>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
-        iconTheme: IconThemeData(color: theme.colorScheme.onBackground),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
         title: Text(
           "Converting",
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         centerTitle: false,
@@ -84,7 +84,7 @@ class _ConvertingPageState extends State<ConvertingPage>
                           style: TextStyle(
                             fontSize: 60,
                             color: index == 0
-                                ? theme.colorScheme.onBackground
+                                ? theme.colorScheme.onSurface
                                 : index == 1
                                 ? Colors.purple
                                 : Colors.deepOrange,
@@ -123,7 +123,7 @@ class _ConvertingPageState extends State<ConvertingPage>
                         height: 50,
                         width: 50,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.onBackground,
+                          color: theme.colorScheme.onSurface,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Icon(IconsaxPlusBold.blend,
@@ -162,7 +162,7 @@ class _ConvertingPageState extends State<ConvertingPage>
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -208,13 +208,13 @@ class _ConvertingPageState extends State<ConvertingPage>
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onBackground.withOpacity(0.8),
+                color: theme.colorScheme.onSurface.withOpacity(0.8),
               )),
           Text(value,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onBackground,
+                color: theme.colorScheme.onSurface,
               )),
         ],
       ),

@@ -107,9 +107,9 @@ class _BusinessHomeState extends State<BusinessHome> {
 
   // Post listing
   void _openPostListingModal() {
-    final _titleController = TextEditingController();
-    final _descController = TextEditingController();
-    final _priceController = TextEditingController();
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    final priceController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -134,18 +134,18 @@ class _BusinessHomeState extends State<BusinessHome> {
               ),
               const SizedBox(height: 20),
               TextField(
-                controller: _titleController,
+                controller: titleController,
                 decoration: const InputDecoration(labelText: 'Product Title', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 15),
               TextField(
-                controller: _descController,
+                controller: descController,
                 decoration: const InputDecoration(labelText: 'Product Description', border: OutlineInputBorder()),
                 maxLines: 3,
               ),
               const SizedBox(height: 15),
               TextField(
-                controller: _priceController,
+                controller: priceController,
                 decoration: const InputDecoration(labelText: 'Price', border: OutlineInputBorder(), prefixText: '₦'),
                 keyboardType: TextInputType.number,
               ),
@@ -154,17 +154,17 @@ class _BusinessHomeState extends State<BusinessHome> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (_titleController.text.isEmpty ||
-                        _descController.text.isEmpty ||
-                        _priceController.text.isEmpty) {
+                    if (titleController.text.isEmpty ||
+                        descController.text.isEmpty ||
+                        priceController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
                       return;
                     }
                     setState(() {
                       _listings.add({
-                        'title': _titleController.text,
-                        'desc': _descController.text,
-                        'price': double.tryParse(_priceController.text) ?? 0.0,
+                        'title': titleController.text,
+                        'desc': descController.text,
+                        'price': double.tryParse(priceController.text) ?? 0.0,
                       });
                     });
                     Navigator.pop(context);
@@ -187,9 +187,9 @@ class _BusinessHomeState extends State<BusinessHome> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: colorScheme.background,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         title: Text(_sellerName, style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
       ),

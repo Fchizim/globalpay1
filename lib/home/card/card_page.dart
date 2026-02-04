@@ -36,6 +36,12 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
     setState(() => showPhysical = physical);
   }
 
+  // Responsive scale helper
+  double s(double value) {
+    final sw = MediaQuery.of(context).size.width;
+    return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -43,20 +49,18 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor:
-      isDark ? const Color(0xFF080809) : const Color(0xFFFFFBF8),
+      backgroundColor: isDark ? const Color(0xFF080809) : const Color(0xFFFFFBF8),
       appBar: AppBar(
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         title: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(s(12)),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(6)),
               color: isDark
                   ? Colors.black.withOpacity(0.3)
                   : Colors.white.withOpacity(0.6),
@@ -65,6 +69,7 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
                 style: TextStyle(
                   color: isDark ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.bold,
+                  fontSize: s(16),
                 ),
               ),
             ),
@@ -76,34 +81,34 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 12),
+                SizedBox(height: s(12)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _toggleButton("Physical", showPhysical, () => _toggle(true)),
-                    const SizedBox(width: 12),
+                    SizedBox(width: s(12)),
                     _toggleButton("Virtual", !showPhysical, () => _toggle(false)),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: s(20)),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: s(16)),
                     child: showPhysical
                         ? _buildPhysicalCardView(isDark)
                         : _buildVirtualCardView(isDark),
                   ),
                 ),
-                const SizedBox(height: 80),
+                SizedBox(height: s(80)),
               ],
             ),
           ),
 
           // -------- Floating Button --------
           Positioned(
-            left: 16,
-            right: 16,
-            bottom: 24,
+            left: s(16),
+            right: s(16),
+            bottom: s(24),
             child: AnimatedBuilder(
               animation: _beatController,
               builder: (context, child) {
@@ -111,18 +116,17 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
                 return Transform.scale(
                   scale: scale,
                   child: SizedBox(
-                    height: 56,
+                    height: s(56),
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         elevation: 10,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 14, horizontal: 20),
+                        padding: EdgeInsets.symmetric(
+                            vertical: s(14), horizontal: s(20)),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(s(14))),
                         backgroundColor: Colors.deepOrange,
-                        shadowColor:
-                        Colors.deepOrangeAccent.withOpacity(0.5),
+                        shadowColor: Colors.deepOrangeAccent.withOpacity(0.5),
                       ),
                       onPressed: () {
                         if (showPhysical) {
@@ -139,20 +143,13 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
                           );
                         }
                       },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            showPhysical
-                                ? "Get Card Now ₦999"
-                                : "Pay Online",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        showPhysical ? "Get Card Now ₦999" : "Pay Online",
+                        style: TextStyle(
+                          fontSize: s(16),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -168,30 +165,30 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
   // ---------- PHYSICAL card view ----------
   Widget _buildPhysicalCardView(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.only(bottom: 28),
+      padding: EdgeInsets.only(bottom: s(28)),
       children: [
         _cardVisual(
           useImage: true,
           cardNumber: "**** **** **** 8321",
           isDark: isDark,
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: s(20)),
         _featureTile(Icons.attach_money, "Low maintenance",
             "Only ₦10/month — transparent small fee, big value.",
             Colors.orange.shade700),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.shopping_bag_outlined, "Accepted everywhere",
             "100k+ merchants across Nigeria (online & offline).",
             Colors.purple),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.local_shipping, "Fast delivery",
             "Physical cards shipped quickly; virtual cards ready instantly.",
             Colors.blueAccent),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.security, "Bank-level security",
             "PCI-level safety, tokenization & instant fraud alerts.",
             Colors.teal),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.support_agent, "24/7 Support",
             "Live chat & responsive support when you need help.",
             Colors.green),
@@ -202,7 +199,7 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
   // ---------- VIRTUAL card view ----------
   Widget _buildVirtualCardView(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.only(bottom: 28),
+      padding: EdgeInsets.only(bottom: s(28)),
       children: [
         _cardVisual(
           useImage: false,
@@ -214,29 +211,31 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
           cardNumber: "**** **** **** 4455",
           isDark: isDark,
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: s(20)),
         _featureTile(Icons.flash_on, "Instant Access",
             "Use your card immediately after creation.", Colors.indigo),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.refresh, "Instant Refunds",
             "Failed transactions refunded instantly.", Colors.redAccent),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.shield_rounded, "Safety",
             "Tokenized payments & rigorous fraud checks.",
             Colors.tealAccent.shade700),
-        const SizedBox(height: 12),
+        SizedBox(height: s(12)),
         _featureTile(Icons.settings_backup_restore, "Chargebacks & Controls",
             "Freeze, limit & control cards in-app.", Colors.deepPurple),
-        const SizedBox(height: 20),
-        const Text("Popular Services",
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-        const SizedBox(height: 12),
+        SizedBox(height: s(20)),
+        Text("Popular Services",
+            style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: s(15))),
+        SizedBox(height: s(12)),
         Row(
           children: [
             _brandChip("Netflix", Colors.redAccent),
-            const SizedBox(width: 10),
+            SizedBox(width: s(10)),
             _brandChip("SportyBet", Colors.green),
-            const SizedBox(width: 10),
+            SizedBox(width: s(10)),
             _brandChip("Spotify", Colors.teal),
           ],
         ),
@@ -252,9 +251,9 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
     bool useImage = false,
   }) {
     return Container(
-      height: 200,
+      height: s(200),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(s(18)),
         image: useImage
             ? const DecorationImage(
           image: AssetImage("assets/images/png/cardbg.png"),
@@ -270,38 +269,38 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(s(18)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Image.asset("assets/images/png/chip.jpeg", height: 28),
-              const Text(
+              Image.asset("assets/images/png/chip.jpeg", height: s(28)),
+              Text(
                 "GlobalPay",
                 style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16),
+                    fontSize: s(16)),
               ),
             ],
           ),
           const Spacer(),
           Text(cardNumber,
-              style: const TextStyle(
+              style: TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: s(20),
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2)),
-          const SizedBox(height: 8),
+          SizedBox(height: s(8)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text("GOLD EMMANUEL",
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  style: TextStyle(color: Colors.white70, fontSize: s(12))),
               Text("12/27",
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  style: TextStyle(color: Colors.white70, fontSize: s(12))),
             ],
           )
         ],
@@ -312,25 +311,25 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
   Widget _featureTile(
       IconData icon, String title, String subtitle, Color accent) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(s(12)),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
             ? const Color(0xFF101010)
             : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(s(12)),
         border: Border.all(color: Colors.grey.withOpacity(0.06)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
-              offset: const Offset(0, 4))
+              offset: Offset(0, 4))
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: s(46),
+            height: s(46),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                   colors: [
@@ -339,28 +338,27 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(s(10)),
               boxShadow: [
                 BoxShadow(
                     color: accent.withOpacity(0.06),
                     blurRadius: 10,
-                    offset: const Offset(0, 4))
+                    offset: Offset(0, 4))
               ],
             ),
-            child: Icon(icon, color: accent, size: 22),
+            child: Icon(icon, color: accent, size: s(22)),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: s(14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 14)),
-                const SizedBox(height: 4),
-                Text(subtitle,
                     style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade700)),
+                        fontWeight: FontWeight.w800, fontSize: s(14))),
+                SizedBox(height: s(4)),
+                Text(subtitle,
+                    style: TextStyle(fontSize: s(12), color: Colors.grey.shade700)),
               ],
             ),
           )
@@ -371,16 +369,14 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
 
   Widget _brandChip(String name, Color color) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(8)),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(s(10)),
         border: Border.all(color: color.withOpacity(0.35)),
       ),
       child: Text(name,
-          style:
-          TextStyle(color: color, fontWeight: FontWeight.bold)),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: s(12))),
     );
   }
 
@@ -389,17 +385,16 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding:
-        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: s(20), vertical: s(8)),
         decoration: BoxDecoration(
           color: selected ? Colors.deepOrange : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(s(20)),
           boxShadow: selected
               ? [
             BoxShadow(
                 color: Colors.deepOrange.withOpacity(0.16),
                 blurRadius: 10,
-                offset: const Offset(0, 6))
+                offset: Offset(0, 6))
           ]
               : [],
         ),
@@ -407,7 +402,8 @@ class _CardsPageState extends State<CardsPage> with TickerProviderStateMixin {
           text,
           style: TextStyle(
               color: selected ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w700),
+              fontWeight: FontWeight.w700,
+              fontSize: s(14)),
         ),
       ),
     );

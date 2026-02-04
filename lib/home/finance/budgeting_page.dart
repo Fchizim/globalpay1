@@ -24,7 +24,7 @@ class ThousandsFormatter extends TextInputFormatter {
 }
 
 class BudgetingPage extends StatefulWidget {
-  const BudgetingPage({Key? key}) : super(key: key);
+  const BudgetingPage({super.key});
 
   @override
   State<BudgetingPage> createState() => _BudgetingPageState();
@@ -218,7 +218,7 @@ class _BudgetingPageState extends State<BudgetingPage> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -335,7 +335,9 @@ class _BudgetingPageState extends State<BudgetingPage> {
                       ElevatedButton(
                           onPressed: () {
                             if (nameController.text.isEmpty ||
-                                amountController.text.isEmpty) return;
+                                amountController.text.isEmpty) {
+                              return;
+                            }
 
                             final limit = double.parse(
                                 amountController.text.replaceAll(',', ''));

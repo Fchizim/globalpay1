@@ -87,7 +87,7 @@ class _TopUpCardPageState extends State<TopUpCardPage> {
                   Text(
                     "Select Expiry Date",
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -114,7 +114,7 @@ class _TopUpCardPageState extends State<TopUpCardPage> {
                                     "${index + 1}".padLeft(2, '0'),
                                     style: TextStyle(
                                       fontSize: 18,
-                                      color: theme.colorScheme.onBackground,
+                                      color: theme.colorScheme.onSurface,
                                     ),
                                   ),
                                 );
@@ -142,7 +142,7 @@ class _TopUpCardPageState extends State<TopUpCardPage> {
                                     "${years[index]}",
                                     style: TextStyle(
                                       fontSize: 18,
-                                      color: theme.colorScheme.onBackground,
+                                      color: theme.colorScheme.onSurface,
                                     ),
                                   ),
                                 );
@@ -199,7 +199,7 @@ class _TopUpCardPageState extends State<TopUpCardPage> {
           'Top-Up with Bank Card',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onBackground,
+            color: theme.colorScheme.onSurface,
           ),
         ),
       ),

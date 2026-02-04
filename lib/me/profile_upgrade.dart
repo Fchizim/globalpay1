@@ -1,355 +1,237 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'dart:math' as math;
 
-class KycLevelsPage extends StatelessWidget {
+class KycLevelsPage extends StatefulWidget {
   const KycLevelsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final levels = [
-      {
-        "level": "Level 1",
-        "status": "Verified",
-        "limit": "\$500 / day",
-        "color": Colors.green,
-        "icon": LucideIcons.badgeCheck,
-        "benefits": [
-          "Send & receive money",
-          "Buy airtime and pay bills",
-          "Basic account security",
-        ],
-      },
-      {
-        "level": "Level 2",
-        "status": "Pending Upgrade",
-        "limit": "\$5,000 / day",
-        "color": Colors.orange,
-        "icon": LucideIcons.shieldHalf,
-        "benefits": [
-          "Access business payments",
-          "Create GlobalPay wallet ID",
-          "Withdraw to bank accounts",
-        ],
-      },
-      {
-        "level": "Level 3",
-        "status": "Locked",
-        "limit": "Unlimited",
-        "color": Colors.purple,
-        "icon": LucideIcons.shieldCheck,
-        "benefits": [
-          "Unlimited transfers",
-          "International payments",
-          "Priority support & API access",
-        ],
-      },
-    ];
+  State<KycLevelsPage> createState() => _KycLevelsPageState();
+}
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 0.5,
-        title: const Text("KYC Verification"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView.builder(
-          itemCount: levels.length,
-          itemBuilder: (context, index) {
-            final item = levels[index];
-            final color = item["color"] as Color;
-            final icon = item["icon"] as IconData;
-            final benefits = item["benefits"] as List<String>;
+class _KycLevelsPageState extends State<KycLevelsPage> {
+  int currentTier = 1;
+  bool verified = false;
+  String? verifiedCode;
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: color.withOpacity(0.15),
-                        radius: 22,
-                        child: Icon(icon, color: color, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item["level"].toString(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            item["status"].toString(),
-                            style: TextStyle(
-                              color: color,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          item["limit"].toString(),
-                          style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
+  final nin = TextEditingController();
+  final bvn = TextEditingController();
+  final address = TextEditingController();
 
-                  // Progress Indicator
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: (index + 1) / levels.length,
-                      color: color,
-                      backgroundColor: Colors.grey[300],
-                      minHeight: 6,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
+  final tiers = {
+    1: {"title": "Basic", "limit": "₦50k Daily"},
+    2: {"title": "Standard", "limit": "₦200k Daily"},
+    3: {"title": "Premium", "limit": "Unlimited"},
+  };
 
-                  // Benefits
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: benefits.map((b) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              LucideIcons.check,
-                              color: Colors.grey,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                b,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
+  void verify() {
+    if (currentTier == 1 && nin.text.isEmpty) return;
+    if (currentTier == 2 && (nin.text.isEmpty || bvn.text.isEmpty)) return;
+    if (currentTier == 3 && address.text.isEmpty) return;
 
-                  // Upgrade Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () {
-                        if (item["level"] == "Level 2") {
-                          _showUpgradeSheet(context);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "${item["level"]} button clicked",
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      child: Text(
-                        item["status"] == "Verified"
-                            ? "Current Level"
-                            : item["status"] == "Locked"
-                            ? "Unlock Level"
-                            : "Upgrade Now",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+    setState(() {
+      verified = true;
+      verifiedCode =
+          List.generate(4, (_) => math.Random().nextInt(9)).join();
+    });
+  }
+
+  void upgrade() {
+    if (currentTier < 3) {
+      setState(() {
+        currentTier++;
+        verified = false;
+        nin.clear();
+        bvn.clear();
+        address.clear();
+      });
+    }
+  }
+
+  void uploadSheet(String title) {
+    showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        builder: (_) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(title,
+                style:
+                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            ListTile(
+                leading: const Icon(LucideIcons.image),
+                title: const Text("Choose from Gallery")),
+            ListTile(
+                leading: const Icon(LucideIcons.camera),
+                title: const Text("Take Photo")),
+          ]),
+        ));
+  }
+
+  Widget field(String label, IconData icon, TextEditingController c, bool dark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: TextField(
+        controller: c,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon),
+          labelText: label,
+          filled: true,
+          fillColor: dark ? Colors.white10 : Colors.white,
+          border:
+          OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );
   }
 
-  void _showUpgradeSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        final steps = [
-          {
-            "title": "Upload valid ID",
-            "desc": "Driver’s license, Passport, or National ID",
-            "icon": LucideIcons.idCard,
-          },
-          {
-            "title": "Take a selfie",
-            "desc": "Ensure your face is clearly visible",
-            "icon": LucideIcons.camera,
-          },
-          {
-            "title": "Proof of address",
-            "desc": "Upload utility bill or bank statement",
-            "icon": LucideIcons.house,
-          },
-        ];
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final bg = dark ? const Color(0xFF121212) : Colors.grey.shade100;
+    final card = dark ? const Color(0xFF1C1C1E) : Colors.white;
 
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Upgrade to Level 2",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "Complete these quick steps to unlock higher limits.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54),
-              ),
-              const SizedBox(height: 20),
-              ...steps.map((step) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(14),
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: bg,
+        centerTitle: true,
+        title: const Text("Identity Verification",
+            style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          /// TIER BAR
+          Row(
+            children: List.generate(
+                3,
+                    (i) => Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 6,
+                    decoration: BoxDecoration(
+                        color: i + 1 <= currentTier
+                            ? Colors.orange
+                            : Colors.grey,
+                        borderRadius: BorderRadius.circular(4)),
                   ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.orange.withOpacity(0.15),
-                        child: Icon(
-                          step["icon"] as IconData,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              step["title"].toString(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                            Text(
-                              step["desc"].toString(),
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        LucideIcons.chevronRight,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("KYC upgrade started"),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    "Start Verification",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+                )),
           ),
-        );
-      },
+
+          const SizedBox(height: 24),
+
+          /// MAIN CARD
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+                color: card,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 20)
+                ]),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                      radius: 26,
+                      backgroundColor: Colors.orange.withOpacity(.15),
+                      child: const Icon(LucideIcons.shieldCheck,
+                          color: Colors.orange)),
+                  const SizedBox(width: 14),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text("Tier $currentTier — ${tiers[currentTier]!["title"]}",
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(tiers[currentTier]!["limit"]!,
+                        style: const TextStyle(color: Colors.grey)),
+                  ])
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              if (!verified) ...[
+                if (currentTier >= 1)
+                  field("NIN Number", LucideIcons.idCard, nin, dark),
+                if (currentTier >= 2)
+                  field("BVN Number", LucideIcons.lock, bvn, dark),
+                if (currentTier == 3) ...[
+                  field("Residential Address", LucideIcons.bomb, address, dark),
+                  GestureDetector(
+                    onTap: () => uploadSheet("Upload Proof of Address"),
+                    child: uploadTile("Upload Proof of Address"),
+                  ),
+                  GestureDetector(
+                    onTap: () => uploadSheet("Face Verification"),
+                    child: uploadTile("Face Capture"),
+                  ),
+                ],
+
+                const SizedBox(height: 10),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                      onPressed: verify,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16))),
+                      child: const Text("Submit Verification",
+                          style: TextStyle(color: Colors.white))),
+                )
+              ] else
+                Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(.1),
+                        borderRadius: BorderRadius.circular(14)),
+                    child: Row(children: [
+                      const Icon(LucideIcons.check, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text("Verified • $verifiedCode",
+                          style: const TextStyle(fontWeight: FontWeight.bold))
+                    ])),
+            ]),
+          ),
+
+          const SizedBox(height: 24),
+
+          if (verified && currentTier < 3)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: upgrade,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18))),
+                child: const Text("Continue to Next Tier",
+                    style: TextStyle(color: Colors.white)),
+              ),
+            )
+        ]),
+      ),
+    );
+  }
+
+  Widget uploadTile(String title) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.orange)),
+      child: Row(children: [
+        const Icon(LucideIcons.upload, color: Colors.orange),
+        const SizedBox(width: 10),
+        Text(title)
+      ]),
     );
   }
 }

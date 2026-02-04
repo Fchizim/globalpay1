@@ -50,8 +50,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   void dispose() {
     _emailController.dispose();
-    for (final c in _otpControllers) c.dispose();
-    for (final f in _otpFocusNodes) f.dispose();
+    for (final c in _otpControllers) {
+      c.dispose();
+    }
+    for (final f in _otpFocusNodes) {
+      f.dispose();
+    }
     _pinController.dispose();
     _confirmPinController.dispose();
     _timer?.cancel();
@@ -81,7 +85,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         _codeSent = false;
         _verifyingOtp = false;
         _otpError = null;
-        for (final c in _otpControllers) c.clear();
+        for (final c in _otpControllers) {
+          c.clear();
+        }
         _timer?.cancel();
       });
       return;

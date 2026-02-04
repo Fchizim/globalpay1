@@ -604,7 +604,7 @@ class _SendAbroadPageState extends State<SendAbroadPage> {
                 // Existing / New receiver toggle
                 Container(
                   decoration: BoxDecoration(
-                    color: cs.surfaceVariant,
+                    color: cs.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(

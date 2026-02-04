@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:iconsax_plus/iconsax_plus.dart';
 
 class SecurityPage extends StatefulWidget {
   const SecurityPage({super.key});
@@ -67,7 +66,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 onChanged: (val) {
                   setState(() => _biometricEnabled = val);
                 },
-                activeColor: Colors.deepOrange,
+                activeThumbColor: Colors.deepOrange,
               ),
             ),
             _buildListTile(
@@ -81,7 +80,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 onChanged: (val) {
                   setState(() => _twoFA = val);
                 },
-                activeColor: Colors.deepOrange,
+                activeThumbColor: Colors.deepOrange,
               ),
             ),
             _buildListTile(
@@ -147,7 +146,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 onChanged: (val) {
                   setState(() => _pushAlerts = val);
                 },
-                activeColor: Colors.deepOrange,
+                activeThumbColor: Colors.deepOrange,
               ),
             ),
             _buildListTile(
@@ -161,7 +160,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 onChanged: (val) {
                   setState(() => _hideBalance = val);
                 },
-                activeColor: Colors.deepOrange,
+                activeThumbColor: Colors.deepOrange,
               ),
             ),
 

@@ -68,9 +68,9 @@ class _VerifyPageState extends State<VerifyPage> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: colorScheme.background,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         actions: [
           GestureDetector(
@@ -115,7 +115,7 @@ class _VerifyPageState extends State<VerifyPage> {
                       style: textTheme.headlineMedium?.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
-                        color: colorScheme.onBackground,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     Icon(IconsaxPlusBold.verify, color: colorScheme.primary),
@@ -124,7 +124,7 @@ class _VerifyPageState extends State<VerifyPage> {
                       style: textTheme.headlineMedium?.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
-                        color: colorScheme.onBackground,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -140,7 +140,7 @@ class _VerifyPageState extends State<VerifyPage> {
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     fontSize: 15,
-                    color: colorScheme.onBackground.withOpacity(0.8),
+                    color: colorScheme.onSurface.withOpacity(0.8),
                   ),
                 ).animate().fadeIn(duration: 600.ms, delay: 200.ms).slideY(begin: 0.2),
 
@@ -302,7 +302,7 @@ class _VerifyPageState extends State<VerifyPage> {
         labelText: label,
         labelStyle: textTheme.titleLarge?.copyWith(
           fontSize: 20,
-          color: colorScheme.onBackground,
+          color: colorScheme.onSurface,
         ),
         hintText: hint,
         focusedBorder: OutlineInputBorder(

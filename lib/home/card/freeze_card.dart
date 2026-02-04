@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class FreezeCardPage extends StatefulWidget {
   const FreezeCardPage({super.key});
@@ -130,8 +129,12 @@ class _FreezeCardPageState extends State<FreezeCardPage>
   @override
   void dispose() {
     _controller.dispose();
-    for (var c in _pinControllers) c.dispose();
-    for (var f in _focusNodes) f.dispose();
+    for (var c in _pinControllers) {
+      c.dispose();
+    }
+    for (var f in _focusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 

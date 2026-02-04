@@ -32,7 +32,7 @@ class _AmountSendState extends State<AmountSend> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   final _formatter = NumberFormat("#,##0");
-  String _paymentMethod = 'Wallet';
+  final String _paymentMethod = 'Wallet';
   String _unit = "";
   late NumberFormat _currencyFormatter;
 
@@ -63,8 +63,9 @@ class _AmountSendState extends State<AmountSend> {
         );
       }
 
-      if (value < 100) _unit = "Tens";
-      else if (value < 1000) _unit = "Hundreds";
+      if (value < 100) {
+        _unit = "Tens";
+      } else if (value < 1000) _unit = "Hundreds";
       else if (value < 1000000) _unit = "Thousands";
       else if (value < 1000000000) _unit = "Millions";
       else _unit = "Billions";

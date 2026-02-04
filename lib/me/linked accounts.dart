@@ -256,7 +256,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         style: TextStyle(color: isDark ? Colors.white : Colors.black87),
       ),
       value: value,
-      activeColor: Colors.deepOrange,
+      activeThumbColor: Colors.deepOrange,
       onChanged: onChanged,
     );
   }

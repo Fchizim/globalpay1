@@ -436,8 +436,9 @@ class WatermarkPainter extends CustomPainter {
       if (item.offset.dx < -50 ||
           item.offset.dx > size.width + 50 ||
           item.offset.dy < -50 ||
-          item.offset.dy > size.height + 50)
+          item.offset.dy > size.height + 50) {
         continue;
+      }
 
       canvas.save();
       canvas.translate(item.offset.dx, item.offset.dy);

@@ -59,7 +59,7 @@ Future<bool?> showPinBottomSheet(BuildContext context) async {
                       decoration: BoxDecoration(
                         color: pins[i].isNotEmpty
                             ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                            : Theme.of(context).colorScheme.surfaceVariant,
+                            : Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: pins[i].isNotEmpty

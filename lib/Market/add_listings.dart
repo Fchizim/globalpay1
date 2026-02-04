@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -179,7 +178,7 @@ class _AddListingPageState extends State<AddListingPage> {
               child: DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
                     border: InputBorder.none, labelText: 'Category'),
-                value: selectedCategory.isEmpty ? null : selectedCategory,
+                initialValue: selectedCategory.isEmpty ? null : selectedCategory,
                 items: [
                   'Electronics',
                   'Fashion',
@@ -197,7 +196,7 @@ class _AddListingPageState extends State<AddListingPage> {
               child: DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
                     border: InputBorder.none, labelText: 'Condition'),
-                value: selectedCondition.isEmpty ? null : selectedCondition,
+                initialValue: selectedCondition.isEmpty ? null : selectedCondition,
                 items: [
                   'New',
                   'Used - Like New',

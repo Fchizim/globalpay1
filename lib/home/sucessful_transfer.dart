@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import 'receipt_page.dart';
 import '../home/currency_con.dart'; // ✅ CurrencyConfig
@@ -157,7 +156,7 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 25),
@@ -295,7 +294,7 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onBackground,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),

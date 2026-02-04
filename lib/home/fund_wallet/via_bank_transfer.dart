@@ -37,7 +37,7 @@ class BankTransferPage extends StatelessWidget {
           'Bank Transfer to GlobalPay',
           style: theme.textTheme.titleLarge?.copyWith( // slightly bigger
             fontWeight: FontWeight.w500,               // lighter than bold
-            color: theme.colorScheme.onBackground,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         actions: [
@@ -104,7 +104,7 @@ class BankTransferPage extends StatelessWidget {
                                     accountNumber,
                                     style: theme.textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onBackground,
+                                      color: theme.colorScheme.onSurface,
                                     ),
                                   ),
                                 ),

@@ -81,7 +81,7 @@ class _ReportSuspiciousActivityPageState
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: DropdownButtonFormField<String>(
-                value: selectedType,
+                initialValue: selectedType,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   labelText: "Select activity type",

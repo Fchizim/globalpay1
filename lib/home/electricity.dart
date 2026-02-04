@@ -185,7 +185,9 @@ class _ElectricityPageState extends State<ElectricityPage> {
                           return GestureDetector(
                             onTap: () {
                               setState(() {
-                                for (var p in providers) p.isSelected = false;
+                                for (var p in providers) {
+                                  p.isSelected = false;
+                                }
                                 provider.isSelected = true;
                                 showProviders = false;
                                 searchController.clear();

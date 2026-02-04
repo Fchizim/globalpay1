@@ -78,7 +78,7 @@ class _InternationalTransactionPageState
                     ),
                   ),
                   Switch(
-                    activeColor: Colors.deepOrange,
+                    activeThumbColor: Colors.deepOrange,
                     value: isInternationalEnabled,
                     onChanged: (value) {
                       setState(() => isInternationalEnabled = value);

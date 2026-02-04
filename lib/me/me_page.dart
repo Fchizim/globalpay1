@@ -1,3 +1,4 @@
+// me_page.dart
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
@@ -108,13 +109,17 @@ class _MePageState extends State<MePage> {
     }
   }
 
-  @override
+  // ---------- Responsive helper ----------
+  double s(double value) {
+    final sw = MediaQuery.of(context).size.width;
+    return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // 💡 Use fintech-friendly dark/light colours
     final bgColor = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF7F7F7);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -143,13 +148,13 @@ class _MePageState extends State<MePage> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 25,
+                      radius: s(25),
                       backgroundColor: isDark
                           ? Colors.deepOrange.shade700
                           : Colors.deepOrange.shade100,
                       backgroundImage: const AssetImage('assets/images/png/gold.jpg'),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: s(10)),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -159,19 +164,19 @@ class _MePageState extends State<MePage> {
                               "Hi, ${userName ?? 'GOLD'}",
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 16,
+                                  fontSize: s(16),
                                   color: textColor),
                             ),
-                            const SizedBox(width: 5),
-                            const Icon(IconsaxPlusBold.verify,
-                                color: Colors.deepOrange, size: 18),
+                            SizedBox(width: s(5)),
+                            Icon(IconsaxPlusBold.verify,
+                                color: Colors.deepOrange, size: s(18)),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: s(2)),
                         Text(
                           "President",
                           style: TextStyle(
-                              fontSize: 13,
+                              fontSize: s(13),
                               fontWeight: FontWeight.w500,
                               color: isDark ? Colors.grey.shade400 : Colors.deepOrange),
                         ),
@@ -182,7 +187,7 @@ class _MePageState extends State<MePage> {
               ),
               actions: [
                 IconButton(
-                  icon: Icon(IconsaxPlusLinear.setting_2, color: Colors.deepOrange),
+                  icon: Icon(IconsaxPlusLinear.setting_2, color: Colors.deepOrange, size: s(26)),
                   onPressed: () {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AppSettingsPage()));
@@ -194,13 +199,13 @@ class _MePageState extends State<MePage> {
             // 🟧 Balance card
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(s(20)),
                 child: GestureDetector(
-                  onTap: (){
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=> AllAsset()));
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => AllAsset()));
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(11),
+                    padding: EdgeInsets.all(s(11)),
                     decoration: BoxDecoration(
                       color: cardColor,
                       gradient: isDark
@@ -210,29 +215,27 @@ class _MePageState extends State<MePage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(s(25)),
                       boxShadow: [
                         BoxShadow(
-                          color: isDark
-                              ? Colors.black
-                              : Colors.grey.shade400,
+                          color: isDark ? Colors.black : Colors.grey.shade400,
                           blurRadius: 25,
-                          offset: const Offset(0, 12),
+                          offset: Offset(0, 12),
                         ),
                       ],
                     ),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: EdgeInsets.all(s(14)),
                           decoration: BoxDecoration(
                             color: isDark ? Colors.black : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(s(16)),
                           ),
-                          child: const Icon(IconsaxPlusBold.wallet_1,
-                              size: 40, color: Colors.deepOrange),
+                          child: Icon(IconsaxPlusBold.wallet_1,
+                              size: s(40), color: Colors.deepOrange),
                         ),
-                        const SizedBox(width: 15),
+                        SizedBox(width: s(15)),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,34 +244,32 @@ class _MePageState extends State<MePage> {
                                 children: [
                                   Text("Total Balance",
                                       style: TextStyle(
-                                          fontSize: 17,
+                                          fontSize: s(17),
                                           fontWeight: FontWeight.w600,
                                           color: textColor)),
-                                  const SizedBox(width: 6),
+                                  SizedBox(width: s(6)),
                                   Icon(IconsaxPlusLinear.eye,
-                                      size: 18, color: textColor),
+                                      size: s(18), color: textColor),
                                   if (canToggle) ...[
-                                    const SizedBox(width: 6),
+                                    SizedBox(width: s(6)),
                                     GestureDetector(
                                       onTap: () {
                                         setState(() => _showFullFormat = !_showFullFormat);
                                       },
                                       child: Icon(
                                         _showFullFormat ? Icons.toggle_on : Icons.toggle_off,
-                                        size: 26,
-                                        color: _showFullFormat
-                                            ? Colors.deepOrange
-                                            : Colors.grey,
+                                        size: s(26),
+                                        color: _showFullFormat ? Colors.deepOrange : Colors.grey,
                                       ),
                                     ),
                                   ],
-                                  const SizedBox(width: 16),
+                                  SizedBox(width: s(16)),
                                   Container(
-                                    height: 25,
-                                    width: 60,
+                                    height: s(25),
+                                    width: s(60),
                                     decoration: BoxDecoration(
                                       color: Colors.deepOrange,
-                                      borderRadius: BorderRadius.circular(22),
+                                      borderRadius: BorderRadius.circular(s(22)),
                                     ),
                                     child: GestureDetector(
                                       onTap: () {
@@ -276,26 +277,26 @@ class _MePageState extends State<MePage> {
                                       },
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
-                                        children: const [
+                                        children: [
                                           Text(
                                             "Assets ",
                                             style: TextStyle(
-                                              fontSize: 9,
+                                              fontSize: s(9),
                                               fontWeight: FontWeight.w800,
                                               color: Colors.white,
                                             ),
                                           ),
-                                          Icon(Icons.wallet, size: 12, color: Colors.white),
+                                          Icon(Icons.wallet, size: s(12), color: Colors.white),
                                         ],
                                       ),
                                     ),
                                   )
                                 ],
                               ),
-                              const SizedBox(height: 10),
+                              SizedBox(height: s(10)),
                               Text(displayedBalance,
                                   style: TextStyle(
-                                      fontSize: 22,
+                                      fontSize: s(22),
                                       fontWeight: FontWeight.bold,
                                       color: isDark
                                           ? Colors.white
@@ -313,27 +314,26 @@ class _MePageState extends State<MePage> {
             // 🟧 Settings list
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: s(20)),
                 child: Column(
                   children: [
                     _buildSectionHeader("General"),
                     _buildSetting("Transaction History", IconsaxPlusLinear.activity, cardColor, textColor),
 
-                    const SizedBox(height: 10),
+                    SizedBox(height: s(10)),
                     _buildSectionHeader("Account"),
                     _buildSetting("Profile Upgrade", IconsaxPlusLinear.user_add, cardColor, textColor),
                     _buildSetting("Linked Accounts", IconsaxPlusLinear.wallet_2, cardColor, textColor),
 
-
-                    const SizedBox(height: 20),
+                    SizedBox(height: s(20)),
                     _buildSectionHeader("More"),
                     _buildSetting("Refer & Earn", IconsaxPlusLinear.money_recive, cardColor, textColor),
                     _buildSetting("Help & Support", IconsaxPlusLinear.message_question, cardColor, textColor),
                     _buildSetting("Feedback", IconsaxPlusLinear.message_tick, cardColor, textColor),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: s(20)),
                     _buildDarkModeSwitch(isDark, cardColor, textColor),
-                    const SizedBox(height: 30),
+                    SizedBox(height: s(30)),
                   ],
                 ),
               ),
@@ -348,36 +348,36 @@ class _MePageState extends State<MePage> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.only(bottom: s(10)),
         child: Text(title,
-            style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
+            style: TextStyle(
+                fontSize: s(14), fontWeight: FontWeight.w600, color: Colors.grey)),
       ),
     );
   }
 
   Widget _buildSetting(String title, IconData icon, Color cardColor, Color textColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: s(12)),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(s(16)),
         boxShadow: [
           BoxShadow(
               color: cardColor == Colors.white ? Colors.grey.shade200 : Colors.black45,
               blurRadius: 15,
-              offset: const Offset(0, 6)),
+              offset: Offset(0, 6)),
         ],
       ),
       child: ListTile(
-        leading: Icon(icon, size: 26, color: Colors.deepOrange),
+        leading: Icon(icon, size: s(26), color: Colors.deepOrange),
         title: Text(title,
             style: TextStyle(
-                fontSize: 16,
+                fontSize: s(16),
                 fontWeight: FontWeight.w500,
                 color: textColor)),
         trailing: Icon(Icons.arrow_forward_ios_rounded,
-            size: 16, color: textColor),
+            size: s(16), color: textColor),
         onTap: () => _onSettingTap(title),
       ),
     );
@@ -385,15 +385,15 @@ class _MePageState extends State<MePage> {
 
   Widget _buildDarkModeSwitch(bool isDark, Color cardColor, Color textColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: s(12)),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(s(16)),
         boxShadow: [
           BoxShadow(
               color: cardColor == Colors.white ? Colors.grey.shade200 : Colors.black45,
               blurRadius: 15,
-              offset: const Offset(0, 6)),
+              offset: Offset(0, 6)),
         ],
       ),
       child: SwitchListTile(
@@ -401,12 +401,12 @@ class _MePageState extends State<MePage> {
         onChanged: (val) => widget.onToggleTheme(),
         title: Text(isDark ? "Enable Light Mode" : "Enable Dark Mode",
             style: TextStyle(
-                fontSize: 16,
+                fontSize: s(16),
                 fontWeight: FontWeight.w500,
                 color: textColor)),
         secondary: Icon(isDark ? Icons.wb_sunny : IconsaxPlusLinear.moon,
-            size: 26, color: Colors.deepOrange),
-        activeColor: Colors.deepOrange,
+            size: s(26), color: Colors.deepOrange),
+        activeThumbColor: Colors.deepOrange,
       ),
     );
   }
