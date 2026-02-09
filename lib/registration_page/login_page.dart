@@ -61,9 +61,8 @@ class _LoginPageState extends State<LoginPage> {
 
       /// ✅ Parse user
       final user = UserModel.fromJson(data['user']);
+      print('LOGIN USERNAME: ${user.username}'); // ✅ Debug
 
-      /// 🔐 Save securely
-      /// 🔐 Save securely
       await SecureStorageService.saveUser(user);
 
       /// 🔥 UPDATE PROVIDER

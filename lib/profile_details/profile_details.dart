@@ -9,40 +9,8 @@ import 'package:globalpay/profile_details/invite.dart';
 import 'package:globalpay/profile_details/kyc_level.dart';
 
 import '../models/user_model.dart';
+import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
-
-/// Helper class for storing user name and other info
-class LocalUser {
-  static Future<String?> getName() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username');
-  }
-
-  static Future<void> setName(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', name);
-  }
-
-  static Future<String?> getTag() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('gtag');
-  }
-
-  static Future<void> setTag(String tag) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('gtag', tag);
-  }
-
-  static Future<String?> getDob() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('dob');
-  }
-
-  static Future<void> setDob(String dob) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dob', dob);
-  }
-}
 
 class ProfileDetails extends StatefulWidget {
   const ProfileDetails({super.key});
@@ -55,58 +23,149 @@ class _ProfileDetailsState extends State<ProfileDetails> {
   UserModel? _user;
   bool _loadingUser = true;
 
-  String userName = "Gold Emmanuel";
-  String gTag = "gold";
-  String dob = "2005-05-17";
+  String get firstName => _user?.name ?? 'User';
+  String get email => _user?.email ?? 'Add Email';
+  String get accountNumber => _user?.accountNumber ?? '--';
+  String get gender => _user?.gender ?? '--';
+  String get address => _user?.address ?? '--';
+  String get dob => _user?.dob ?? '--';
+  String get kycLevel => _user?.kycLevel ?? 'none';
+  String get userName => _user?.name ?? '';
+  String get gTag => _user?.username ?? '';
 
   @override
   void initState() {
     super.initState();
     _loadUser();
-    _loadLocalInfo();
   }
 
   Future<void> _loadUser() async {
-    final user = await SecureStorageService.getUser();
+    final localUser = await SecureStorageService.getUser();
     if (!mounted) return;
 
     setState(() {
-      _user = user;
+      _user = localUser;
       _loadingUser = false;
     });
+
+    // Fetch fresh profile from backend
+    if (localUser != null) {
+      final freshUser = await ProfileService.getProfile(localUser.userId);
+      if (freshUser != null && mounted) {
+        setState(() {
+          _user = freshUser;
+        });
+      }
+    }
   }
 
-  Future<void> _loadLocalInfo() async {
-    final name = await LocalUser.getName();
-    final tag = await LocalUser.getTag();
-    final d = await LocalUser.getDob();
+  void _editAddress() => _editPopup("Edit Address", address, (v) async {
+    final updated = await ProfileService.updateUser(
+      userId: _user!.userId,
+      body: {"address": v},
+    );
 
-    setState(() {
-      if (name != null) userName = name;
-      if (tag != null) gTag = tag;
-      if (d != null) dob = d;
-    });
-  }
-
-  String get firstName {
-    final parts = userName.split(" ");
-    final name = parts.first;
-    return name[0].toUpperCase() + name.substring(1).toLowerCase();
-  }
+    if (updated != null) {
+      setState(() => _user = updated);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Address updated")));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to update address")));
+    }
+  });
 
   void _editName() => _editPopup("Edit Full Name", userName, (v) async {
-    await LocalUser.setName(v);
-    setState(() => userName = v);
+    final updated = await ProfileService.updateUser(
+      userId: _user!.userId,
+      body: {"name": v},
+    );
+
+    if (updated != null) {
+      setState(() => _user = updated);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Name updated")));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to update name")));
+    }
   });
+
+  void _editGender() {
+    String tempGender = gender; // current gender
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Select Gender"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ["Male", "Female", "Other"].map((g) {
+            return RadioListTile<String>(
+              title: Text(g),
+              value: g,
+              groupValue: tempGender,
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    tempGender = val;
+                  });
+                }
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final updated = await ProfileService.updateUser(
+                userId: _user!.userId,
+                body: {"gender": tempGender},
+              );
+
+              if (updated != null) {
+                setState(() => _user = updated);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Gender updated")),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Failed to update gender")),
+                );
+              }
+
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _editTag() => _editPopup("Edit Global Tag", gTag, (v) async {
     final clean = v.toLowerCase().replaceAll(" ", "");
-    await LocalUser.setTag(clean);
-    setState(() => gTag = clean);
+
+    final updated = await ProfileService.updateUser(
+      userId: _user!.userId,
+      body: {"username": clean},
+    );
+
+    if (updated != null) {
+      setState(() => _user = updated);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Username updated")));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Username already exists")));
+    }
   }, prefix: "@");
 
   void _pickDob() {
-    DateTime temp = DateTime.parse(dob);
+    DateTime temp = DateTime.tryParse(dob) ?? DateTime(2000);
 
     showCupertinoModalPopup(
       context: context,
@@ -128,8 +187,23 @@ class _ProfileDetailsState extends State<ProfileDetails> {
               child: const Text("Done"),
               onPressed: () async {
                 final formatted = temp.toIso8601String().split("T").first;
-                await LocalUser.setDob(formatted);
-                setState(() => dob = formatted);
+
+                final updatedUser = await ProfileService.updateUser(
+                  userId: _user!.userId,
+                  body: {"dob": formatted},
+                );
+
+                if (updatedUser != null) {
+                  setState(() => _user = updatedUser);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Date of Birth updated")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Failed to update DOB")),
+                  );
+                }
+
                 Navigator.pop(context);
               },
             )
@@ -139,7 +213,8 @@ class _ProfileDetailsState extends State<ProfileDetails> {
     );
   }
 
-  void _editPopup(String title, String initial, Function(String) onSave,
+  void _editPopup(
+      String title, String initial, Function(String) onSave,
       {String prefix = ""}) {
     final controller = TextEditingController(text: initial);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -214,7 +289,7 @@ class _ProfileDetailsState extends State<ProfileDetails> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           children: [
-            // Profile Header - KEEP AVATAR & "Hi, Gold"
+            // Profile Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -247,8 +322,8 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         decoration: BoxDecoration(
                             color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(12)),
-                        child: const Text("President",
-                            style: TextStyle(color: Colors.white)),
+                        child: Text(kycLevel,
+                            style: const TextStyle(color: Colors.white)),
                       )
                     ],
                   )
@@ -258,30 +333,26 @@ class _ProfileDetailsState extends State<ProfileDetails> {
 
             const SizedBox(height: 30),
 
-            // Profile Info - Top
             _profileInfoCard(cardColor, [
-              _row("Account Number", "1234567890"),
-              _row("Email", "Add Email",
+              _row("Account Number", accountNumber),
+              _row("Email", email,
                   onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const EmailBinding()))),
+                      MaterialPageRoute(builder: (_) => const EmailBinding()))),
               _row("Full Name", userName, onTap: _editName),
               _row("Global Tag", "@$gTag", onTap: _editTag),
-              _row("Gender", "Male"),
+              _row("Gender", gender, onTap: _editGender),
               _row("DOB", dob, onTap: _pickDob),
-              _row("Address", "Enugu, Nigeria"),
+              _row("Address", address,onTap: _editAddress),
             ]),
 
             const SizedBox(height: 15),
 
-            // Profile Info - Bottom
             _profileInfoCard(cardColor, [
-              _row("KYC Level", "President",
+              _row("KYC Level", kycLevel,
                   onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const KycLevelsPage()))),
+                      MaterialPageRoute(builder: (_) => const KycLevelsPage()))),
             ])
           ],
         ),

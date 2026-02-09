@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 class ForgotPasswordPage extends StatefulWidget {
   final String email;
@@ -22,9 +24,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   // OTP
   final List<TextEditingController> _otpControllers =
-  List.generate(6, (_) => TextEditingController());
+  List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes =
-  List.generate(6, (_) => FocusNode());
+  List.generate(4, (_) => FocusNode());
   String? _otpError;
 
   // PIN
@@ -37,6 +39,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   bool _verifyingOtp = false;
   bool _otpVerified = false;
   bool _showSuccess = false;
+  bool _sendingCode = false;
 
   Timer? _timer;
   int _secondsLeft = 60;
@@ -104,7 +107,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   // ---------------- SEND CODE ----------------
-  void _sendCode() {
+  Future<void> _sendCode() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty || !_isValidEmail(email)) {
@@ -112,13 +115,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       return;
     }
 
-    setState(() {
-      _emailError = null;
-      _codeSent = true;
-      _secondsLeft = 60;
-    });
+    setState(() => _sendingCode = true); // start loading
 
-    _startTimer();
+    try {
+      final response = await http.post(
+        Uri.parse("https://glopa.org/glo/request_pwd_reset.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (data["status"] == "success") {
+        setState(() {
+          _codeSent = true;
+          _secondsLeft = 60;
+        });
+        _startTimer();
+      } else {
+        setState(() => _emailError = data["message"]);
+      }
+    } catch (e) {
+      setState(() => _emailError = "Error sending code. Try again.");
+    } finally {
+      if (mounted) setState(() => _sendingCode = false); // stop loading
+    }
   }
 
   void _startTimer() {
@@ -144,24 +167,50 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   void _onOtpChanged(int index, String value) async {
     if (value.isEmpty) return;
 
-    if (index < 5) {
-      _otpFocusNodes[index + 1].requestFocus();
-    }
+    if (index < 3) _otpFocusNodes[index + 1].requestFocus();
 
-    final otp = _otpControllers.map((e) => e.text).join();
-    if (otp.length == 6) {
-      setState(() {
-        _verifyingOtp = true;
-        _otpError = null;
-      });
+    final otp = _otpControllers.map((e) => e.text.trim()).join();
 
-      await Future.delayed(const Duration(seconds: 3));
+    // Only verify if all 4 digits are non-empty
+    if (otp.length == 4 && !_verifyingOtp && !_otpVerified) {
+      setState(() => _verifyingOtp = true);
 
-      if (!mounted) return;
-      setState(() {
-        _verifyingOtp = false;
-        _otpVerified = true;
-      });
+      try {
+        print("Sending OTP verification: email=${_emailController.text.trim()}, otp=$otp"); // debug log
+
+        final response = await http.post(
+          Uri.parse("https://glopa.org/glo/verify_change_pin_otp.php"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "email": _emailController.text.trim(),
+            "otp": otp,
+          }),
+        );
+
+        print("Response body: ${response.body}"); // debug log
+
+        final data = jsonDecode(response.body);
+
+        if (!mounted) return;
+
+        setState(() {
+          _verifyingOtp = false;
+          if (data["status"] == "success") {
+            _otpVerified = true;
+            _otpError = null;
+          } else {
+            _otpError = data["message"] ?? "Invalid OTP";
+            for (var c in _otpControllers) c.clear();
+            _otpFocusNodes[0].requestFocus();
+          }
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _verifyingOtp = false;
+          _otpError = "Error verifying OTP. Try again.";
+        });
+      }
     }
   }
 
@@ -172,20 +221,56 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _confirmPinError = null;
     });
 
-    if (_pinController.text.length != 4) {
+    final pin = _pinController.text.trim();
+    final confirmPin = _confirmPinController.text.trim();
+    final email = _emailController.text.trim();
+
+    // Validate PIN length
+    if (pin.length != 4) {
       setState(() => _pinError = "PIN must be 4 digits");
       return;
     }
 
-    if (_pinController.text != _confirmPinController.text) {
+    // Confirm PIN match
+    if (pin != confirmPin) {
       setState(() => _confirmPinError = "PINs do not match");
       return;
     }
 
-    setState(() => _showSuccess = true);
-    await Future.delayed(const Duration(seconds: 2));
+    setState(() => _verifyingOtp = true); // show progress
 
-    if (mounted) Navigator.pop(context);
+    try {
+      final response = await http.post(
+        Uri.parse("https://glopa.org/glo/reset_pwd.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+          "pin": pin,
+          "confirm_pin": confirmPin,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      setState(() => _verifyingOtp = false);
+
+      if (data["status"] == "success") {
+        setState(() => _showSuccess = true);
+        // auto-close page after 2s
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) Navigator.pop(context);
+      } else {
+        setState(() => _pinError = data["message"] ?? "Failed to set PIN");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _verifyingOtp = false;
+        _pinError = "Error setting PIN. Please try again.";
+      });
+    }
   }
 
   @override
@@ -266,42 +351,60 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         ),
         const Spacer(),
         ElevatedButton(
-          onPressed: _sendCode,
+          onPressed: _sendingCode ? null : _sendCode,
           style: ElevatedButton.styleFrom(
             backgroundColor: primary,
             minimumSize: const Size(double.infinity, 56),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child:
-          const Text("Send Code", style: TextStyle(color: Colors.black)),
+          child: _sendingCode
+              ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.black,
+              strokeWidth: 2,
+            ),
+          )
+              : const Text(
+            "Send Code",
+            style: TextStyle(color: Colors.black),
+          ),
         ),
       ],
     );
   }
 
   // ---------------- OTP ----------------
-  Widget _otpView(
-      Color primary, Color fill, Color text, Color subText) {
+  Widget _otpView(Color primary, Color fill, Color text, Color subText) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text("Verification Code",
-            style: TextStyle(
-                fontSize: 22, fontWeight: FontWeight.bold, color: text)),
+        Text(
+          "Verification Code",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: text,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text("Enter the 6-digit code",
-            style: TextStyle(color: subText)),
+        Text(
+          "Enter the 4-digit code",
+          style: TextStyle(color: subText),
+        ),
         const SizedBox(height: 25),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(
-            6,
+            4,
                 (i) => SizedBox(
               width: 46,
               child: TextField(
                 controller: _otpControllers[i],
                 focusNode: _otpFocusNodes[i],
                 maxLength: 1,
+                enabled: !_verifyingOtp, // disable while verifying
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
@@ -320,23 +423,29 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         if (_otpError != null)
           Padding(
             padding: const EdgeInsets.only(top: 10),
-            child:
-            Text(_otpError!, style: const TextStyle(color: Colors.red)),
+            child: Text(_otpError!, style: const TextStyle(color: Colors.red)),
           ),
         const SizedBox(height: 30),
-        if (_verifyingOtp) const CircularProgressIndicator(),
+        // Spinner for verification
+        if (_verifyingOtp)
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         const SizedBox(height: 30),
         _secondsLeft > 0
-            ? Text("Resend code in $_secondsLeft s",
-            style: TextStyle(color: subText))
+            ? Text(
+          "Resend code in $_secondsLeft s",
+          style: TextStyle(color: subText),
+        )
             : TextButton(
-          onPressed: _sendCode,
+          onPressed: _sendingCode ? null : _sendCode,
           child: const Text("Didn’t receive code? Send again"),
         ),
       ],
     );
   }
-
   // ---------------- PIN ----------------
   Widget _pinView(Color primary, Color fill) {
     return Column(

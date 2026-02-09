@@ -145,7 +145,7 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
-    double balance = _user?.wallet ?? 0.0;
+    double balance = UserBalance.instance.balance;
     final bool canToggle = balance >= 1000000;
     final String displayedBalance = (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)
@@ -401,15 +401,15 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 70),
                 ],
               ),
-              if (isRefreshing)
-                const Positioned(
-                  top: 20,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: SpinKitCircle(color: Colors.deepOrange, size: 55),
-                  ),
-                ),
+              // if (isRefreshing)
+              //   const Positioned(
+              //     top: 20,
+              //     left: 0,
+              //     right: 0,
+              //     child: Center(
+              //       child: SpinKitCircle(color: Colors.deepOrange, size: 55),
+              //     ),
+              //   ),
             ],
           ),
         ),

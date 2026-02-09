@@ -14,6 +14,7 @@ import '../home/card/card_page.dart';
 
 // 🔥 ADD THESE
 import '../models/user_model.dart';
+import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
 
 class MyAppsPage extends StatefulWidget {
@@ -39,14 +40,23 @@ class _MyAppsPageState extends State<MyAppsPage> {
   }
 
   Future<void> _loadUser() async {
-    final user = await SecureStorageService.getUser();
-
+    final localUser = await SecureStorageService.getUser();
     if (!mounted) return;
 
     setState(() {
-      _user = user;
+      _user = localUser;
       _loadingUser = false;
     });
+
+    // Fetch fresh profile from backend
+    if (localUser != null) {
+      final freshUser = await ProfileService.getProfile(localUser.userId);
+      if (freshUser != null && mounted) {
+        setState(() {
+          _user = freshUser;
+        });
+      }
+    }
   }
 
   void _onItemTapped(int index) {

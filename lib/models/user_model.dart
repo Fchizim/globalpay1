@@ -54,11 +54,10 @@ class UserModel {
       status: json['status'] ?? '',
       address: json['address'] ?? '',
       accountNumber: json['accountNumber'] ?? '',
+      accountName: json['accountName'] ?? '',
       dob: json['dob'] ?? '',
       location: json['location'] ?? '',
       kycLevel: json['kycLevel'] ?? '',
-      accountName: json['accountName'] ?? '',
-      // kycStatus: int.tryParse(json['kyc_status'].toString()) ?? 0,
       isVerified: json['is_verified'].toString() == '1',
     );
   }
@@ -84,5 +83,48 @@ class UserModel {
       'kycLevel': kycLevel,
       'is_verified': isVerified ? 1 : 0,
     };
+  }
+
+  /// ✅ copyWith method
+  UserModel copyWith({
+    int? id,
+    String? userId,
+    String? name,
+    String? username,
+    String? gender,
+    String? email,
+    String? phone,
+    String? image,
+    double? wallet,
+    String? role,
+    String? status,
+    String? address,
+    String? accountNumber,
+    String? accountName,
+    String? dob,
+    String? location,
+    String? kycLevel,
+    bool? isVerified,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      username: username ?? this.username,
+      gender: gender ?? this.gender,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      image: image ?? this.image,
+      wallet: wallet ?? this.wallet,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      address: address ?? this.address,
+      accountNumber: accountNumber ?? this.accountNumber,
+      accountName: accountName ?? this.accountName,
+      dob: dob ?? this.dob,
+      location: location ?? this.location,
+      kycLevel: kycLevel ?? this.kycLevel,
+      isVerified: isVerified ?? this.isVerified,
+    );
   }
 }
