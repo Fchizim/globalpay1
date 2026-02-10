@@ -210,7 +210,7 @@ class _FinancePageState extends State<FinancePage>
                               Text(
                                   _hideBalances
                                       ? "*****"
-                                      : "₦850,000.00",
+                                      : "₦0.00",
                                   style: TextStyle(
                                       color: isDark
                                           ? Colors.white
@@ -260,15 +260,15 @@ class _FinancePageState extends State<FinancePage>
                               onTap: () {
                                 Navigator.push(context, MaterialPageRoute(builder: (context)=> SpendAndSavePage()));
                               },
-                              child: _subBalance("Spend & Save", "₦300,000.00",
+                              child: _subBalance("Spend & Save", "₦0.00",
                                   isDark, context),
                             ),
-                            _subBalance("Safebox Balance", "₦200,000.00", isDark, context),
+                            _subBalance("Safebox Balance", "₦0.00", isDark, context),
                             InkWell(
                               onTap: (){
                                 Navigator.push(context, MaterialPageRoute(builder: (context)=> TargetSavingsPage()));
                               },
-                              child: _subBalance("Target Save Balance", "₦150,000.00",
+                              child: _subBalance("Target Save Balance", "₦0.00",
                                   isDark, context),
                             ),
                             SizedBox(height: s(10, context)),

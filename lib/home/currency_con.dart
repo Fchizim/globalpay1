@@ -5,5 +5,5 @@ class CurrencyConfig {
 
   CurrencyConfig._internal();
 
-  String symbol = '\$'; // default currency symbol
+  String symbol = '₦'; // default currency symbol
 }

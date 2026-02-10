@@ -256,7 +256,7 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
               onPressed: () {
                 Navigator.of(ctx).pop();
                 _showPinBottomSheet(onConfirmed: (pin) {
-                  _showSnack('Payment successful (demo). PIN: $pin');
+                  //_showSnack('Payment successful (demo). PIN: $pin');
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -337,7 +337,7 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
                   _showPinBottomSheet(
                     customAmount: total,
                     onConfirmed: (pin) {
-                      _showSnack('Bulk payment successful (demo). PIN: $pin');
+                      //_showSnack('Bulk payment successful (demo). PIN: $pin');
                     },
                   );
                 },

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
+import '../help_page/help_screen.dart';
+
 class FreezeAccountPage extends StatefulWidget {
   const FreezeAccountPage({super.key});
 
@@ -206,7 +208,7 @@ class _FreezeAccountPageState extends State<FreezeAccountPage> {
             // Help Section
             TextButton.icon(
               onPressed: () {
-                // Navigate to support/help page
+                Navigator.push(context, MaterialPageRoute(builder: (_) => HelpScreen()));
               },
               icon: const Icon(IconsaxPlusLinear.info_circle),
               label: const Text("Need help? Contact Support"),

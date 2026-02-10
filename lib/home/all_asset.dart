@@ -13,7 +13,7 @@ class AllAsset extends StatelessWidget {
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
     final subTextColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
-    final accentColor = isDark? Colors.deepOrange : Colors.deepOrange.shade200;
+    final accentColor = isDark? Colors.deepOrange : Colors.deepOrange.shade500;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -84,23 +84,11 @@ class AllAsset extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '₦51,060.44',
+                    '₦0.00',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      "Yesterday's Earnings: ₦0",
-                      style: TextStyle(color: textColor),
                     ),
                   ),
                 ],
@@ -109,23 +97,23 @@ class AllAsset extends StatelessWidget {
             const SizedBox(height: 16),
 
             // August Earnings
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('August Earnings', style: TextStyle(color: textColor)),
-                  Text(
-                    '+₦40.50',
-                    style: TextStyle(color: Colors.green),
-                  ),
-                ],
-              ),
-            ),
+            // Container(
+            //   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            //   decoration: BoxDecoration(
+            //     color: cardColor,
+            //     borderRadius: BorderRadius.circular(12),
+            //   ),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       Text('August Earnings', style: TextStyle(color: textColor)),
+            //       Text(
+            //         '+₦40.50',
+            //         style: TextStyle(color: Colors.green),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             const SizedBox(height: 16),
 
             // Total Balance Section
@@ -136,7 +124,7 @@ class AllAsset extends StatelessWidget {
 
             // Savings Section
             _sectionCard(context, 'Savings', {
-              'Target Savings': '₦51,050.00',
+              'Target Savings': '₦0.00',
               'SafeBox': '₦0.00',
               'Spend & Save': '₦0.00',
             }),

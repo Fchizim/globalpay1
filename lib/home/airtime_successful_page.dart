@@ -187,15 +187,6 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                       decoration: BoxDecoration(
                         color: cardColor,
                         borderRadius: BorderRadius.circular(22),
-                        // boxShadow: [
-                        //   BoxShadow(
-                        //     color: isDark
-                        //         ? Colors.black.withOpacity(0.4)
-                        //         : Colors.green.withOpacity(0.1),
-                        //     blurRadius: 20,
-                        //     offset: const Offset(0, 10),
-                        //   ),
-                        // ],
                       ),
                       child: Column(
                         children: [
@@ -253,9 +244,8 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 15),
 
-                              const SizedBox(height: 5),
                               GestureDetector(
                                 onTap: () {
                                   Navigator.push(

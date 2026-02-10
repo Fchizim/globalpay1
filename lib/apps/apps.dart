@@ -222,6 +222,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                           fontSize: 16,
                         ),
                       ),
+                      SizedBox(width: 3.0,),
                       const Icon(
                         Icons.verified,
                         color: Colors.deepOrange,
@@ -232,7 +233,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   SizedBox(
                     height: 18,
                     child: Marquee(
-                      text: "Let's GlobalPay   ",
+                      text: "Let's GlobalPay",
                       style: TextStyle(color: textColor, fontSize: 14),
                       blankSpace: 30.0,
                       velocity: 30.0,
