@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
+import '../provider/user_provider.dart';
 import 'email_change_verification.dart';
 
 class EmailBinding extends StatefulWidget {
@@ -11,8 +16,54 @@ class EmailBinding extends StatefulWidget {
 }
 
 class _EmailBindingState extends State<EmailBinding> {
+
+  String maskEmail(String email) {
+    if (email.isEmpty || !email.contains('@')) return '';
+    final parts = email.split('@');
+    final name = parts[0];
+    final domain = parts[1];
+
+    final first = name.isNotEmpty ? name[0] : '';
+    return '$first***@$domain';
+  }
+
+  Future<void> _sendOtp() async {
+    final user = context.read<UserProvider>().user;
+    if (user == null) return;
+
+    final url = Uri.parse("https://glopa.org/glo/request_change_email_otp.php");
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "user_id": user.userId,
+        "email": user.email,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (data["status"] == "success") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const EmailChangeVerification(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data["message"] ?? "Failed to send OTP")),
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserProvider>().user;
+    final email = user?.email ?? '';
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -58,7 +109,7 @@ class _EmailBindingState extends State<EmailBinding> {
           const SizedBox(height: 6),
 
           Text(
-            'g*@gmail.com',
+            maskEmail(email),
             style: TextStyle(
               color: textColor,
               fontSize: 19,
@@ -70,15 +121,16 @@ class _EmailBindingState extends State<EmailBinding> {
 
           GestureDetector(
             onTap: () {
+              // Just go to the PIN verification page directly
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const EmailChangeVerification()),
+                  builder: (_) => const EmailChangeVerification(),
+                ),
               );
             },
             child: Padding(
-              padding:
-              const EdgeInsets.only(bottom: 80, left: 40, right: 40),
+              padding: const EdgeInsets.only(bottom: 80, left: 40, right: 40),
               child: Container(
                 height: 55,
                 width: double.infinity,

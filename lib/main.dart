@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'splash_screen/splash_screen.dart';
 import 'provider/authprovider.dart';
@@ -11,6 +12,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider() ),
       ],
       child: const MyApp(),
     ),

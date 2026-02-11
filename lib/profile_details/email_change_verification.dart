@@ -1,9 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 
+
+import '../provider/user_provider.dart';
 import 'email_pin_verification.dart';
 
 class EmailChangeVerification extends StatefulWidget {
@@ -15,6 +21,44 @@ class EmailChangeVerification extends StatefulWidget {
 }
 
 class _EmailChangeVerificationState extends State<EmailChangeVerification> {
+  Future<void> _verifyPin(String pin) async {
+    final user = context.read<UserProvider>().user;
+    if (user == null) return;
+
+    try {
+      final url = Uri.parse("https://glopa.org/glo/verify_email_change_otp.php"); // New endpoint
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": user.userId,
+          "pin": pin,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data["status"] == "success") {
+        // ✅ PIN verified, go to next page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const EmailPinVerification()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data["message"] ?? "PIN verification failed")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Network error")),
+      );
+    }
+  }
+
+
+
   final List<TextEditingController> _pinControllers =
   List.generate(4, (_) => TextEditingController());
 
@@ -143,13 +187,10 @@ class _EmailChangeVerificationState extends State<EmailChangeVerification> {
 
     if (pin.length == 4) {
       Navigator.pop(context);
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const EmailPinVerification()),
-      );
+      _verifyPin(pin);
     }
   }
+
 
   @override
   void dispose() {

@@ -1,12 +1,16 @@
-// me_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:globalpay/me/feedback.dart';
 
 import '../home/all_asset.dart';
 import '../home/home_page.dart';
+import '../models/user_model.dart';
+import '../provider/user_provider.dart';
+import '../services/secure_storage_service.dart';
 import 'app_settings.dart';
 import 'notification_page.dart';
 import 'profile_upgrade.dart';
@@ -17,17 +21,7 @@ import '../provider/balance_provider.dart';
 import '../home/currency_con.dart'; // ✅ Import CurrencyConfig
 
 /// Helper class for storing user name
-class LocalUser {
-  static Future<String?> getName() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username');
-  }
 
-  static Future<void> setName(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', name);
-  }
-}
 
 class MePage extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -39,6 +33,28 @@ class MePage extends StatefulWidget {
 }
 
 class _MePageState extends State<MePage> {
+  // late final user = context.watch<UserProvider>().user;
+  // UserModel? _user;
+  // bool _loadingUser = true;
+  bool _showFullFormat = false;
+  // 🔥 USER STATE (replaces SharedPreferences)
+
+  @override
+  void initState() {
+    super.initState();
+    // _loadUser();
+  }
+
+  // Future<void> _loadUser() async {
+  //   final user = await SecureStorageService.getUser();
+  //
+  //   if (!mounted) return;
+  //
+  //   setState(() {
+  //     _user = user;
+  //     _loadingUser = false;
+  //   });
+  // }
   Future<void> _navigateWithLoader(Widget page) async {
     Navigator.push(
       context,
@@ -46,19 +62,8 @@ class _MePageState extends State<MePage> {
     );
   }
 
-  bool _showFullFormat = false;
-  String? userName;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserName();
-  }
 
-  Future<void> _loadUserName() async {
-    userName = await LocalUser.getName();
-    if (mounted) setState(() {});
-  }
 
   double get balance => UserBalance.instance.balance;
 
@@ -117,16 +122,23 @@ class _MePageState extends State<MePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserProvider>().user;
     final theme = Theme.of(context);
+    final imageUrl = user?.image ?? '';
     final isDark = theme.brightness == Brightness.dark;
 
     final bgColor = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF7F7F7);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
 
+    double balance = UserBalance.instance.balance; // 🔥 always current
+
+
     final bool canToggle = balance >= 1000000;
-    final String displayedBalance =
-    (balance < 1000000 || _showFullFormat) ? formatFull(balance) : formatBalance(balance);
+    final String displayedBalance = (balance < 1000000 || _showFullFormat)
+        ? formatFull(balance)
+        : formatBalance(balance);
+
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -152,7 +164,10 @@ class _MePageState extends State<MePage> {
                       backgroundColor: isDark
                           ? Colors.deepOrange.shade700
                           : Colors.deepOrange.shade100,
-                      backgroundImage: const AssetImage('assets/images/png/gold.jpg'),
+
+              backgroundImage: imageUrl.isNotEmpty
+                  ? NetworkImage(imageUrl)
+                : const AssetImage('assets/images/png/gold.jpg'),
                     ),
                     SizedBox(width: s(10)),
                     Column(
@@ -161,7 +176,7 @@ class _MePageState extends State<MePage> {
                         Row(
                           children: [
                             Text(
-                              "Hi, ${userName ?? 'GOLD'}",
+                              "Hi, ${user?.name ?? 'Guest'}",
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: s(16),
@@ -174,7 +189,7 @@ class _MePageState extends State<MePage> {
                         ),
                         SizedBox(height: s(2)),
                         Text(
-                          "President",
+                          user?.kycLevel ?? 'none',
                           style: TextStyle(
                               fontSize: s(13),
                               fontWeight: FontWeight.w500,
@@ -251,7 +266,7 @@ class _MePageState extends State<MePage> {
                                   Icon(IconsaxPlusLinear.eye,
                                       size: s(18), color: textColor),
                                   if (canToggle) ...[
-                                    SizedBox(width: s(6)),
+                                    SizedBox(width: s(4)),
                                     GestureDetector(
                                       onTap: () {
                                         setState(() => _showFullFormat = !_showFullFormat);
@@ -263,7 +278,34 @@ class _MePageState extends State<MePage> {
                                       ),
                                     ),
                                   ],
-                                  SizedBox(width: s(16)),
+                                  SizedBox(width: s(0)),
+                                  Container(
+                                    height: s(25),
+                                    width: s(60),
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepOrange,
+                                      borderRadius: BorderRadius.circular(s(22)),
+                                    ),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        _navigateWithLoader(const AllAsset());
+                                      },
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Assets ",
+                                            style: TextStyle(
+                                              fontSize: s(9),
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          Icon(Icons.wallet, size: s(12), color: Colors.white),
+                                        ],
+                                      ),
+                                    ),
+                                  )
                                 ],
                               ),
                               SizedBox(height: s(10)),

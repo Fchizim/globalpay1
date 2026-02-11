@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:marquee/marquee.dart';
-
+import 'package:provider/provider.dart';
 
 import 'package:globalpay/help_page/help_screen.dart';
 import 'package:globalpay/profile_details/profile_details.dart';
@@ -12,10 +12,8 @@ import '../home/home_page.dart';
 import '../me/me_page.dart';
 import '../home/card/card_page.dart';
 
-// 🔥 ADD THESE
 import '../models/user_model.dart';
-import '../services/profile_service.dart';
-import '../services/secure_storage_service.dart';
+import '../provider/user_provider.dart';
 
 class MyAppsPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -28,36 +26,6 @@ class MyAppsPage extends StatefulWidget {
 
 class _MyAppsPageState extends State<MyAppsPage> {
   int _selectedIndex = 0;
-
-  // 🔥 USER STATE (replaces SharedPreferences)
-  UserModel? _user;
-  bool _loadingUser = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final localUser = await SecureStorageService.getUser();
-    if (!mounted) return;
-
-    setState(() {
-      _user = localUser;
-      _loadingUser = false;
-    });
-
-    // Fetch fresh profile from backend
-    if (localUser != null) {
-      final freshUser = await ProfileService.getProfile(localUser.userId);
-      if (freshUser != null && mounted) {
-        setState(() {
-          _user = freshUser;
-        });
-      }
-    }
-  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -72,16 +40,9 @@ class _MyAppsPageState extends State<MyAppsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserProvider>().user;
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-
-    if (_loadingUser) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.deepOrange),
-        ),
-      );
-    }
 
     final List<Widget> pages = [
       const HomePage(),
@@ -93,9 +54,10 @@ class _MyAppsPageState extends State<MyAppsPage> {
 
     return Scaffold(
       backgroundColor: isDark ? darkBackground : Colors.grey.shade100,
-      appBar: _selectedIndex == 0 ? buildAppBar(isDark: isDark) : null,
+      appBar: _selectedIndex == 0
+          ? buildAppBar(isDark: isDark, user: user)
+          : null,
       body: pages[_selectedIndex],
-
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? darkCard : Colors.white,
@@ -185,8 +147,12 @@ class _MyAppsPageState extends State<MyAppsPage> {
     );
   }
 
-  PreferredSizeWidget buildAppBar({required bool isDark}) {
+  PreferredSizeWidget buildAppBar({
+    required bool isDark,
+    required UserModel? user,
+  }) {
     final textColor = isDark ? textPrimary : Colors.black87;
+    final String? imageUrl = user?.image;
 
     return AppBar(
       automaticallyImplyLeading: false,
@@ -195,7 +161,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ProfileDetails()),
+            MaterialPageRoute(builder: (_) => const ProfileDetails()),
           );
         },
         child: Row(
@@ -203,8 +169,8 @@ class _MyAppsPageState extends State<MyAppsPage> {
             CircleAvatar(
               radius: 24,
               backgroundColor: accentColor.withOpacity(0.1),
-              backgroundImage: _user?.image != null && _user!.image.isNotEmpty
-                  ? NetworkImage(_user!.image) as ImageProvider
+              backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                  ? NetworkImage(imageUrl)
                   : const AssetImage('assets/images/png/gold.jpg'),
             ),
             const SizedBox(width: 10),
@@ -215,14 +181,14 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   Row(
                     children: [
                       Text(
-                        "Hi, ${_user?.name ?? 'Guest'}",
+                        "Hi, ${user?.name ?? 'Guest'}",
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           color: textColor,
                           fontSize: 16,
                         ),
                       ),
-                      SizedBox(width: 3.0,),
+                      const SizedBox(width: 3),
                       const Icon(
                         Icons.verified,
                         color: Colors.deepOrange,
@@ -233,7 +199,9 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   SizedBox(
                     height: 18,
                     child: Marquee(
-                      text: "Let's GlobalPay",
+                      text: user != null
+                          ? "🔥 Welcome back, ${user.name}! Check out new updates! 🔥"
+                          : "🔥 Welcome! Check out new updates! 🔥",
                       style: TextStyle(color: textColor, fontSize: 14),
                       blankSpace: 30.0,
                       velocity: 30.0,
@@ -254,7 +222,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => HelpScreen()),
+                    MaterialPageRoute(builder: (_) => const HelpScreen()),
                   );
                 },
                 child: Container(

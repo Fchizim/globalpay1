@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:globalpay/home/fund_wallet/fund_wallet.dart';
 import 'package:globalpay/home/send_money.dart';
@@ -12,6 +13,7 @@ import 'package:globalpay/home/user_page.dart';
 import '../models/user_model.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
+import '../provider/user_provider.dart';
 import '../qrcode_send/qrcode_send.dart' hide UserBalance;
 import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
@@ -35,51 +37,37 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
-  UserModel? _user;
-  bool _loadingUser = true;
+  // UserModel? _user;
+  // bool _loadingUser = true;
   bool isRefreshing = false;
   bool _showFullFormat = false;
 
-  Timer? _autoRefreshTimer; // <-- Added auto-refresh timer
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
 
     // Auto-refresh every 10 seconds
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
-      await _refreshUserData();
+      final userProvider = context.read<UserProvider>();
+      final localUser = await SecureStorageService.getUser();
+      if (localUser != null) {
+        final freshUser = await ProfileService.getProfile(localUser.userId);
+        if (freshUser != null) {
+          await userProvider.updateUser(freshUser);
+        }
+      }
     });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _autoRefreshTimer?.cancel(); // cancel timer to avoid memory leaks
+    _autoRefreshTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadUser() async {
-    // 1. Load user from local storage immediately
-    final localUser = await SecureStorageService.getUser();
-    setState(() {
-      _user = localUser;
-      _loadingUser = false;
-    });
-
-    if (localUser == null) return;
-
-    // 2. Fetch latest profile from backend
-    final freshUser = await ProfileService.getProfile(localUser.userId);
-    if (freshUser != null) {
-      await SecureStorageService.saveUser(freshUser);
-      setState(() {
-        _user = freshUser;
-        UserBalance.instance.balance = freshUser.wallet;
-      });
-    }
-  }
 
   // Extracted refresh logic for auto-refresh
   Future<void> _refreshUserData() async {
@@ -89,21 +77,24 @@ class _HomePageState extends State<HomePage> {
       if (freshUser != null) {
         await SecureStorageService.saveUser(freshUser);
         if (mounted) {
-          setState(() {
-            _user = freshUser;
-            UserBalance.instance.balance = freshUser.wallet;
-          });
+          // Update singleton when fresh data arrives
+          UserBalance.instance.balance = freshUser.wallet;
+          context.read<UserProvider>().updateUser(freshUser);
         }
       }
     }
   }
 
   Future<void> _refresh() async {
+    if (!mounted) return;
     setState(() => isRefreshing = true);
 
     await _refreshUserData();
 
+    if (!mounted) return;
     await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
     setState(() => isRefreshing = false);
   }
 
@@ -135,7 +126,10 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loadingUser) {
+    final userProvider = context.watch<UserProvider>();
+    final user = userProvider.user;
+
+    if (user == null) {
       return const Scaffold(
         body: Center(
           child: SpinKitFadingCube(
@@ -144,6 +138,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       );
+    }
+    // Only set initial balance once, to keep singleton in sync
+    if (UserBalance.instance.balance == 0) {
+      UserBalance.instance.balance = user.wallet ?? 0;
     }
     double balance = UserBalance.instance.balance;
     final bool canToggle = balance >= 1000000;

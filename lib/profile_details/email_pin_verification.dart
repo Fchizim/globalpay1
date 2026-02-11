@@ -1,7 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../provider/user_provider.dart';
 import 'email_code_page.dart';
+import 'package:provider/provider.dart';
 
 class EmailPinVerification extends StatefulWidget {
   const EmailPinVerification({super.key});
@@ -11,6 +17,45 @@ class EmailPinVerification extends StatefulWidget {
 }
 
 class _EmailPinVerificationState extends State<EmailPinVerification> {
+  Future<void> _submitNewEmail() async {
+    final user = context.read<UserProvider>().user;
+    if (user == null) return;
+
+    try {
+      final url = Uri.parse("https://glopa.org/glo/change_email.php");
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": user.userId,
+          "new_email": _emailController.text.trim(),
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data["status"] == "success") {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmailCodePage(
+              userId: user.userId,
+              email: _emailController.text.trim(),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data["message"] ?? "Failed")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Network error")),
+      );
+    }
+  }
   final TextEditingController _emailController = TextEditingController();
 
   @override
@@ -96,10 +141,7 @@ class _EmailPinVerificationState extends State<EmailPinVerification> {
                     return;
                   }
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EmailCodePage()),
-                  );
+                  _submitNewEmail();   // CALL API HERE
                 },
                 child: Container(
                   height: 55,

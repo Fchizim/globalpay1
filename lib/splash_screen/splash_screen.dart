@@ -16,11 +16,14 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
       precacheImage(
         const AssetImage("assets/images/png/background.png"),
         context,
       );
     });
+
 
     _startSplash();
   }
@@ -41,6 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
