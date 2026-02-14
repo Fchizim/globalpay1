@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-import 'package:globalpay/me/profile_upgrade.dart';
+import 'package:globalpay/profile_details/profile_upgrade.dart';
 
 class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({super.key});

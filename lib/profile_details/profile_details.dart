@@ -2,17 +2,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:provider/provider.dart';
-
 import '../models/user_model.dart';
 import '../provider/user_provider.dart';
-import '../me/profile_upgrade.dart';
+import 'profile_upgrade.dart';
 import 'email.dart';
-import 'invite.dart';
-import 'kyc_level.dart';
 import '../services/profile_service.dart';
 
 class ProfileDetails extends StatefulWidget {
-  const ProfileDetails({super.key});
+  const ProfileDetails({super.key, required Null Function() onToggleTheme});
 
   @override
   State<ProfileDetails> createState() => _ProfileDetailsState();

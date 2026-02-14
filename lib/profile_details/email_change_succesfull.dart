@@ -27,7 +27,7 @@ class _VerificationSuccessState extends State<VerificationSuccess> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ProfileDetails()),
+        MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {  },)),
       );
     }
 );

@@ -11,7 +11,7 @@ import 'package:globalpay/me/enable_int_trans.dart';
 import 'package:globalpay/me/freeze_account.dart';
 import 'package:globalpay/me/history.dart';
 import 'package:globalpay/me/limits.dart';
-import 'package:globalpay/me/profile_upgrade.dart';
+import 'package:globalpay/profile_details/profile_upgrade.dart';
 import 'package:globalpay/me/report.dart';
 import 'package:globalpay/me/transaction.dart';
 import 'package:globalpay/registration_page/login_page.dart'; // ✅ for logout redirect

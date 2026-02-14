@@ -13,7 +13,7 @@ import '../provider/user_provider.dart';
 import '../services/secure_storage_service.dart';
 import 'app_settings.dart';
 import 'notification_page.dart';
-import 'profile_upgrade.dart';
+import '../profile_details/profile_upgrade.dart';
 import '../help_page/help_screen.dart';
 import '../profile_details/profile_details.dart';
 import '../profile_details/invite.dart';
@@ -155,7 +155,7 @@ class _MePageState extends State<MePage> {
               backgroundColor: bgColor,
               title: GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileDetails()));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {  },)));
                 },
                 child: Row(
                   children: [

@@ -161,7 +161,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ProfileDetails()),
+            MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {  },)),
           );
         },
         child: Row(
