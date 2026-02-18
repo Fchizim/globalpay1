@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/profile_details/profile_upgrade.dart';
 
 class Tier2Completion extends StatefulWidget {
   final String nin;
@@ -159,7 +160,11 @@ class _Tier2CompletionState extends State<Tier2Completion> {
                 ),
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context, true); // send 'true' back
+                    Navigator.push(context,
+                      MaterialPageRoute(
+                        builder: (_) => KycLevelsPage(),
+                      ),
+                    ) ; // send 'true' back
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,

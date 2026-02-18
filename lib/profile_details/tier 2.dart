@@ -1,8 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:globalpay/profile_details/tier2_completion.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
+
+import '../models/kyc_model.dart';
+import '../provider/user_provider.dart';
+import '../provider/kyc_provider.dart';
+// import '../model/kyc_model.dart';
+
 
 class Tiertwo extends StatefulWidget {
   const Tiertwo({super.key});
@@ -11,18 +21,111 @@ class Tiertwo extends StatefulWidget {
   State<Tiertwo> createState() => _TiertwoState();
 }
 
+
 class _TiertwoState extends State<Tiertwo> {
   final TextEditingController ninController = TextEditingController();
   final TextEditingController bvnController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  final FlutterSecureStorage storage = const FlutterSecureStorage();
+
   File? _ninImage;
   bool isValid = false;
+  String userId = "";
+  bool loading = false;
+
+
+  Future<bool> _submitTier2() async {
+    if (_ninImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please upload your NIN image")),
+      );
+      return false;
+    }
+
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User session expired. Please login again.")),
+      );
+      return false;
+    }
+
+    if (loading) return false;
+
+    setState(() => loading = true);
+
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://glopa.org/glo/tier_2.php'),
+      )
+        ..fields['user_id'] = userId
+        ..fields['nin_number'] = ninController.text
+        ..fields['bvn'] = bvnController.text
+        ..files.add(await http.MultipartFile.fromPath('nin_image', _ninImage!.path));
+
+      print("Sending request with fields: ${request.fields}");
+      print("Sending file: ${_ninImage!.path}");
+
+      final response = await request.send();
+
+      print("HTTP status: ${response.statusCode}");
+
+      final res = await http.Response.fromStream(response);
+
+      print("Raw response body: ${res.body}");
+
+      final data = jsonDecode(res.body);
+
+      if (data['status'] == 'success') {
+
+        /// UPDATE PROVIDER HERE (REAL SERVER VALUES)
+        Provider.of<KycProvider>(context, listen: false).setKyc(
+          KycModel(
+            tier: data['tier'],
+            status: data['kyc_status'],
+            kycId: data['kyc_id'],
+          ),
+        );
+
+        print("Upload successful, kyc_id: ${data['kyc_id']}");
+        return true;
+      } else {
+        print("Server error message: ${data['message']}");
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(data['message'])));
+        return false;
+      }
+    } catch (e, stack) {
+      print("Exception during upload: $e");
+      print(stack);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Upload failed: $e")));
+      return false;
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
 
   @override
   void initState() {
     super.initState();
     ninController.addListener(_validate);
     bvnController.addListener(_validate);
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final providerUser =
+        Provider.of<UserProvider>(context, listen: false).user;
+
+    if (providerUser != null) {
+      userId = providerUser.userId;
+    } else {
+      userId = await storage.read(key: "userId") ?? "";
+    }
+
+    setState(() {});
   }
 
   void _validate() {
@@ -113,7 +216,6 @@ class _TiertwoState extends State<Tiertwo> {
             ),
             const SizedBox(height: 25),
 
-            // NIN PHOTO
             GestureDetector(
               onTap: _showImagePickerOptions,
               child: Container(
@@ -147,7 +249,6 @@ class _TiertwoState extends State<Tiertwo> {
             ),
             const SizedBox(height: 25),
 
-            // NIN FIELD
             TextField(
               controller: ninController,
               keyboardType: TextInputType.number,
@@ -162,7 +263,6 @@ class _TiertwoState extends State<Tiertwo> {
             ),
             const SizedBox(height: 20),
 
-            // BVN FIELD
             TextField(
               controller: bvnController,
               keyboardType: TextInputType.number,
@@ -177,34 +277,42 @@ class _TiertwoState extends State<Tiertwo> {
             ),
             const SizedBox(height: 30),
 
-            // NEXT BUTTON
             GestureDetector(
-              onTap: isValid
-                  ? () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        Tier2Completion(nin: ninController.text, submittedTime: '',),
-                  ),
-                ).then((value) {
-                  if (value == true) {
-                    Navigator.pop(context, true);
-                  }
-                });
+              onTap: (isValid && !loading)
+                  ? () async {
+                bool success = await _submitTier2();
+
+                if (success) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          Tier2Completion(nin: ninController.text, submittedTime: ''),
+                    ),
+                  );
+                }
               }
                   : null,
               child: Container(
                 height: 55,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: isValid
+                  color: isValid && !loading
                       ? Colors.deepOrange
                       : Colors.deepOrange.shade300,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Text(
+                  child: loading
+                      ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                  )
+                      : Text(
                     "Next",
                     style: TextStyle(
                       color: isValid ? Colors.white : Colors.grey.shade600,

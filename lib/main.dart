@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/provider/kyc_provider.dart';
 import 'package:globalpay/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'splash_screen/splash_screen.dart';
@@ -13,6 +14,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider() ),
+        ChangeNotifierProvider(create: (_) => KycProvider() ),
       ],
       child: const MyApp(),
     ),
