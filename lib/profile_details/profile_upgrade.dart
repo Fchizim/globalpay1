@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/material.dart';
 import 'package:globalpay/profile_details/tier%202.dart';
 import 'package:globalpay/profile_details/tier2_completion.dart';
@@ -19,8 +20,18 @@ class KycLevelsPage extends StatefulWidget {
   State<KycLevelsPage> createState() => _KycLevelsPageState();
 }
 
-class _KycLevelsPageState extends State<KycLevelsPage> {
+class _KycLevelsPageState extends State<KycLevelsPage>
+      with SingleTickerProviderStateMixin {
   final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
+
+  late AnimationController _borderController;
+
+  @override
+  void dispose() {
+    _borderController.dispose();
+    super.dispose();
+  }
+
 
   String nin = "";
   bool showDetails = false;
@@ -48,6 +59,13 @@ class _KycLevelsPageState extends State<KycLevelsPage> {
         );
       }
     });
+
+    _borderController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
+
   }
 
   Future<void> _loadFromStorage() async {
@@ -316,13 +334,19 @@ class _KycLevelsPageState extends State<KycLevelsPage> {
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                 decoration: BoxDecoration(
                     color: Colors.deepOrange.shade200,
                     borderRadius: BorderRadius.circular(14)),
                 child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [Text("Tier"), Text("Daily Limit"), Text("Balance")]),
+                   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      SizedBox(width: 10,),
+                      Expanded(child: Text("Tier")),
+                      SizedBox(width: 10,),
+                      Expanded(child: Text("Daily Limit")),
+                      SizedBox(width: 10,),
+                      Expanded(child: Text("Balance"))]),
               ),
               const SizedBox(height: 15),
               _tierRow("Tier 1", "₦50,000", "₦300,000", currentTier == "1"),
@@ -355,23 +379,56 @@ class _KycLevelsPageState extends State<KycLevelsPage> {
   Widget _tierRow(String t, String d, String b, bool current) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Row(children: [
-          Text(t),
-          if (current) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(6)),
-              child: const Text("Current", style: TextStyle(fontSize: 10)),
-            )
-          ]
-        ]),
-        Text(d),
-        Text(b)
+      child: Row(
+          children: [
+        Expanded(
+          child: Row(
+              children: [
+            SizedBox(width: 14),
+            Text(t),
+            if (current) ...[
+              const SizedBox(width: 6),
+              AnimatedBuilder(
+                animation: _borderController,
+                builder: (context, child) {
+                  return Container(
+                    padding: const EdgeInsets.all(1.5),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      gradient: SweepGradient(
+                        colors: const [
+                          Colors.deepOrange,
+                          Colors.purple,
+                          Colors.greenAccent,
+                          Colors.orange,
+                          Colors.blueGrey,
+                          Colors.deepOrange,
+                          Colors.teal,
+                          Colors.pink,
+                          Colors.blue,
+                          Colors.black,
+                          Colors.yellow,
+                        ],
+                        transform: GradientRotation(_borderController.value * 6.28),
+                      ),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text("Current", style: TextStyle(fontSize: 10)),
+                    ),
+                  );
+                },
+              ),
+            ]
+          ]),
+        ),
+        SizedBox(width: 18),
+        Expanded(child: Text(d)),
+        Expanded(child: Text(b)),
       ]),
     );
-  }
-}
+  }}
