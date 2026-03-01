@@ -160,7 +160,7 @@ class _Tier2CompletionState extends State<Tier2Completion> {
                 ),
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(context,
+                    Navigator.pop(context,
                       MaterialPageRoute(
                         builder: (_) => KycLevelsPage(),
                       ),

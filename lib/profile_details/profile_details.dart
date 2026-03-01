@@ -21,9 +21,7 @@ class _ProfileDetailsState extends State<ProfileDetails> {
     final user = context.watch<UserProvider>().user;
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final firstName = user.name;
@@ -40,7 +38,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final scaffoldColor = isDark ? const Color(0xFF121212) : Colors.grey.shade100;
+    final scaffoldColor = isDark
+        ? const Color(0xFF121212)
+        : Colors.grey.shade100;
 
     return Scaffold(
       backgroundColor: scaffoldColor,
@@ -62,9 +62,11 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                   CircleAvatar(
                     radius: 45,
                     backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    backgroundImage: (user.image != null && user.image.isNotEmpty)
+                    backgroundImage:
+                        (user.image != null && user.image.isNotEmpty)
                         ? NetworkImage(user.image)
-                        : const AssetImage('assets/images/png/gold.jpg') as ImageProvider,
+                        : const AssetImage('assets/images/png/gold.jpg')
+                              as ImageProvider,
                   ),
                   const SizedBox(width: 18),
                   Column(
@@ -80,19 +82,37 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Icon(IconsaxPlusBold.verify,
-                              color: theme.colorScheme.primary),
+                          Icon(
+                            IconsaxPlusBold.verify,
+                            color: theme.colorScheme.primary,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => KycLevelsPage(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
                             color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Text(kycLevel,
-                            style: const TextStyle(color: Colors.white)),
-                      )
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            kycLevel,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -103,16 +123,20 @@ class _ProfileDetailsState extends State<ProfileDetails> {
 
             _profileInfoCard(cardColor, [
               _row("Account Number", accountNumber),
-              _row("Email", email, onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EmailBinding()),
-                );
-              }),
+              _row(
+                "Email",
+                email,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EmailBinding()),
+                  );
+                },
+              ),
               _row("Full Name", userName, onTap: () => _editName(user)),
               _row("Phone", phone, onTap: () => _editPhone(user)),
               _row("Global Tag", "@$gTag", onTap: () => _editTag(user)),
-              _row("Gender", gender,),
+              _row("Gender", gender),
               _row("DOB", dob, onTap: () => _pickDob(user)),
               _row("Address", address, onTap: () => _editAddress(user)),
             ]),
@@ -120,12 +144,16 @@ class _ProfileDetailsState extends State<ProfileDetails> {
             const SizedBox(height: 15),
 
             _profileInfoCard(cardColor, [
-              _row("KYC Level", kycLevel, onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const KycLevelsPage()),
-                );
-              }),
+              _row(
+                "KYC Level",
+                kycLevel,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const KycLevelsPage()),
+                  );
+                },
+              ),
             ]),
           ],
         ),
@@ -178,7 +206,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         final value = controller.text.trim();
                         if (value.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Name cannot be empty")),
+                            const SnackBar(
+                              content: Text("Name cannot be empty"),
+                            ),
                           );
                           return;
                         }
@@ -193,11 +223,15 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         if (updated != null) {
                           context.read<UserProvider>().setUser(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Name updated successfully")),
+                            const SnackBar(
+                              content: Text("Name updated successfully"),
+                            ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Failed to update name")),
+                            const SnackBar(
+                              content: Text("Failed to update name"),
+                            ),
                           );
                         }
                       },
@@ -257,7 +291,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         final value = controller.text.trim();
                         if (value.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Address cannot be empty")),
+                            const SnackBar(
+                              content: Text("Address cannot be empty"),
+                            ),
                           );
                           return;
                         }
@@ -272,18 +308,22 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         if (updated != null) {
                           context.read<UserProvider>().setUser(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Address updated successfully")),
+                            const SnackBar(
+                              content: Text("Address updated successfully"),
+                            ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Failed to update address")),
+                            const SnackBar(
+                              content: Text("Failed to update address"),
+                            ),
                           );
                         }
                       },
                       child: const Text("Save"),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -337,7 +377,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         String value = controller.text.trim();
                         if (value.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Global tag cannot be empty")),
+                            const SnackBar(
+                              content: Text("Global tag cannot be empty"),
+                            ),
                           );
                           return;
                         }
@@ -356,18 +398,22 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         if (updated != null) {
                           context.read<UserProvider>().setUser(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Global tag updated successfully")),
+                            const SnackBar(
+                              content: Text("Global tag updated successfully"),
+                            ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Failed to update global tag")),
+                            const SnackBar(
+                              content: Text("Failed to update global tag"),
+                            ),
                           );
                         }
                       },
                       child: const Text("Save"),
-                    )
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -399,15 +445,17 @@ class _ProfileDetailsState extends State<ProfileDetails> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () async {
               final updated = await ProfileService.updateUser(
                 userId: user.userId,
                 body: {"gender": tempGender},
               );
-              if (updated != null) context.read<UserProvider>().setUser(updated);
+              if (updated != null)
+                context.read<UserProvider>().setUser(updated);
               Navigator.pop(context);
             },
             child: const Text("Save"),
@@ -444,15 +492,17 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                   userId: user.userId,
                   body: {"dob": formatted},
                 );
-                if (updatedUser != null) context.read<UserProvider>().setUser(updatedUser);
+                if (updatedUser != null)
+                  context.read<UserProvider>().setUser(updatedUser);
                 Navigator.pop(context);
               },
-            )
+            ),
           ],
         ),
       ),
     );
   }
+
   void _editPhone(UserModel user) {
     final controller = TextEditingController(text: user.phone ?? '');
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -498,9 +548,12 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         final value = controller.text.trim();
 
                         // ✅ Validate phone
-                        if (value.isEmpty || !RegExp(r'^\d{10,15}$').hasMatch(value)) {
+                        if (value.isEmpty ||
+                            !RegExp(r'^\d{10,15}$').hasMatch(value)) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Enter a valid phone number")),
+                            const SnackBar(
+                              content: Text("Enter a valid phone number"),
+                            ),
                           );
                           return;
                         }
@@ -516,18 +569,22 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                         if (updated != null) {
                           context.read<UserProvider>().setUser(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Phone updated successfully")),
+                            const SnackBar(
+                              content: Text("Phone updated successfully"),
+                            ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Failed to update phone")),
+                            const SnackBar(
+                              content: Text("Failed to update phone"),
+                            ),
                           );
                         }
                       },
                       child: const Text("Save"),
-                    )
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -536,8 +593,12 @@ class _ProfileDetailsState extends State<ProfileDetails> {
     );
   }
 
-  void _editPopup(String title, String initial, Function(String) onSave,
-      {String prefix = ""}) {
+  void _editPopup(
+    String title,
+    String initial,
+    Function(String) onSave, {
+    String prefix = "",
+  }) {
     final controller = TextEditingController(text: initial);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -553,32 +614,44 @@ class _ProfileDetailsState extends State<ProfileDetails> {
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(title,
-                  style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  prefixText: prefix,
-                  border: const OutlineInputBorder(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Cancel")),
-                ElevatedButton(
-                    onPressed: () {
-                      final value = controller.text.trim();
-                      Navigator.pop(context);
-                      if (value.isNotEmpty) onSave(value);
-                    },
-                    child: const Text("Save"))
-              ])
-            ]),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    prefixText: prefix,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancel"),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        final value = controller.text.trim();
+                        Navigator.pop(context);
+                        if (value.isNotEmpty) onSave(value);
+                      },
+                      child: const Text("Save"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -589,8 +662,10 @@ class _ProfileDetailsState extends State<ProfileDetails> {
   Widget _profileInfoCard(Color color, List<Widget> items) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Container(
-      decoration:
-      BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(children: items),
     ),
   );
@@ -608,10 +683,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
             children: [
               Text(value),
               if (onTap != null) const SizedBox(width: 6),
-              if (onTap != null)
-                const Icon(Icons.arrow_forward_ios, size: 14),
+              if (onTap != null) const Icon(Icons.arrow_forward_ios, size: 14),
             ],
-          )
+          ),
         ],
       ),
     ),

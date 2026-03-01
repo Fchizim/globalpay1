@@ -582,7 +582,9 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
           unselectedLabelColor: textColor.withOpacity(0.6),
           indicatorColor: primary,
           indicatorWeight: 3,
-          tabs: const [Tab(text: 'Send to self'), Tab(text: 'Buy in bulk')],
+            dividerColor: Colors.transparent,
+          tabs: const [Tab(
+              text: 'Send to self'), Tab(text: 'Buy in bulk')],
         ),
       ),
       body: TabBarView(

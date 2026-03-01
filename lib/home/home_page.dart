@@ -531,7 +531,7 @@ class _HomePageState extends State<HomePage> {
           child: _buildSmallCard(LucideIcons.target, "T-save", Colors.blueAccent, cardColor,
               textColor),
         ),
-        _buildSmallCard(LucideIcons.handCoins, "Loan", Colors.blue.shade800, cardColor,
+        _buildSmallCard(LucideIcons.handCoins, "Betting", Colors.blue.shade800, cardColor,
             textColor),
       ],
     );

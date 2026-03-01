@@ -109,6 +109,15 @@ class _KycLevelsPageState extends State<KycLevelsPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = Colors.deepOrange;
+    final textColor = Colors.black;
+    final scaffoldColor = isDark
+        ? const Color(0xFF121212)
+        : Colors.grey.shade100;
+
+
     final userProvider = prov.Provider.of<UserProvider>(context);
     final kycProvider = prov.Provider.of<KycProvider>(context);
 
@@ -132,17 +141,17 @@ class _KycLevelsPageState extends State<KycLevelsPage>
     final isTier2Approved = isTier2 && kycStatus == "approved";
     final isTier3Verified = isTier3 && kycStatus == "approved";
 
-    final bg = Colors.grey.shade100;
-    final card = Colors.deepOrange;
+    // final bg = Colors.grey.shade100;
+    // final card = Colors.deepOrange;
 
     if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: scaffoldColor,
       appBar: AppBar(
-          backgroundColor: bg,
+          backgroundColor: scaffoldColor,
           elevation: 0,
           centerTitle: true,
           title: const Text("KYC Levels")),
@@ -218,10 +227,13 @@ class _KycLevelsPageState extends State<KycLevelsPage>
                 decoration: BoxDecoration(
                     color: Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(12)),
-                child: const Row(children: [
-                  Icon(Icons.access_time, color: Colors.orange),
-                  SizedBox(width: 8),
-                  Expanded(child: Text("Tier 2 verification is under review"))
+                child: Row(children: [
+                  const Icon(Icons.access_time, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text("Tier 2 verification is under review",
+                  style: TextStyle(
+                    color: textColor
+                  ),))
                 ]),
               ),
             ),
@@ -229,7 +241,7 @@ class _KycLevelsPageState extends State<KycLevelsPage>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: card,
+                color: cardColor,
                 borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(80),
                     topLeft: Radius.circular(15),
@@ -245,13 +257,45 @@ class _KycLevelsPageState extends State<KycLevelsPage>
                           fontSize: 24,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: Colors.deepPurple.shade200,
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Text(currentTier == "1" ? "Current" : "Verified",
-                        style: TextStyle(color: Colors.deepOrange.shade900)),
+                  AnimatedBuilder(
+                    animation: _borderController,
+                    builder: (context, child) {
+                      return Container(
+                        padding: const EdgeInsets.all(1.5),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          gradient: SweepGradient(
+                            colors: const [
+                              Colors.deepOrange,
+                              Colors.purple,
+                              Colors.greenAccent,
+                              Colors.orange,
+                              Colors.blueGrey,
+                              Colors.deepOrange,
+                              Colors.teal,
+                              Colors.pink,
+                              Colors.blue,
+                              Colors.black,
+                              Colors.yellow,
+                            ],
+                            transform: GradientRotation(
+                                _borderController.value * 6.28),
+                          ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 3, vertical: 1),
+                          decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(7)),
+                          child: Text(
+                              currentTier == "1" ? "Current" : "Verified",
+                              style: TextStyle(
+                                  color: Colors.black,
+                              fontSize: 13)),
+                        ),
+                      );
+                    }
                   )
                 ]),
                 const SizedBox(height: 25),
@@ -325,28 +369,37 @@ class _KycLevelsPageState extends State<KycLevelsPage>
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-                color: Colors.deepOrange.shade50,
+                color: Colors.deepOrange.shade100,
                 borderRadius: BorderRadius.circular(20)),
             child: Column(children: [
-              const Align(
+               Align(
                   alignment: Alignment.centerLeft,
                   child: Text("Level Benefits",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor))),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                 decoration: BoxDecoration(
-                    color: Colors.deepOrange.shade200,
+                    color: Colors.deepOrange.shade400,
                     borderRadius: BorderRadius.circular(14)),
                 child: Row(
                    // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children:  [
                       SizedBox(width: 10,),
-                      Expanded(child: Text("Tier")),
+                      Expanded(child: Text("Tier",
+                        style: TextStyle(
+                            color: textColor
+                        ),)),
                       SizedBox(width: 10,),
-                      Expanded(child: Text("Daily Limit")),
+                      Expanded(child: Text("Daily Limit",
+                        style: TextStyle(
+                            color: textColor
+                        ),)),
                       SizedBox(width: 10,),
-                      Expanded(child: Text("Balance"))]),
+                      Expanded(child: Text("Balance",
+                        style: TextStyle(
+                            color: textColor
+                        ),))]),
               ),
               const SizedBox(height: 15),
               _tierRow("Tier 1", "₦50,000", "₦300,000", currentTier == "1"),
@@ -377,6 +430,10 @@ class _KycLevelsPageState extends State<KycLevelsPage>
   }
 
   Widget _tierRow(String t, String d, String b, bool current) {
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = Colors.black;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -385,7 +442,10 @@ class _KycLevelsPageState extends State<KycLevelsPage>
           child: Row(
               children: [
             SizedBox(width: 14),
-            Text(t),
+           Text(t,
+             style: TextStyle(
+                 color: textColor
+             ),),
             if (current) ...[
               const SizedBox(width: 6),
               AnimatedBuilder(
@@ -418,7 +478,7 @@ class _KycLevelsPageState extends State<KycLevelsPage>
                         color: Colors.purple.shade100,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text("Current", style: TextStyle(fontSize: 10)),
+                      child: Text("Current", style: TextStyle(fontSize: 10, color: textColor)),
                     ),
                   );
                 },
@@ -427,8 +487,14 @@ class _KycLevelsPageState extends State<KycLevelsPage>
           ]),
         ),
         SizedBox(width: 18),
-        Expanded(child: Text(d)),
-        Expanded(child: Text(b)),
+        Expanded(child: Text(d,
+          style: TextStyle(
+              color: textColor
+          ),)),
+        Expanded(child: Text(b,
+          style: TextStyle(
+              color: textColor
+          ),)),
       ]),
     );
   }}

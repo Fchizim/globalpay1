@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
 import 'package:globalpay/home/transaction_detail_page.dart';
 
+import 'airtime_page.dart';
+
 class AirtimeSuccessScreen extends StatefulWidget {
   final int amount;
   final String network;
@@ -288,8 +290,9 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                     opacity: _fadeAnim,
                     child: ElevatedButton(
                       onPressed: () {
-                        _confettiController.stop();
-                        Navigator.pop(context);
+                       // _confettiController.stop();
+                        Navigator.pop(context,
+                        MaterialPageRoute(builder: (_) => AirtimePage()));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: deepOrange,
