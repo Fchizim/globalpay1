@@ -438,54 +438,69 @@ class _KycLevelsPageState extends State<KycLevelsPage>
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
           children: [
-        Expanded(
-          child: Row(
-              children: [
-            SizedBox(width: 14),
-           Text(t,
-             style: TextStyle(
-                 color: textColor
-             ),),
-            if (current) ...[
-              const SizedBox(width: 6),
-              AnimatedBuilder(
-                animation: _borderController,
-                builder: (context, child) {
-                  return Container(
-                    padding: const EdgeInsets.all(1.5),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      gradient: SweepGradient(
-                        colors: const [
-                          Colors.deepOrange,
-                          Colors.purple,
-                          Colors.greenAccent,
-                          Colors.orange,
-                          Colors.blueGrey,
-                          Colors.deepOrange,
-                          Colors.teal,
-                          Colors.pink,
-                          Colors.blue,
-                          Colors.black,
-                          Colors.yellow,
-                        ],
-                        transform: GradientRotation(_borderController.value * 6.28),
-                      ),
+            Expanded(
+              child: Row(
+                children: [
+                  const SizedBox(width: 14),
+
+                  Expanded(   // 👈 ADD THIS
+                    child: Text(
+                      t,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: textColor),
                     ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade100,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text("Current", style: TextStyle(fontSize: 10, color: textColor)),
+                  ),
+
+                  if (current) ...[
+                    const SizedBox(width: 6),
+                    AnimatedBuilder(
+                      animation: _borderController,
+                      builder: (context, child) {
+                        return Container(
+                          padding: const EdgeInsets.all(1.5),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            gradient: SweepGradient(
+                              colors: const [
+                                Colors.deepOrange,
+                                Colors.purple,
+                                Colors.greenAccent,
+                                Colors.orange,
+                                Colors.blueGrey,
+                                Colors.deepOrange,
+                                Colors.teal,
+                                Colors.pink,
+                                Colors.blue,
+                                Colors.black,
+                                Colors.yellow,
+                              ],
+                              transform: GradientRotation(
+                                  _borderController.value * 6.28),
+                            ),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              "Current",
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: textColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ]
+                ],
               ),
-            ]
-          ]),
-        ),
+            ),
         SizedBox(width: 18),
         Expanded(child: Text(d,
           style: TextStyle(

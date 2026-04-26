@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:globalpay/provider/kyc_provider.dart';
+import 'package:globalpay/provider/settings_provider.dart';
 import 'package:globalpay/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'splash_screen/splash_screen.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider() ),
         ChangeNotifierProvider(create: (_) => KycProvider() ),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: const MyApp(),
     ),
@@ -45,7 +47,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _tryAutoLogin() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.tryAutoLogin();
+    await auth.tryAutoLogin(context); // ← pass context
   }
 
   @override

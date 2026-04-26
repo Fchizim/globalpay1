@@ -2,7 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
+// import '../models/app_settings.dart'; // adjust path
+import 'package:url_launcher/url_launcher.dart';
 
+import '../provider/settings_provider.dart';
 import 'fraud.dart';
 
 class HelpScreen extends StatefulWidget {
@@ -23,8 +27,12 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 6),
     )..repeat();
-
     _tabController = TabController(length: 3, vsync: this);
+
+    // ── fetch settings ──
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SettingsProvider>().fetchSettings();
+    });
   }
 
   @override
@@ -106,11 +114,11 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                         height: s(context, 50),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          image: DecorationImage(
-                            image: AssetImage(
-                                "assets/images/png/friendly robotic sales manager.jpeg"),
-                            fit: BoxFit.cover,
-                          ),
+                          // image: DecorationImage(
+                          //   image: AssetImage(
+                          //       "assets/images/png/friendlyroboticsalesmanager.jpeg"),
+                          //   fit: BoxFit.cover,
+                          // ),
                         ),
                       ),
                     ],
@@ -236,48 +244,110 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
   }
 
   List<Widget> _actionItems(ThemeData theme, BuildContext context) {
-    final icons = [
-      IconsaxPlusLinear.message,
-      IconsaxPlusLinear.call,
-      IconsaxPlusLinear.security,
-      IconsaxPlusLinear.refresh,
-      IconsaxPlusLinear.book,
-      IconsaxPlusLinear.direct_inbox,
-      IconsaxPlusLinear.profile_tick,
-      IconsaxPlusLinear.global,
+    final settings = context.read<SettingsProvider>().settings;
+
+    final items = [
+      {
+        'icon':  IconsaxPlusLinear.message,
+        'title': 'Chat',
+        'onTap': () => launchUrl(
+          Uri.parse('https://wa.me/${settings.whatsappNumber}'),
+          mode: LaunchMode.externalApplication,
+        ),
+      },
+      {
+        'icon':  IconsaxPlusLinear.call,
+        'title': 'Call',
+        'onTap': () => launchUrl(Uri(scheme: 'tel', path: settings.callNumber)),
+      },
+      {
+        'icon':  IconsaxPlusLinear.security,
+        'title': 'Account',
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => HelpDetailScreen(title: 'Account Help')),
+        ),
+      },
+      {
+        'icon':  IconsaxPlusLinear.refresh,
+        'title': 'Transactions',
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  HelpDetailScreen(title: 'Transaction Issues')),
+        ),
+      },
+      {
+        'icon':  IconsaxPlusLinear.book,
+        'title': 'FAQs',
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => HelpDetailScreen(title: 'FAQs')),
+        ),
+      },
+      {
+        'icon':  IconsaxPlusLinear.direct_inbox,
+        'title': 'Email',
+        'onTap': () => launchUrl(
+          Uri(scheme: 'mailto', path: settings.supportEmail),
+        ),
+      },
+      {
+        'icon':  IconsaxPlusLinear.profile_tick,
+        'title': 'KYC Upgrade',
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => HelpDetailScreen(title: 'KYC Upgrade')),
+        ),
+      },
+      {
+        'icon':  IconsaxPlusLinear.global,
+        'title': 'Office',
+        'onTap': () {
+          // Show address in a snackbar or navigate to a map
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(settings.address.isNotEmpty
+                ? settings.address
+                : 'Address not available')),
+          );
+        },
+      },
     ];
-    final titles = [
-      "Chat",
-      "Call",
-      "Account",
-      "Transactions",
-      "FAQs",
-      "Email",
-      "KYC Upgrade",
-      "Office",
-    ];
-    return List.generate(
-      8,
-          (index) => _actionCard(icons[index], titles[index], theme, context),
-    );
+
+    return items
+        .map((item) => _actionCard(
+      item['icon'] as IconData,
+      item['title'] as String,
+      item['onTap'] as VoidCallback,
+      theme,
+      context,
+    ))
+        .toList();
   }
 
-  Widget _actionCard(IconData icon, String title, ThemeData theme, BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final iconSize = s(context, 24);
-      final padding = s(context, 12);
-      final textHeight = 14.0;
-      final totalHeight = iconSize + 2 * padding + textHeight + s(context, 6);
-      return Column(
+  Widget _actionCard(
+      IconData icon,
+      String title,
+      VoidCallback onTap,
+      ThemeData theme,
+      BuildContext context,
+      ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(padding),
+            padding: EdgeInsets.all(s(context, 12)),
             decoration: BoxDecoration(
               color: theme.cardColor,
               borderRadius: BorderRadius.circular(s(context, 16)),
             ),
-            child: Icon(icon, color: Colors.deepOrange, size: iconSize),
+            child: Icon(icon, color: Colors.deepOrange, size: s(context, 24)),
           ),
           SizedBox(height: s(context, 6)),
           FittedBox(
@@ -293,8 +363,8 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
             ),
           ),
         ],
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildTabContent(BuildContext context, ThemeData theme, List<String> items) {

@@ -26,7 +26,9 @@ class CountryListPage extends StatelessWidget {
             leading: SizedBox(
               width: 40,
               height: 30,
-              child: CountryFlag.fromCountryCode(country["iso2"]!),
+              child: CountryFlag.fromCountryCode(
+                country["iso2"]!.trim().toUpperCase(),
+              ),
             ),
             title: Text(country["name"]!),
           );

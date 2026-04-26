@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
+import '../provider/balance_provider.dart';
 import 'airtime_successful_page.dart';
 import 'fund_wallet/fund_wallet.dart';
+import 'package:provider/provider.dart';
+import '../models/user_model.dart';
+import '../provider/user_provider.dart';
 
 class DataPage extends StatefulWidget {
   const DataPage({super.key});
@@ -14,6 +18,7 @@ class DataPage extends StatefulWidget {
 class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
   late TabController tabController;
   final phoneController = TextEditingController();
+
 
   final banners = [
     'assets/images/png/oppp.PNG',
@@ -33,6 +38,14 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     tabController = TabController(length: 5, vsync: this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<UserProvider>().user;
+      if (user?.phone != null && user!.phone!.isNotEmpty) {
+        phoneController.text = user.phone!;
+        setState(() {}); // refresh UI for clear icon
+      }
+    });
   }
 
   @override
@@ -171,7 +184,18 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
+    final user = context.watch<UserProvider>().user;
+    final firstName = user?.name;
+    final email = user?.email ?? 'Add Email';
+    final accountNumber = user?.accountNumber ?? '--';
+    final gender = user?.gender ?? '--';
+    final phone = user?.phone ?? '--';
+    final address = user?.address ?? '--';
+    final dob = user?.dob ?? '--';
+    final kycLevel = user?.kycLevel ?? 'none';
+    final userName = user?.name;
+    final gTag = user?.username ?? '';
+    double balance = UserBalance.instance.balance; // 🔥 always current
     final bgColor = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFFFFBFA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -287,7 +311,19 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                         hintText: 'Enter mobile number',
                         hintStyle: TextStyle(color: textColor.withOpacity(0.5)),
                         border: InputBorder.none,
+                        suffixIcon: phoneController.text.isNotEmpty
+                            ? IconButton(
+                          icon: Icon(Icons.close, color: textColor),
+                          onPressed: () {
+                            phoneController.clear();
+                            setState(() {});
+                          },
+                        )
+                            : null,
                       ),
+                      onChanged: (value) {
+                        setState(() {}); // refresh to show/hide clear button
+                      },
                     ),
                   ),
                 ],
@@ -344,6 +380,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                                   onTap: () {
                                     _showConfirmSheet(
                                       context,
+                                      balance: UserBalance.instance.balance,
                                       biller: '$selectedNetworkName Data Bundle',
                                       logo: selectedNetworkLogo,
                                       plan: '500MB',
@@ -412,6 +449,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
         required String recipient,
         required int price,
         required int oldPrice,
+        required double balance,
       }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -496,12 +534,15 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                 ),
                 title: Row(
                   children: [
-                    Text('Balance', style: TextStyle(color: textColor)),
+                    Text( 'balance', style: TextStyle(color: textColor)),
                     const SizedBox(width: 10),
                     const Icon(Icons.remove_red_eye_outlined, color: Colors.grey, size: 22),
                   ],
                 ),
-                subtitle: const Text('(₦0.00)', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                subtitle: Text(
+                  '₦${balance.toStringAsFixed(2)}',
+                  style: TextStyle(color: subText, fontSize: 16),
+                ),
               ),
 
               /// PAYMENT METHODS
@@ -566,6 +607,12 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
+                    if (phoneController.text.trim().isEmpty) {
+                      Navigator.of(sheetCtx).pop();
+                      _showSnack('Please enter recipient number');
+                      return;
+                    }
+
                     Navigator.of(sheetCtx).pop();
                     _showPinBottomSheet(onConfirmed: (pin) {});
                   },

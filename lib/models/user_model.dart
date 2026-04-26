@@ -16,6 +16,7 @@ class UserModel {
   final String dob;
   final String location;
   final String kycLevel;
+  final String referralCode;
   final bool isVerified;
 
   UserModel({
@@ -36,6 +37,7 @@ class UserModel {
     required this.dob,
     required this.location,
     required this.kycLevel,
+    required this.referralCode,
     required this.isVerified,
   });
 
@@ -58,6 +60,7 @@ class UserModel {
       dob: json['dob'] ?? '',
       location: json['location'] ?? '',
       kycLevel: json['kycLevel'] ?? '',
+        referralCode: json['referral_code'] ?? json['referralCode'] ?? '',
       isVerified: json['is_verified'].toString() == '1',
     );
   }
@@ -76,11 +79,12 @@ class UserModel {
       'role': role,
       'status': status,
       'address': address,
-      'account_number': accountNumber,
-      'account_name': accountName,
+      'accountNumber': accountNumber,   // ← was account_number
+      'accountName': accountName,       // ← was account_name
       'dob': dob,
       'location': location,
       'kycLevel': kycLevel,
+      'referral_code': referralCode,    // ← was referralCode ✅ fixed
       'is_verified': isVerified ? 1 : 0,
     };
   }
@@ -104,6 +108,7 @@ class UserModel {
     String? dob,
     String? location,
     String? kycLevel,
+    String? referralCode,
     bool? isVerified,
   }) {
     return UserModel(
@@ -124,6 +129,7 @@ class UserModel {
       dob: dob ?? this.dob,
       location: location ?? this.location,
       kycLevel: kycLevel ?? this.kycLevel,
+      referralCode: referralCode ?? this.referralCode,
       isVerified: isVerified ?? this.isVerified,
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../apps/apps.dart';
+import '../provider/user_provider.dart';
 import 'forgot_password.dart';
 import 'signup_page.dart';
 import '../models/user_model.dart';
@@ -61,14 +62,16 @@ class _LoginPageState extends State<LoginPage> {
 
       /// ✅ Parse user
       final user = UserModel.fromJson(data['user']);
-      print('LOGIN USERNAME: ${user.username}'); // ✅ Debug
+      print('LOGIN USERNAME: ${user.username} '); // ✅ Debug
+      print('Referral code: ${user.referralCode}');
 
-      await SecureStorageService.saveUser(user);
 
-      /// 🔥 UPDATE PROVIDER
+      // printrint('Referral code: ${user.referralCode}'); // already shows GBx2345 ✅
+
+      await SecureStorageService.saveUser(user); // ← this now saves correctly
       if (!mounted) return;
       context.read<AuthProvider>().setUser(user);
-
+      context.read<UserProvider>().setUser(user); // ← make sure this is here
       /// OPTIONAL callback
       widget.onLoginSuccess();
 

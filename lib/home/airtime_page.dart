@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:intl/intl.dart';
-
+import 'package:provider/provider.dart';
+import '../provider/user_provider.dart';
 import 'airtime_successful_page.dart';
 
 class AirtimePage extends StatefulWidget {
@@ -45,10 +47,21 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    // Tab controller to reliably read active tab
     _tabController = TabController(length: 2, vsync: this);
 
-    // formatting listeners (live formatting while typing)
+    // ── Auto-fill phone from logged-in user ──────────────────
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<UserProvider>().user;
+      if (user?.phone != null && user!.phone!.isNotEmpty) {
+        phoneController.text = user.phone!;          // send to self
+        if (bulkItems.isNotEmpty) {
+          bulkItems.first.phoneCtrl.text = user.phone!; // first bulk item
+        }
+        setState(() {});
+      }
+    });
+    // ─────────────────────────────────────────────────────────
+
     manualAmountController.addListener(() => _formatAndClamp(manualAmountController));
     for (var b in bulkItems) {
       b.amountCtrl.addListener(() => _formatAndClamp(b.amountCtrl));
@@ -748,9 +761,14 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
 
       OutlinedButton.icon(
         onPressed: () {
+          final user = context.read<UserProvider>().user;
           setState(() {
             final newItem = BulkItem();
             newItem.amountCtrl.addListener(() => _formatAndClamp(newItem.amountCtrl));
+            // ── pre-fill phone for every new recipient too ──
+            if (user?.phone != null && user!.phone!.isNotEmpty) {
+              newItem.phoneCtrl.text = user.phone!;
+            }
             bulkItems.add(newItem);
           });
         },

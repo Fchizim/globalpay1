@@ -1,9 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Storage access -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>-->
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/> &lt;!&ndash; if needed &ndash;&gt;-->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/> <!-- if needed -->
+
+    <!-- Notifications for Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <application
 
-        android:label="untitle1"
-
-        android:label="globalpay1"
+        android:label="Globalpay1"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
