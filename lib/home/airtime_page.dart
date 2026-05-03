@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../provider/user_provider.dart';
@@ -13,11 +12,22 @@ class AirtimePage extends StatefulWidget {
   State<AirtimePage> createState() => _AirtimePageState();
 }
 
-class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStateMixin {
+class _AirtimePageState extends State<AirtimePage>
+    with SingleTickerProviderStateMixin {
   // Controllers & state
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController manualAmountController = TextEditingController();
-  final List<int> quickAmounts = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 50000];
+  final List<int> quickAmounts = [
+    50,
+    100,
+    200,
+    500,
+    1000,
+    2000,
+    5000,
+    10000,
+    50000,
+  ];
   int? selectedAmount;
   int selectedIndex = 0;
 
@@ -42,7 +52,14 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
   String? singleAmountError;
 
   // allowed Nigerian prefixes
-  final List<String> _validPrefixes = ['070', '071', '080', '081', '090', '091'];
+  final List<String> _validPrefixes = [
+    '070',
+    '071',
+    '080',
+    '081',
+    '090',
+    '091',
+  ];
 
   @override
   void initState() {
@@ -52,17 +69,19 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     // ── Auto-fill phone from logged-in user ──────────────────
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<UserProvider>().user;
-      if (user?.phone != null && user!.phone!.isNotEmpty) {
-        phoneController.text = user.phone!;          // send to self
+      if (user?.phone != null && user!.phone.isNotEmpty) {
+        phoneController.text = user.phone; // send to self
         if (bulkItems.isNotEmpty) {
-          bulkItems.first.phoneCtrl.text = user.phone!; // first bulk item
+          bulkItems.first.phoneCtrl.text = user.phone; // first bulk item
         }
         setState(() {});
       }
     });
     // ─────────────────────────────────────────────────────────
 
-    manualAmountController.addListener(() => _formatAndClamp(manualAmountController));
+    manualAmountController.addListener(
+      () => _formatAndClamp(manualAmountController),
+    );
     for (var b in bulkItems) {
       b.amountCtrl.addListener(() => _formatAndClamp(b.amountCtrl));
     }
@@ -87,7 +106,10 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     if (digits.isEmpty) {
       // leave the field empty (so prefixText '₦ ' still shows from decoration)
       if (controller.text.isNotEmpty) {
-        controller.value = const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
+        controller.value = const TextEditingValue(
+          text: '',
+          selection: TextSelection.collapsed(offset: 0),
+        );
       }
       return;
     }
@@ -124,7 +146,9 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     if (digits.isEmpty) return 'Please enter mobile number';
     if (digits.length != 11) return 'Number must be 11 digits';
     final prefix = digits.substring(0, 3);
-    if (!_validPrefixes.contains(prefix)) return 'Number must start with 070, 071, 080, 081, 090 or 091';
+    if (!_validPrefixes.contains(prefix)) {
+      return 'Number must start with 070, 071, 080, 081, 090 or 091';
+    }
     return null;
   }
 
@@ -158,7 +182,9 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
       final phoneErr = _validatePhone(phone);
       final amt = selectedAmount ?? _controllerToInt(manualAmountController);
       String? amtErr;
-      if (amt == null || amt < 50) amtErr = 'Enter an amount between ₦50 and ₦100,000';
+      if (amt == null || amt < 50) {
+        amtErr = 'Enter an amount between ₦50 and ₦100,000';
+      }
 
       if (phoneErr != null || amtErr != null) {
         // show inline errors
@@ -182,7 +208,10 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
             title: const Text('No recipients'),
             content: const Text('Add at least one recipient.'),
             actions: [
-              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
             ],
           ),
         );
@@ -239,48 +268,85 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
   void _showSingleConfirmModal() {
     final provider = networks[selectedIndex]['name'] ?? 'Provider';
     final phone = phoneController.text.trim();
-    final amount = selectedAmount ?? _controllerToInt(manualAmountController) ?? 0;
+    final amount =
+        selectedAmount ?? _controllerToInt(manualAmountController) ?? 0;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Text('Airtime Payment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-            const SizedBox(height: 10),
-            Text('₦${_numFormat.format(amount)}', style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: primary)),
-            const SizedBox(height: 30),
-            Row(children: [
-              Expanded(child: Text('Amount', style: TextStyle())),
-              Text('₦${_numFormat.format(amount)}', style: const TextStyle()),
-            ]),
-            const SizedBox(height: 8),
-            _confirmRow('Provider', provider),
-            const SizedBox(height: 8),
-            _confirmRow('Mobile number', phone.isEmpty ? 'Not entered' : phone),
-            const SizedBox(height: 8),
-            _confirmRow('Payment method', 'Balance(₦0.00)'),
-            const SizedBox(height: 25),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _showPinBottomSheet(onConfirmed: (pin) {
-                  //_showSnack('Payment successful (demo). PIN: $pin');
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Text(
+                  'Airtime Payment',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-              child: const Text('Confirm to Pay', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(height: 12),
-          ]),
+              const SizedBox(height: 10),
+              Text(
+                '₦${_numFormat.format(amount)}',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  color: primary,
+                ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(child: Text('Amount', style: TextStyle())),
+                  Text(
+                    '₦${_numFormat.format(amount)}',
+                    style: const TextStyle(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _confirmRow('Provider', provider),
+              const SizedBox(height: 8),
+              _confirmRow(
+                'Mobile number',
+                phone.isEmpty ? 'Not entered' : phone,
+              ),
+              const SizedBox(height: 8),
+              _confirmRow('Payment method', 'Balance(₦0.00)'),
+              const SizedBox(height: 25),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showPinBottomSheet(
+                    onConfirmed: (pin) {
+                      //_showSnack('Payment successful (demo). PIN: $pin');
+                    },
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Confirm to Pay',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
@@ -289,11 +355,13 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
   // ------------------ Bulk modal ------------------
   void _showBulkConfirmModal() {
     final recipients = bulkItems
-        .map((b) => {
-      'phone': b.phoneCtrl.text.trim(),
-      'provider': networks[b.networkIndex]['name'] ?? 'Provider',
-      'amount': _controllerToInt(b.amountCtrl) ?? 0
-    })
+        .map(
+          (b) => {
+            'phone': b.phoneCtrl.text.trim(),
+            'provider': networks[b.networkIndex]['name'] ?? 'Provider',
+            'amount': _controllerToInt(b.amountCtrl) ?? 0,
+          },
+        )
         .toList();
 
     final total = _bulkTotal();
@@ -301,69 +369,104 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) {
         final showCount = recipients.length > 3 ? 3 : recipients.length;
         final senderPhone = phoneController.text.trim();
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Center(child: Text('Bulk Airtime Payment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-              const SizedBox(height: 8),
-              // total amount under title (deep orange)
-              Text('₦${_numFormat.format(total)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primary)),
-              const SizedBox(height: 12),
-
-              // recipients preview (up to 3)
-              Column(
-                children: [
-                  for (var i = 0; i < showCount; i++)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text('Recipient ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text('${recipients[i]['phone']} , ${recipients[i]['provider']}'),
-                      trailing: Text('₦${_numFormat.format(recipients[i]['amount'])}'),
-                    ),
-                  if (recipients.length > 3)
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _showAllRecipientsSheet(recipients);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text('See All', style: TextStyle(color: primary)),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // mobile number that was imputed (sender phone)
-              _confirmRow('Payment method', 'Balance(₦0.00)'),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  final total = _bulkTotal(); // get total amount from all bulk entries
-                  _showPinBottomSheet(
-                    customAmount: total,
-                    onConfirmed: (pin) {
-                      //_showSnack('Bulk payment successful (demo). PIN: $pin');
-                    },
-                  );
-                },
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Text(
+                    'Bulk Airtime Payment',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                child: const Text('Confirm to pay',style: TextStyle(color: Colors.white),),
-              ),
-              const SizedBox(height: 12),
-            ]),
+                const SizedBox(height: 8),
+                // total amount under title (deep orange)
+                Text(
+                  '₦${_numFormat.format(total)}',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // recipients preview (up to 3)
+                Column(
+                  children: [
+                    for (var i = 0; i < showCount; i++)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'Recipient ${i + 1}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${recipients[i]['phone']} , ${recipients[i]['provider']}',
+                        ),
+                        trailing: Text(
+                          '₦${_numFormat.format(recipients[i]['amount'])}',
+                        ),
+                      ),
+                    if (recipients.length > 3)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _showAllRecipientsSheet(recipients);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'See All',
+                            style: TextStyle(color: primary),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // mobile number that was imputed (sender phone)
+                _confirmRow('Payment method', 'Balance(₦0.00)'),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    final total =
+                        _bulkTotal(); // get total amount from all bulk entries
+                    _showPinBottomSheet(
+                      customAmount: total,
+                      onConfirmed: (pin) {
+                        //_showSnack('Bulk payment successful (demo). PIN: $pin');
+                      },
+                    );
+                  },
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Confirm to pay',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         );
       },
@@ -430,7 +533,10 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
 
   // ------------------ PIN bottom sheet (auto-advance & auto-submit) ------------------
   // ------------------ PIN bottom sheet (auto-advance & auto-submit) ------------------
-  void _showPinBottomSheet({required void Function(String pin) onConfirmed, int? customAmount}) {
+  void _showPinBottomSheet({
+    required void Function(String pin) onConfirmed,
+    int? customAmount,
+  }) {
     final ctrl1 = TextEditingController();
     final ctrl2 = TextEditingController();
     final ctrl3 = TextEditingController();
@@ -442,7 +548,8 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     final n4 = FocusNode();
 
     // If customAmount is provided (from bulk), use that; otherwise fall back
-    final amount = customAmount ??
+    final amount =
+        customAmount ??
         selectedAmount ??
         _controllerToInt(manualAmountController) ??
         0;
@@ -455,7 +562,9 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
       ),
       builder: (sheetCtx) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             child: Column(
@@ -497,11 +606,13 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
                           onChanged: (v) async {
                             if (v.isNotEmpty) {
                               if (i < 3) {
-                                FocusScope.of(sheetCtx)
-                                    .requestFocus([n2, n3, n4, n4][i]);
+                                FocusScope.of(
+                                  sheetCtx,
+                                ).requestFocus([n2, n3, n4, n4][i]);
                               } else {
                                 await Future.delayed(
-                                    const Duration(milliseconds: 50));
+                                  const Duration(milliseconds: 50),
+                                );
                                 final pin =
                                     '${ctrl1.text}${ctrl2.text}${ctrl3.text}${ctrl4.text}';
                                 if (pin.length == 4) {
@@ -511,12 +622,17 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
                                   onConfirmed(pin);
                                   if (mounted) {
                                     final phone = phoneController.text.trim();
-                                    final amount = (customAmount ??
-                                        selectedAmount ??
-                                        _controllerToInt(manualAmountController) ??
-                                        0)
-                                        .toInt();
-                                    final network = networks[selectedIndex]['name'] ?? 'Provider';
+                                    final amount =
+                                        (customAmount ??
+                                                selectedAmount ??
+                                                _controllerToInt(
+                                                  manualAmountController,
+                                                ) ??
+                                                0)
+                                            .toInt();
+                                    final network =
+                                        networks[selectedIndex]['name'] ??
+                                        'Provider';
 
                                     Navigator.of(context).pushReplacement(
                                       MaterialPageRoute(
@@ -528,13 +644,12 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
                                       ),
                                     );
                                   }
-
-
                                 }
                               }
                             } else if (i > 0) {
-                              FocusScope.of(sheetCtx)
-                                  .requestFocus([n1, n1, n2, n3][i]);
+                              FocusScope.of(
+                                sheetCtx,
+                              ).requestFocus([n1, n1, n2, n3][i]);
                             }
                           },
                         ),
@@ -564,11 +679,13 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
 
   // ------------------ small helpers ------------------
   Widget _confirmRow(String label, String value) {
-    return Row(children: [
-      Expanded(child: Text(label, style: const TextStyle())),
-      const SizedBox(width: 12),
-      Text(value, textAlign: TextAlign.right),
-    ]);
+    return Row(
+      children: [
+        Expanded(child: Text(label, style: const TextStyle())),
+        const SizedBox(width: 12),
+        Text(value, textAlign: TextAlign.right),
+      ],
+    );
   }
 
   // ------------------ UI ------------------
@@ -587,7 +704,10 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
         elevation: 0,
         shadowColor: Colors.transparent,
         backgroundColor: bgColor,
-        leading: IconButton(icon: Icon(Icons.arrow_back, color: textColor), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: textColor),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text('Buy Airtime', style: TextStyle(color: textColor)),
         bottom: TabBar(
           controller: _tabController,
@@ -595,9 +715,11 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
           unselectedLabelColor: textColor.withOpacity(0.6),
           indicatorColor: primary,
           indicatorWeight: 3,
-            dividerColor: Colors.transparent,
-          tabs: const [Tab(
-              text: 'Send to self'), Tab(text: 'Buy in bulk')],
+          dividerColor: Colors.transparent,
+          tabs: const [
+            Tab(text: 'Send to self'),
+            Tab(text: 'Buy in bulk'),
+          ],
         ),
       ),
       body: TabBarView(
@@ -610,174 +732,247 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _singlePurchaseUI(ThemeData theme, Color cardColor, Color textColor, bool isDark) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      // network + phone widget with inline error display
-      _networkPhoneWidget(
-        selectedIndex: selectedIndex,
-        onNetworkChanged: (val) => setState(() => selectedIndex = val),
-        phoneController: phoneController,
-        cardColor: cardColor,
-        isDark: isDark,
-        phoneError: singlePhoneError,
-      ),
-      if (singlePhoneError != null) const SizedBox(height: 6),
-      if (singlePhoneError != null)
-        Padding(
-          padding: const EdgeInsets.only(left: 8.0, bottom: 6),
-          child: Text(singlePhoneError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+  Widget _singlePurchaseUI(
+    ThemeData theme,
+    Color cardColor,
+    Color textColor,
+    bool isDark,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // network + phone widget with inline error display
+        _networkPhoneWidget(
+          selectedIndex: selectedIndex,
+          onNetworkChanged: (val) => setState(() => selectedIndex = val),
+          phoneController: phoneController,
+          cardColor: cardColor,
+          isDark: isDark,
+          phoneError: singlePhoneError,
         ),
+        if (singlePhoneError != null) const SizedBox(height: 6),
+        if (singlePhoneError != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0, bottom: 6),
+            child: Text(
+              singlePhoneError!,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
 
-      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-      _floatingCard(
-        cardColor,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Top up Airtime', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: textColor)),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 2.4),
-            itemCount: quickAmounts.length,
-            itemBuilder: (context, index) {
-              final amount = quickAmounts[index];
-              final isSelected = selectedAmount == amount;
-              return GestureDetector(
-                onTap: () => _onQuickAmountTap(amount),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? primary : (isDark ? Colors.grey[800] : Colors.grey[200]),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [if (isSelected) BoxShadow(color: primary.withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 3))],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text('₦${_numFormat.format(amount)}', style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.white : textColor)),
+        _floatingCard(
+          cardColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Top up Airtime',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.4,
+                ),
+                itemCount: quickAmounts.length,
+                itemBuilder: (context, index) {
+                  final amount = quickAmounts[index];
+                  final isSelected = selectedAmount == amount;
+                  return GestureDetector(
+                    onTap: () => _onQuickAmountTap(amount),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? primary
+                            : (isDark ? Colors.grey[800] : Colors.grey[200]),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          if (isSelected)
+                            BoxShadow(
+                              color: primary.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '₦${_numFormat.format(amount)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : textColor,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: manualAmountController,
+                keyboardType: TextInputType.number,
+                decoration: _inputDecoration(cardColor, isDark).copyWith(
+                  hintText: '50 - 100,000',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
+                  prefixText: '₦ ',
+                  prefixStyle: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: TextStyle(color: textColor),
+                onTap: () => setState(() {
+                  selectedAmount = null;
+                  singleAmountError = null;
+                }),
+              ),
+              if (singleAmountError != null) const SizedBox(height: 8),
+              if (singleAmountError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0, top: 6),
+                  child: Text(
+                    singleAmountError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: manualAmountController,
-            keyboardType: TextInputType.number,
-            decoration: _inputDecoration(cardColor, isDark).copyWith(
-              hintText: '50 - 100,000',
-              hintStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey),
-              prefixText: '₦ ',
-              prefixStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontWeight: FontWeight.w600),
-            ),
-            style: TextStyle(color: textColor),
-            onTap: () => setState(() {
-              selectedAmount = null;
-              singleAmountError = null;
-            }),
-          ),
-          if (singleAmountError != null) const SizedBox(height: 8),
-          if (singleAmountError != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 4.0, top: 6),
-              child: Text(singleAmountError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-            ),
-        ]),
-      ),
-      const SizedBox(height: 20),
-      _continueButton(),
-    ]);
+        ),
+        const SizedBox(height: 20),
+        _continueButton(),
+      ],
+    );
   }
 
-  Widget _bulkPurchaseUI(ThemeData theme, Color cardColor, Color textColor, bool isDark) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      ...bulkItems.asMap().entries.map((entry) {
-        final index = entry.key;
-        final item = entry.value;
-        return Column(children: [
-          // the network + phone widget (with per-item error)
-          _networkPhoneWidget(
-            selectedIndex: item.networkIndex,
-            onNetworkChanged: (val) => setState(() => item.networkIndex = val),
-            phoneController: item.phoneCtrl,
-            cardColor: cardColor,
-            isDark: isDark,
-            phoneError: item.phoneError,
-          ),
-          if (item.phoneError != null) const SizedBox(height: 6),
-          if (item.phoneError != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0, bottom: 6),
-              child: Text(item.phoneError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-            ),
+  Widget _bulkPurchaseUI(
+    ThemeData theme,
+    Color cardColor,
+    Color textColor,
+    bool isDark,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ...bulkItems.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          return Column(
+            children: [
+              // the network + phone widget (with per-item error)
+              _networkPhoneWidget(
+                selectedIndex: item.networkIndex,
+                onNetworkChanged: (val) =>
+                    setState(() => item.networkIndex = val),
+                phoneController: item.phoneCtrl,
+                cardColor: cardColor,
+                isDark: isDark,
+                phoneError: item.phoneError,
+              ),
+              if (item.phoneError != null) const SizedBox(height: 6),
+              if (item.phoneError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, bottom: 6),
+                  child: Text(
+                    item.phoneError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
 
-          const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-          // amount input
-          TextFormField(
-            controller: item.amountCtrl,
-            keyboardType: TextInputType.number,
-            decoration: _inputDecoration(cardColor, isDark).copyWith(
-                hintText: '50 - 100,000',
-                hintStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey),
-                prefixText: '₦ ',
-                prefixStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontWeight: FontWeight.w600)),
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-            onTap: () {
-              setState(() {
-                item.amountError = null;
-              });
-            },
-          ),
-
-          if (item.amountError != null) const SizedBox(height: 6),
-          if (item.amountError != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0, bottom: 6),
-              child: Text(item.amountError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-            ),
-
-          // small, unobtrusive remove (X) button aligned to the right
-          Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              width: 36,
-              height: 36,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                tooltip: 'Remove recipient',
-                icon: Icon(Icons.close, size: 20, color: Colors.redAccent),
-                onPressed: () {
-                  // if user tries to remove, dispose controllers and remove entry
+              // amount input
+              TextFormField(
+                controller: item.amountCtrl,
+                keyboardType: TextInputType.number,
+                decoration: _inputDecoration(cardColor, isDark).copyWith(
+                  hintText: '50 - 100,000',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
+                  prefixText: '₦ ',
+                  prefixStyle: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                onTap: () {
                   setState(() {
-                    bulkItems[index].dispose();
-                    bulkItems.removeAt(index);
+                    item.amountError = null;
                   });
                 },
               ),
-            ),
-          ),
 
-          const SizedBox(height: 12),
-        ]);
-      }),
+              if (item.amountError != null) const SizedBox(height: 6),
+              if (item.amountError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, bottom: 6),
+                  child: Text(
+                    item.amountError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
 
-      OutlinedButton.icon(
-        onPressed: () {
-          final user = context.read<UserProvider>().user;
-          setState(() {
-            final newItem = BulkItem();
-            newItem.amountCtrl.addListener(() => _formatAndClamp(newItem.amountCtrl));
-            // ── pre-fill phone for every new recipient too ──
-            if (user?.phone != null && user!.phone!.isNotEmpty) {
-              newItem.phoneCtrl.text = user.phone!;
-            }
-            bulkItems.add(newItem);
-          });
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Add another recipient'),
-      ),
-      const SizedBox(height: 20),
-      _continueButton(),
-    ]);
+              // small, unobtrusive remove (X) button aligned to the right
+              Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    tooltip: 'Remove recipient',
+                    icon: Icon(Icons.close, size: 20, color: Colors.redAccent),
+                    onPressed: () {
+                      // if user tries to remove, dispose controllers and remove entry
+                      setState(() {
+                        bulkItems[index].dispose();
+                        bulkItems.removeAt(index);
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+            ],
+          );
+        }),
+
+        OutlinedButton.icon(
+          onPressed: () {
+            final user = context.read<UserProvider>().user;
+            setState(() {
+              final newItem = BulkItem();
+              newItem.amountCtrl.addListener(
+                () => _formatAndClamp(newItem.amountCtrl),
+              );
+              // ── pre-fill phone for every new recipient too ──
+              if (user?.phone != null && user!.phone.isNotEmpty) {
+                newItem.phoneCtrl.text = user.phone;
+              }
+              bulkItems.add(newItem);
+            });
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('Add another recipient'),
+        ),
+        const SizedBox(height: 20),
+        _continueButton(),
+      ],
+    );
   }
 
   Widget _networkPhoneWidget({
@@ -794,71 +989,121 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.grey.withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: Row(children: [
-        DropdownButtonHideUnderline(
-          child: DropdownButton<int>(
-            value: selectedIndex,
-            items: List.generate(networks.length, (index) {
-              final net = networks[index];
-              return DropdownMenuItem<int>(
-                value: index,
-                child: Row(children: [
-                  CircleAvatar(radius: 17, backgroundImage: AssetImage(net['logo']!)),
-                  const SizedBox(width: 6),
-                  Text(net['name']!, style: TextStyle(fontSize: 12, color: isDark ? Colors.white : Colors.black87)),
-                ]),
-              );
-            }),
-            onChanged: (val) {
-              if (val != null) onNetworkChanged(val);
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: phoneController,
-            keyboardType: TextInputType.phone,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-            decoration: InputDecoration(
-              hintText: 'Enter mobile number',
-              hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
-              border: InputBorder.none,
+      child: Row(
+        children: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: selectedIndex,
+              items: List.generate(networks.length, (index) {
+                final net = networks[index];
+                return DropdownMenuItem<int>(
+                  value: index,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 17,
+                        backgroundImage: AssetImage(net['logo']!),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        net['name']!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              onChanged: (val) {
+                if (val != null) onNetworkChanged(val);
+              },
             ),
-            onChanged: (_) {
-              // clear inline error for this controller when typing
-              setState(() {
-                if (phoneController == this.phoneController) singlePhoneError = null;
-                for (var b in bulkItems) {
-                  if (b.phoneCtrl == phoneController) b.phoneError = null;
-                }
-              });
-            },
           ),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: Container(height: 30, width: 30, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: primary.withOpacity(0.1)), child: Icon(Icons.person, color: primary)),
-        ),
-      ]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: 'Enter mobile number',
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.grey,
+                ),
+                border: InputBorder.none,
+              ),
+              onChanged: (_) {
+                // clear inline error for this controller when typing
+                setState(() {
+                  if (phoneController == this.phoneController) {
+                    singlePhoneError = null;
+                  }
+                  for (var b in bulkItems) {
+                    if (b.phoneCtrl == phoneController) b.phoneError = null;
+                  }
+                });
+              },
+            ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: Container(
+              height: 30,
+              width: 30,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: primary.withOpacity(0.1),
+              ),
+              child: Icon(Icons.person, color: primary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _continueButton() {
     return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size.fromHeight(50), elevation: 2),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: const Size.fromHeight(50),
+        elevation: 2,
+      ),
       onPressed: _onContinuePressed,
-      child: const Text('Continue', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+      child: const Text(
+        'Continue',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+      ),
     );
   }
 
   InputDecoration _inputDecoration(Color fillColor, bool isDark) {
     return InputDecoration(
       filled: true,
-      fillColor: fillColor == Colors.white ? Colors.grey[100] : const Color(0xFF1E1E1E),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      fillColor: fillColor == Colors.white
+          ? Colors.grey[100]
+          : const Color(0xFF1E1E1E),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     );
   }
@@ -870,7 +1115,13 @@ class _AirtimePageState extends State<AirtimePage> with SingleTickerProviderStat
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
@@ -892,4 +1143,3 @@ class BulkItem {
     amountCtrl.dispose();
   }
 }
-

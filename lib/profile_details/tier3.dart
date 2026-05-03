@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:globalpay/profile_details/tier3_confirmation.dart';
 import '../assets/nigeria_lgas.json.dart';
-import 'nigeria_lgs.dart'; // Your nigeriaLgs map
+// Your nigeriaLgs map
 
 class TierThree extends StatefulWidget {
   const TierThree({super.key});
@@ -28,9 +28,7 @@ class _TierThreeState extends State<TierThree> {
   void initState() {
     super.initState();
 
-    countries = {
-      "Nigeria": nigeriaLgs,
-    };
+    countries = {"Nigeria": nigeriaLgs};
 
     stateList = countries[selectedCountry]?.keys.toList() ?? [];
     stateList.sort();
@@ -74,10 +72,7 @@ class _TierThreeState extends State<TierThree> {
               const Center(
                 child: Text(
                   "Confirm Address",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
                 ),
               ),
 
@@ -104,7 +99,9 @@ class _TierThreeState extends State<TierThree> {
                     _confirmRow("LGA", selectedLga),
                     const SizedBox(height: 10),
                     _confirmRow(
-                        "Address Details", addressController.text.trim()),
+                      "Address Details",
+                      addressController.text.trim(),
+                    ),
                   ],
                 ),
               ),
@@ -134,7 +131,12 @@ class _TierThreeState extends State<TierThree> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Tier3Confirmation()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Tier3Confirmation(),
+                          ),
+                        );
 
                         // 🔥 SEND DATA HERE
                         print("State: $selectedState");
@@ -165,7 +167,7 @@ class _TierThreeState extends State<TierThree> {
   Widget _confirmRow(String title, String value) {
     return Row(
       children: [
-        Icon(Icons.location_on_outlined, color: Colors.deepOrange,),
+        Icon(Icons.location_on_outlined, color: Colors.deepOrange),
         Text(
           "$title: ",
           style: const TextStyle(
@@ -176,9 +178,7 @@ class _TierThreeState extends State<TierThree> {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -207,19 +207,21 @@ class _TierThreeState extends State<TierThree> {
               Text(
                 title,
                 style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w500),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 5),
               Expanded(
                 child: CupertinoPicker(
-                  scrollController:
-                  FixedExtentScrollController(initialItem: selectedIndex),
+                  scrollController: FixedExtentScrollController(
+                    initialItem: selectedIndex,
+                  ),
                   itemExtent: 45,
                   onSelectedItemChanged: (index) {
                     selectedIndex = index;
                   },
-                  children:
-                  items.map((e) => Center(child: Text(e))).toList(),
+                  children: items.map((e) => Center(child: Text(e))).toList(),
                 ),
               ),
               const SizedBox(height: 10),
@@ -245,7 +247,7 @@ class _TierThreeState extends State<TierThree> {
                     ),
                   ),
                 ),
-              )
+              ),
             ],
           ),
         );
@@ -257,7 +259,8 @@ class _TierThreeState extends State<TierThree> {
 
   @override
   Widget build(BuildContext context) {
-    bool isValid = selectedCountry.isNotEmpty &&
+    bool isValid =
+        selectedCountry.isNotEmpty &&
         selectedState.isNotEmpty &&
         selectedLga.isNotEmpty &&
         addressController.text.trim().isNotEmpty;
@@ -318,19 +321,17 @@ class _TierThreeState extends State<TierThree> {
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_circle,
-                      size: 40, color: Colors.deepOrange),
+                  Icon(Icons.add_circle, size: 40, color: Colors.deepOrange),
                   SizedBox(height: 10),
                   Text(
                     "Upload Utility Bill or Bank Statement",
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepOrange),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange,
+                    ),
                   ),
                   SizedBox(height: 5),
-                  Text(
-                    "Containing your address, Not older than 3 months",
-                  ),
+                  Text("Containing your address, Not older than 3 months"),
                 ],
               ),
             ),
@@ -346,7 +347,7 @@ class _TierThreeState extends State<TierThree> {
             buildField(
               "State",
               selectedState.isEmpty ? "Select State" : selectedState,
-                  () {
+              () {
                 showWheelPicker(
                   items: stateList,
                   currentValue: selectedState,
@@ -369,15 +370,15 @@ class _TierThreeState extends State<TierThree> {
               selectedState.isEmpty
                   ? null
                   : () {
-                showWheelPicker(
-                  items: lgaList,
-                  currentValue: selectedLga,
-                  onSelected: (val) {
-                    setState(() => selectedLga = val);
-                  },
-                  title: "Select LGA",
-                );
-              },
+                      showWheelPicker(
+                        items: lgaList,
+                        currentValue: selectedLga,
+                        onSelected: (val) {
+                          setState(() => selectedLga = val);
+                        },
+                        title: "Select LGA",
+                      );
+                    },
             ),
 
             const SizedBox(height: 20),
@@ -391,12 +392,13 @@ class _TierThreeState extends State<TierThree> {
                 hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 18,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                  const BorderSide(color: Colors.black),
+                  borderSide: const BorderSide(color: Colors.black),
                 ),
               ),
               onChanged: (_) => setState(() {}),
@@ -412,8 +414,12 @@ class _TierThreeState extends State<TierThree> {
     );
   }
 
-  Widget buildField(String title, String value, VoidCallback? onTap,
-      {bool showDropdownIcon = true}) {
+  Widget buildField(
+    String title,
+    String value,
+    VoidCallback? onTap, {
+    bool showDropdownIcon = true,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -422,26 +428,17 @@ class _TierThreeState extends State<TierThree> {
         InkWell(
           onTap: onTap,
           child: Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 18),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border:
-              Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Colors.grey.shade300),
             ),
             child: Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    value,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (showDropdownIcon)
-                  const Icon(Icons.keyboard_arrow_down),
+                Expanded(child: Text(value, overflow: TextOverflow.ellipsis)),
+                if (showDropdownIcon) const Icon(Icons.keyboard_arrow_down),
               ],
             ),
           ),

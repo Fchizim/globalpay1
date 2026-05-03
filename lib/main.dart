@@ -14,8 +14,8 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider() ),
-        ChangeNotifierProvider(create: (_) => KycProvider() ),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => KycProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: const MyApp(),
@@ -81,9 +81,7 @@ class _MyAppState extends State<MyApp> {
 
           // 🏁 Start screen (SAFE)
           home: auth.isCheckingAuth
-              ? const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          )
+              ? const Scaffold(body: Center(child: CircularProgressIndicator()))
               : auth.isLoggedIn
               ? MyAppsPage(onToggleTheme: toggleTheme)
               : SplashScreen(onToggleTheme: toggleTheme),

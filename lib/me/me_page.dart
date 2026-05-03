@@ -1,16 +1,12 @@
-
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:globalpay/me/feedback.dart';
 
 import '../home/all_asset.dart';
 import '../home/home_page.dart';
-import '../models/user_model.dart';
 import '../provider/user_provider.dart';
-import '../services/secure_storage_service.dart';
 import 'app_settings.dart';
 import 'notification_page.dart';
 import '../profile_details/profile_upgrade.dart';
@@ -18,10 +14,7 @@ import '../help_page/help_screen.dart';
 import '../profile_details/profile_details.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
-import '../home/currency_con.dart'; // ✅ Import CurrencyConfig
-
-/// Helper class for storing user name
-
+import '../home/currency_con.dart';
 
 class MePage extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -33,37 +26,14 @@ class MePage extends StatefulWidget {
 }
 
 class _MePageState extends State<MePage> {
-  // late final user = context.watch<UserProvider>().user;
-  // UserModel? _user;
-  // bool _loadingUser = true;
   bool _showFullFormat = false;
-  // 🔥 USER STATE (replaces SharedPreferences)
 
-  @override
-  void initState() {
-    super.initState();
-    // _loadUser();
-  }
-
-  // Future<void> _loadUser() async {
-  //   final user = await SecureStorageService.getUser();
-  //
-  //   if (!mounted) return;
-  //
-  //   setState(() {
-  //     _user = user;
-  //     _loadingUser = false;
-  //   });
-  // }
   Future<void> _navigateWithLoader(Widget page) async {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => LoaderWrapper(child: page)),
     );
   }
-
-
-
 
   double get balance => UserBalance.instance.balance;
 
@@ -91,20 +61,35 @@ class _MePageState extends State<MePage> {
   void _onSettingTap(String title) {
     switch (title) {
       case 'Notification':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationPage()),
+        );
         break;
       case 'Help & Support':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpScreen()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HelpScreen()),
+        );
         break;
       case 'Refer & Earn':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const InviteFriends()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const InviteFriends()),
+        );
         break;
       case 'Profile Upgrade':
       case 'Linked Accounts':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const KycLevelsPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const KycLevelsPage()),
+        );
         break;
       case 'Feedback':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const FeedbackPage()),
+        );
         break;
       case 'Dark Mode':
         widget.onToggleTheme();
@@ -114,7 +99,6 @@ class _MePageState extends State<MePage> {
     }
   }
 
-  // ---------- Responsive helper ----------
   double s(double value) {
     final sw = MediaQuery.of(context).size.width;
     return (sw / 375 * value).clamp(value * 0.85, value * 1.25);
@@ -131,14 +115,11 @@ class _MePageState extends State<MePage> {
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    double balance = UserBalance.instance.balance; // 🔥 always current
-
-
+    double balance = UserBalance.instance.balance;
     final bool canToggle = balance >= 1000000;
     final String displayedBalance = (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)
         : formatBalance(balance);
-
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -155,21 +136,26 @@ class _MePageState extends State<MePage> {
               backgroundColor: bgColor,
               title: GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {  },)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProfileDetails(onToggleTheme: () {}),
+                    ),
+                  );
                 },
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: s(25),
+                      radius: s(24),
                       backgroundColor: isDark
-                          ? Colors.deepOrange.shade700
+                          ? Colors.deepOrange.shade900
                           : Colors.deepOrange.shade100,
-
-              backgroundImage: imageUrl.isNotEmpty
-                  ? NetworkImage(imageUrl)
-                : const AssetImage('assets/images/png/gold.jpg'),
+                      backgroundImage: imageUrl.isNotEmpty
+                          ? NetworkImage(imageUrl)
+                          : const AssetImage('assets/images/png/gold.jpg')
+                                as ImageProvider,
                     ),
-                    SizedBox(width: s(10)),
+                    SizedBox(width: s(12)),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -178,22 +164,26 @@ class _MePageState extends State<MePage> {
                             Text(
                               "Hi, ${user?.name ?? 'Guest'}",
                               style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: s(16),
-                                  color: textColor),
+                                fontWeight: FontWeight.bold,
+                                fontSize: s(16),
+                                color: textColor,
+                              ),
                             ),
-                            SizedBox(width: s(5)),
-                            Icon(IconsaxPlusBold.verify,
-                                color: Colors.deepOrange, size: s(18)),
+                            SizedBox(width: s(4)),
+                            Icon(
+                              IconsaxPlusBold.verify,
+                              color: Colors.deepOrange,
+                              size: s(17),
+                            ),
                           ],
                         ),
-                        SizedBox(height: s(2)),
                         Text(
                           user?.kycLevel ?? 'none',
                           style: TextStyle(
-                              fontSize: s(13),
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.grey.shade400 : Colors.deepOrange),
+                            fontSize: s(12),
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -202,151 +192,209 @@ class _MePageState extends State<MePage> {
               ),
               actions: [
                 IconButton(
-                  icon: Icon(IconsaxPlusLinear.setting_2, color: Colors.deepOrange, size: s(26)),
-                  onPressed: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const AppSettingsPage()));
-                  },
+                  icon: Icon(
+                    IconsaxPlusLinear.setting_2,
+                    color: Colors.deepOrange,
+                    size: s(24),
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AppSettingsPage()),
+                  ),
                 ),
+                SizedBox(width: s(10)),
               ],
             ),
 
-            // 🟧 Balance card
+            // 🟧 BALANCE CARD
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.all(s(20)),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => AllAsset()));
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(s(11)),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      gradient: isDark
-                          ? null
-                          : LinearGradient(
-                        colors: [Colors.deepOrange.shade50, Colors.white],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                padding: EdgeInsets.symmetric(
+                  horizontal: s(20),
+                  vertical: s(15),
+                ),
+                child: Container(
+                  padding: EdgeInsets.all(s(16)),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(s(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black26
+                            : Colors.grey.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                      borderRadius: BorderRadius.circular(s(25)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDark ? Colors.black : Colors.grey.shade400,
-                          blurRadius: 25,
-                          offset: Offset(0, 12),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(s(12)),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.black
+                              : Colors.deepOrange.shade50,
+                          borderRadius: BorderRadius.circular(s(14)),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(s(14)),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.black : Colors.white,
-                            borderRadius: BorderRadius.circular(s(16)),
-                          ),
-                          child: Icon(IconsaxPlusBold.wallet_1,
-                              size: s(40), color: Colors.deepOrange),
+                        child: Icon(
+                          IconsaxPlusBold.wallet_1,
+                          size: s(32),
+                          color: Colors.deepOrange,
                         ),
-                        SizedBox(width: s(15)),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text("Total Balance",
+                      ),
+                      SizedBox(width: s(16)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Total Balance",
                                       style: TextStyle(
-                                          fontSize: s(17),
-                                          fontWeight: FontWeight.w600,
-                                          color: textColor)),
-                                  SizedBox(width: s(6)),
-                                  Icon(IconsaxPlusLinear.eye,
-                                      size: s(18), color: textColor),
-                                  if (canToggle) ...[
-                                    SizedBox(width: s(4)),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() => _showFullFormat = !_showFullFormat);
-                                      },
-                                      child: Icon(
-                                        _showFullFormat ? Icons.toggle_on : Icons.toggle_off,
-                                        size: s(26),
-                                        color: _showFullFormat ? Colors.deepOrange : Colors.grey,
+                                        fontSize: s(14),
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey,
                                       ),
+                                    ),
+                                    SizedBox(width: s(6)),
+                                    Icon(
+                                      IconsaxPlusLinear.eye,
+                                      size: s(14),
+                                      color: Colors.grey,
                                     ),
                                   ],
-                                  SizedBox(width: s(0)),
-                                  Container(
-                                    height: s(25),
-                                    width: s(60),
+                                ),
+                                GestureDetector(
+                                  onTap: () =>
+                                      _navigateWithLoader(const AllAsset()),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: s(10),
+                                      vertical: s(4),
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.deepOrange,
-                                      borderRadius: BorderRadius.circular(s(22)),
-                                    ),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        _navigateWithLoader(const AllAsset());
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            "Assets ",
-                                            style: TextStyle(
-                                              fontSize: s(9),
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          Icon(Icons.wallet, size: s(12), color: Colors.white),
-                                        ],
+                                      borderRadius: BorderRadius.circular(
+                                        s(20),
                                       ),
                                     ),
-                                  )
-                                ],
-                              ),
-                              SizedBox(height: s(10)),
-                              Text(displayedBalance,
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          "Assets ",
+                                          style: TextStyle(
+                                            fontSize: s(10),
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.wallet,
+                                          size: s(10),
+                                          color: Colors.white,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: s(6)),
+                            Row(
+                              children: [
+                                Text(
+                                  displayedBalance,
                                   style: TextStyle(
-                                      fontSize: s(22),
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.deepOrange.shade900)),
-                            ],
-                          ),
+                                    fontSize: s(22),
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                                if (canToggle) ...[
+                                  SizedBox(width: s(8)),
+                                  GestureDetector(
+                                    onTap: () => setState(
+                                      () => _showFullFormat = !_showFullFormat,
+                                    ),
+                                    child: Icon(
+                                      _showFullFormat
+                                          ? Icons.toggle_on
+                                          : Icons.toggle_off,
+                                      size: s(24),
+                                      color: _showFullFormat
+                                          ? Colors.deepOrange
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
 
-            // 🟧 Settings list
+            // 🟧 SETTINGS LIST
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: s(20)),
                 child: Column(
                   children: [
                     _buildSectionHeader("General"),
-                    _buildSetting("Transaction History", IconsaxPlusLinear.activity, cardColor, textColor),
+                    _buildSetting(
+                      "Transaction History",
+                      IconsaxPlusLinear.activity,
+                      cardColor,
+                      textColor,
+                    ),
 
-                    SizedBox(height: s(10)),
+                    SizedBox(height: s(15)),
                     _buildSectionHeader("Account"),
-                    _buildSetting("Profile Upgrade", IconsaxPlusLinear.user_add, cardColor, textColor),
-                    _buildSetting("Linked Accounts", IconsaxPlusLinear.wallet_2, cardColor, textColor),
+                    _buildSetting(
+                      "Profile Upgrade",
+                      IconsaxPlusLinear.user_add,
+                      cardColor,
+                      textColor,
+                    ),
+                    _buildSetting(
+                      "Linked Accounts",
+                      IconsaxPlusLinear.wallet_2,
+                      cardColor,
+                      textColor,
+                    ),
 
-                    SizedBox(height: s(20)),
+                    SizedBox(height: s(15)),
                     _buildSectionHeader("More"),
-                    _buildSetting("Refer & Earn", IconsaxPlusLinear.money_recive, cardColor, textColor),
-                    _buildSetting("Help & Support", IconsaxPlusLinear.message_question, cardColor, textColor),
-                    _buildSetting("Feedback", IconsaxPlusLinear.message_tick, cardColor, textColor),
+                    _buildSetting(
+                      "Refer & Earn",
+                      IconsaxPlusLinear.money_recive,
+                      cardColor,
+                      textColor,
+                    ),
+                    _buildSetting(
+                      "Help & Support",
+                      IconsaxPlusLinear.message_question,
+                      cardColor,
+                      textColor,
+                    ),
+                    _buildSetting(
+                      "Feedback",
+                      IconsaxPlusLinear.message_tick,
+                      cardColor,
+                      textColor,
+                    ),
 
-                    SizedBox(height: s(20)),
+                    SizedBox(height: s(15)),
                     _buildDarkModeSwitch(isDark, cardColor, textColor),
                     SizedBox(height: s(30)),
                   ],
@@ -363,36 +411,48 @@ class _MePageState extends State<MePage> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: EdgeInsets.only(bottom: s(10)),
-        child: Text(title,
-            style: TextStyle(
-                fontSize: s(14), fontWeight: FontWeight.w600, color: Colors.grey)),
+        padding: EdgeInsets.only(left: s(4), bottom: s(8)),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: s(13),
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildSetting(String title, IconData icon, Color cardColor, Color textColor) {
+  Widget _buildSetting(
+    String title,
+    IconData icon,
+    Color cardColor,
+    Color textColor,
+  ) {
     return Container(
-      margin: EdgeInsets.only(bottom: s(12)),
+      margin: EdgeInsets.only(bottom: s(10)),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(s(16)),
-        boxShadow: [
-          BoxShadow(
-              color: cardColor == Colors.white ? Colors.grey.shade200 : Colors.black45,
-              blurRadius: 15,
-              offset: Offset(0, 6)),
-        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.05)),
       ),
       child: ListTile(
-        leading: Icon(icon, size: s(26), color: Colors.deepOrange),
-        title: Text(title,
-            style: TextStyle(
-                fontSize: s(16),
-                fontWeight: FontWeight.w500,
-                color: textColor)),
-        trailing: Icon(Icons.arrow_forward_ios_rounded,
-            size: s(16), color: textColor),
+        dense: true,
+        leading: Icon(icon, size: s(24), color: Colors.deepOrange),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: s(15),
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: s(14),
+          color: Colors.grey,
+        ),
         onTap: () => _onSettingTap(title),
       ),
     );
@@ -400,28 +460,29 @@ class _MePageState extends State<MePage> {
 
   Widget _buildDarkModeSwitch(bool isDark, Color cardColor, Color textColor) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: s(12)),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(s(16)),
-        boxShadow: [
-          BoxShadow(
-              color: cardColor == Colors.white ? Colors.grey.shade200 : Colors.black45,
-              blurRadius: 15,
-              offset: Offset(0, 6)),
-        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.05)),
       ),
       child: SwitchListTile(
+        dense: true,
         value: isDark,
         onChanged: (val) => widget.onToggleTheme(),
-        title: Text(isDark ? "Enable Light Mode" : "Enable Dark Mode",
-            style: TextStyle(
-                fontSize: s(16),
-                fontWeight: FontWeight.w500,
-                color: textColor)),
-        secondary: Icon(isDark ? Icons.wb_sunny : IconsaxPlusLinear.moon,
-            size: s(26), color: Colors.deepOrange),
-        activeThumbColor: Colors.deepOrange,
+        title: Text(
+          isDark ? "Enable Light Mode" : "Enable Dark Mode",
+          style: TextStyle(
+            fontSize: s(15),
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
+        secondary: Icon(
+          isDark ? Icons.wb_sunny : IconsaxPlusLinear.moon,
+          size: s(24),
+          color: Colors.deepOrange,
+        ),
+        activeColor: Colors.deepOrange,
       ),
     );
   }

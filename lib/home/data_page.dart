@@ -5,7 +5,6 @@ import '../provider/balance_provider.dart';
 import 'airtime_successful_page.dart';
 import 'fund_wallet/fund_wallet.dart';
 import 'package:provider/provider.dart';
-import '../models/user_model.dart';
 import '../provider/user_provider.dart';
 
 class DataPage extends StatefulWidget {
@@ -18,7 +17,6 @@ class DataPage extends StatefulWidget {
 class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
   late TabController tabController;
   final phoneController = TextEditingController();
-
 
   final banners = [
     'assets/images/png/oppp.PNG',
@@ -41,8 +39,8 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<UserProvider>().user;
-      if (user?.phone != null && user!.phone!.isNotEmpty) {
-        phoneController.text = user.phone!;
+      if (user?.phone != null && user!.phone.isNotEmpty) {
+        phoneController.text = user.phone;
         setState(() {}); // refresh UI for clear icon
       }
     });
@@ -60,21 +58,20 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
     required void Function(String pin) onConfirmed,
     int? customAmount,
   }) {
-    final controllers =
-    List.generate(4, (_) => TextEditingController());
+    final controllers = List.generate(4, (_) => TextEditingController());
     final nodes = List.generate(4, (_) => FocusNode());
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-        BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetCtx) {
         return Padding(
           padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
           child: Container(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -82,9 +79,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
               children: [
                 const Text(
                   'Input PIN',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 10),
@@ -98,8 +93,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: List.generate(4, (i) {
                     return SizedBox(
                       width: 55,
@@ -116,14 +110,15 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                         onChanged: (v) async {
                           if (v.isNotEmpty) {
                             if (i < 3) {
-                              FocusScope.of(sheetCtx)
-                                  .requestFocus(nodes[i + 1]);
+                              FocusScope.of(
+                                sheetCtx,
+                              ).requestFocus(nodes[i + 1]);
                             } else {
                               await Future.delayed(
-                                  const Duration(milliseconds: 100));
+                                const Duration(milliseconds: 100),
+                              );
 
-                              final pin =
-                              controllers.map((e) => e.text).join();
+                              final pin = controllers.map((e) => e.text).join();
 
                               Navigator.pop(sheetCtx);
                               onConfirmed(pin);
@@ -136,8 +131,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                                   MaterialPageRoute(
                                     builder: (_) => AirtimeSuccessScreen(
                                       amount: amount,
-                                      network:
-                                      networks[selectedIndex]['name']!,
+                                      network: networks[selectedIndex]['name']!,
                                       phone: phone,
                                     ),
                                   ),
@@ -145,8 +139,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                               }
                             }
                           } else if (i > 0) {
-                            FocusScope.of(sheetCtx)
-                                .requestFocus(nodes[i - 1]);
+                            FocusScope.of(sheetCtx).requestFocus(nodes[i - 1]);
                           }
                         },
                       ),
@@ -175,9 +168,7 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -249,10 +240,10 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
               items: banners
                   .map(
                     (path) => ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(path, fit: BoxFit.cover, width: 1000),
-                ),
-              )
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(path, fit: BoxFit.cover, width: 1000),
+                    ),
+                  )
                   .toList(),
               options: CarouselOptions(
                 height: 100,
@@ -290,7 +281,10 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                               const SizedBox(width: 6),
                               Text(
                                 net['name']!,
-                                style: TextStyle(fontSize: 12, color: textColor),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textColor,
+                                ),
                               ),
                             ],
                           ),
@@ -313,12 +307,12 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                         border: InputBorder.none,
                         suffixIcon: phoneController.text.isNotEmpty
                             ? IconButton(
-                          icon: Icon(Icons.close, color: textColor),
-                          onPressed: () {
-                            phoneController.clear();
-                            setState(() {});
-                          },
-                        )
+                                icon: Icon(Icons.close, color: textColor),
+                                onPressed: () {
+                                  phoneController.clear();
+                                  setState(() {});
+                                },
+                              )
                             : null,
                       ),
                       onChanged: (value) {
@@ -365,23 +359,24 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                           controller: tabController,
                           children: List.generate(
                             5,
-                                (index) => GridView.builder(
+                            (index) => GridView.builder(
                               padding: const EdgeInsets.all(12),
                               itemCount: 8,
                               gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 0.85,
-                              ),
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 8,
+                                    mainAxisSpacing: 8,
+                                    childAspectRatio: 0.85,
+                                  ),
                               itemBuilder: (context, i) {
                                 return GestureDetector(
                                   onTap: () {
                                     _showConfirmSheet(
                                       context,
                                       balance: UserBalance.instance.balance,
-                                      biller: '$selectedNetworkName Data Bundle',
+                                      biller:
+                                          '$selectedNetworkName Data Bundle',
                                       logo: selectedNetworkLogo,
                                       plan: '500MB',
                                       duration: '1 Day',
@@ -425,13 +420,21 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
           const SizedBox(height: 10),
           Text(
             '500MB',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: textColor),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 17,
+              color: textColor,
+            ),
           ),
           Text('1 Day', style: TextStyle(color: textColor.withOpacity(0.6))),
           const Spacer(),
           Text(
             '₦350',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: textColor,
+            ),
           ),
           const SizedBox(height: 10),
         ],
@@ -441,16 +444,16 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
 
   /// MODAL WITH PAYMENT METHODS
   void _showConfirmSheet(
-      BuildContext context, {
-        required String biller,
-        required String logo,
-        required String plan,
-        required String duration,
-        required String recipient,
-        required int price,
-        required int oldPrice,
-        required double balance,
-      }) {
+    BuildContext context, {
+    required String biller,
+    required String logo,
+    required String plan,
+    required String duration,
+    required String recipient,
+    required int price,
+    required int oldPrice,
+    required double balance,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = Colors.deepOrange;
@@ -512,9 +515,15 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                 leading: CircleAvatar(backgroundImage: AssetImage(logo)),
                 title: Text(
                   biller,
-                  style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                subtitle: Text('$plan - $duration Plan', style: TextStyle(color: subText)),
+                subtitle: Text(
+                  '$plan - $duration Plan',
+                  style: TextStyle(color: subText),
+                ),
               ),
 
               /// RECIPIENT
@@ -523,8 +532,14 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                   backgroundColor: primary.withOpacity(0.15),
                   child: Icon(Icons.phone_iphone, color: primary, size: 20),
                 ),
-                title: Text('Recipient Mobile', style: TextStyle(color: textColor)),
-                subtitle: Text(recipient.isEmpty ? 'Not entered' : recipient, style: TextStyle(color: subText)),
+                title: Text(
+                  'Recipient Mobile',
+                  style: TextStyle(color: textColor),
+                ),
+                subtitle: Text(
+                  recipient.isEmpty ? 'Not entered' : recipient,
+                  style: TextStyle(color: subText),
+                ),
               ),
 
               ListTile(
@@ -534,9 +549,13 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                 ),
                 title: Row(
                   children: [
-                    Text( 'balance', style: TextStyle(color: textColor)),
+                    Text('balance', style: TextStyle(color: textColor)),
                     const SizedBox(width: 10),
-                    const Icon(Icons.remove_red_eye_outlined, color: Colors.grey, size: 22),
+                    const Icon(
+                      Icons.remove_red_eye_outlined,
+                      color: Colors.grey,
+                      size: 22,
+                    ),
                   ],
                 ),
                 subtitle: Text(
@@ -557,18 +576,30 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                   children: [
                     Text(
                       'Payment Method',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            icon: const Icon(Icons.account_balance_wallet, size: 16),
-                            label: const Text('Balance', style: TextStyle(fontSize: 13)),
+                            icon: const Icon(
+                              Icons.account_balance_wallet,
+                              size: 16,
+                            ),
+                            label: const Text(
+                              'Balance',
+                              style: TextStyle(fontSize: 13),
+                            ),
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(38),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             onPressed: () {},
                           ),
@@ -577,15 +608,23 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                         Expanded(
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Add Money', style: TextStyle(fontSize: 13)),
+                            label: const Text(
+                              'Add Money',
+                              style: TextStyle(fontSize: 13),
+                            ),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(38),
                               side: BorderSide(color: primary),
                               foregroundColor: primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => FundWallet()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => FundWallet()),
+                              );
                             },
                           ),
                         ),
@@ -604,7 +643,9 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
                     if (phoneController.text.trim().isEmpty) {
@@ -618,7 +659,11 @@ class _DataPageState extends State<DataPage> with TickerProviderStateMixin {
                   },
                   child: const Text(
                     'Confirm Purchase',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

@@ -10,7 +10,6 @@ import 'package:globalpay/home/fund_wallet/fund_wallet.dart';
 import 'package:globalpay/home/send_money.dart';
 import 'package:intl/intl.dart';
 import 'package:globalpay/home/user_page.dart';
-import '../models/user_model.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
 import '../provider/user_provider.dart';
@@ -19,12 +18,10 @@ import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
 import 'airtime_page.dart';
 import 'all_asset.dart';
-import 'card/card_page.dart';
 import 'currency_con.dart';
 import 'data_page.dart';
 import 'electricity.dart';
 import 'finance/create_target_page.dart';
-import 'finance/target_save.dart';
 import 'g-tag.dart';
 import 'giftcard.dart';
 
@@ -67,7 +64,6 @@ class _HomePageState extends State<HomePage> {
     _autoRefreshTimer?.cancel();
     super.dispose();
   }
-
 
   // Extracted refresh logic for auto-refresh
   Future<void> _refreshUserData() async {
@@ -132,10 +128,7 @@ class _HomePageState extends State<HomePage> {
     if (user == null) {
       return const Scaffold(
         body: Center(
-          child: SpinKitFadingCube(
-            color: Colors.deepOrange,
-            size: 55,
-          ),
+          child: SpinKitFadingCube(color: Colors.deepOrange, size: 55),
         ),
       );
     }
@@ -174,8 +167,10 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (context) => AllAsset()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => AllAsset()),
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.all(15),
@@ -183,10 +178,10 @@ class _HomePageState extends State<HomePage> {
                           gradient: LinearGradient(
                             colors: isDark
                                 ? [
-                              Colors.deepOrange.shade500,
-                              Colors.white12,
-                              Colors.deepOrange.shade400
-                            ]
+                                    Colors.deepOrange.shade500,
+                                    Colors.white12,
+                                    Colors.deepOrange.shade400,
+                                  ]
                                 : [Colors.deepOrange.shade200, Colors.white],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -298,11 +293,13 @@ class _HomePageState extends State<HomePage> {
                                 },
                               ),
                             ),
-                            child: _buildCard(context,
-                                icon: IconsaxPlusBold.bank,
-                                label: "To Bank",
-                                cardColor: cardColor,
-                                textColor: textColor),
+                            child: _buildCard(
+                              context,
+                              icon: IconsaxPlusBold.bank,
+                              label: "To Bank",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                            ),
                           ),
                           InkWell(
                             onTap: () => _navigateWithLoader(
@@ -319,31 +316,47 @@ class _HomePageState extends State<HomePage> {
                                 },
                               ),
                             ),
-                            child: _buildCard(context,
-                                icon: Icons.diversity_1,
-                                label: "To User",
-                                cardColor: cardColor,
-                                textColor: textColor),
+                            child: _buildCard(
+                              context,
+                              icon: Icons.diversity_1,
+                              label: "To User",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                            ),
                           ),
                           InkWell(
-                            onTap: (){
-                              Navigator.push(context, MaterialPageRoute(builder: (context)=> MoneyDropPage()));
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MoneyDropPage(),
+                                ),
+                              );
                             },
-                            child: _buildCard(context,
-                                icon: IconsaxPlusBold.coin_1,
-                                label: "G-Drop",
-                                cardColor: cardColor,
-                                textColor: textColor),
+                            child: _buildCard(
+                              context,
+                              icon: IconsaxPlusBold.coin_1,
+                              label: "G-Drop",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                            ),
                           ),
                           InkWell(
-                            onTap: (){
-                              Navigator.push(context, MaterialPageRoute(builder: (context)=> GTagPaymentPage()));
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => GTagPaymentPage(),
+                                ),
+                              );
                             },
-                            child: _buildCard(context,
-                                icon: IconsaxPlusBold.tag_2,
-                                label: "G-Tag",
-                                cardColor: cardColor,
-                                textColor: textColor),
+                            child: _buildCard(
+                              context,
+                              icon: IconsaxPlusBold.tag_2,
+                              label: "G-Tag",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                            ),
                           ),
                         ],
                       ),
@@ -395,7 +408,11 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 15),
                   _buildRecentTransactions(
-                      context, cardColor, textColor, hintColor),
+                    context,
+                    cardColor,
+                    textColor,
+                    hintColor,
+                  ),
                   const SizedBox(height: 70),
                 ],
               ),
@@ -411,16 +428,17 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context,
-      {required IconData icon,
-        required String label,
-        required Color cardColor,
-        required Color textColor}) {
+  Widget _buildCard(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color cardColor,
+    required Color textColor,
+  }) {
     return Container(
       height: 100,
       decoration: BoxDecoration(
@@ -440,12 +458,14 @@ class _HomePageState extends State<HomePage> {
             child: Icon(icon, color: Colors.deepOrange, size: 25),
           ),
           const SizedBox(height: 10),
-          Text(label,
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              )),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );
@@ -462,8 +482,13 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(builder: (context) => AirtimePage()),
             );
           },
-          child: _buildSmallCard(LucideIcons.tabletSmartphone400, "Airtime", Colors.deepOrange,
-              cardColor, textColor),
+          child: _buildSmallCard(
+            LucideIcons.tabletSmartphone400,
+            "Airtime",
+            Colors.deepOrange,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () {
@@ -472,8 +497,13 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(builder: (context) => DataPage()),
             );
           },
-          child: _buildSmallCard(IconsaxPlusBold.radar_2, "Data", Colors.deepPurple,
-              cardColor, textColor),
+          child: _buildSmallCard(
+            IconsaxPlusBold.radar_2,
+            "Data",
+            Colors.deepPurple,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () {
@@ -482,18 +512,28 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(builder: (context) => ElectricityPage()),
             );
           },
-          child: _buildSmallCard(LucideIcons.lightbulb, "Electricity",
-              Colors.blueAccent, cardColor, textColor),
+          child: _buildSmallCard(
+            LucideIcons.lightbulb,
+            "Electricity",
+            Colors.blueAccent,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
-          onTap: (){
+          onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => GiftCardPage()),
             );
           },
-          child: _buildSmallCard(IconsaxPlusBold.ship, "Gift Card", Colors.blue.shade800,
-              cardColor, textColor),
+          child: _buildSmallCard(
+            IconsaxPlusBold.ship,
+            "Gift Card",
+            Colors.blue.shade800,
+            cardColor,
+            textColor,
+          ),
         ),
       ],
     );
@@ -504,41 +544,68 @@ class _HomePageState extends State<HomePage> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         InkWell(
-          onTap: (){
+          onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => InviteFriends()),
             );
           },
-          child: _buildSmallCard(LucideIcons.gem, "Earn", Colors.deepOrange,
-              cardColor, textColor),
+          child: _buildSmallCard(
+            LucideIcons.gem,
+            "Earn",
+            Colors.deepOrange,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
-            onTap: (){
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => InviteFriends()),
-              );
-            },
-            child: _buildSmallCard(LucideIcons.tv, "TV", Colors.deepPurple, cardColor, textColor)),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => InviteFriends()),
+            );
+          },
+          child: _buildSmallCard(
+            LucideIcons.tv,
+            "TV",
+            Colors.deepPurple,
+            cardColor,
+            textColor,
+          ),
+        ),
         InkWell(
-          onTap: (){
+          onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => CreateTargetPage()),
             );
           },
-          child: _buildSmallCard(LucideIcons.target, "T-save", Colors.blueAccent, cardColor,
-              textColor),
+          child: _buildSmallCard(
+            LucideIcons.target,
+            "T-save",
+            Colors.blueAccent,
+            cardColor,
+            textColor,
+          ),
         ),
-        _buildSmallCard(LucideIcons.handCoins, "Betting", Colors.blue.shade800, cardColor,
-            textColor),
+        _buildSmallCard(
+          LucideIcons.handCoins,
+          "Betting",
+          Colors.blue.shade800,
+          cardColor,
+          textColor,
+        ),
       ],
     );
   }
 
-  Widget _buildSmallCard(IconData icon, String label, Color color,
-      Color cardColor, Color textColor) {
+  Widget _buildSmallCard(
+    IconData icon,
+    String label,
+    Color color,
+    Color cardColor,
+    Color textColor,
+  ) {
     return Container(
       height: 65,
       width: 75,
@@ -550,16 +617,25 @@ class _HomePageState extends State<HomePage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: color),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w500, color: textColor)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildRecentTransactions(
-      BuildContext context, Color cardColor, Color textColor, Color hintColor) {
+    BuildContext context,
+    Color cardColor,
+    Color textColor,
+    Color hintColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
@@ -579,8 +655,7 @@ class _HomePageState extends State<HomePage> {
             final time = notification['time'] ?? '';
 
             return Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -607,19 +682,25 @@ class _HomePageState extends State<HomePage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name,
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w400,
-                                  color: textColor)),
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w400,
+                              color: textColor,
+                            ),
+                          ),
                           const SizedBox(height: 3),
-                          Text(time,
-                              style:
-                              TextStyle(fontSize: 14, color: hintColor)),
+                          Text(
+                            time,
+                            style: TextStyle(fontSize: 14, color: hintColor),
+                          ),
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: isSuccessful
                                   ? Colors.green.withOpacity(0.1)
@@ -629,11 +710,12 @@ class _HomePageState extends State<HomePage> {
                             child: Text(
                               isSuccessful ? 'Successful' : 'Failed',
                               style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSuccessful
-                                      ? Colors.green
-                                      : Colors.redAccent),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isSuccessful
+                                    ? Colors.green
+                                    : Colors.redAccent,
+                              ),
                             ),
                           ),
                         ],
@@ -643,9 +725,10 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     '${isReceived ? '+' : '-'}₦${amount.toStringAsFixed(2)}',
                     style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        color: isReceived ? Colors.green : Colors.red),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                      color: isReceived ? Colors.green : Colors.red,
+                    ),
                   ),
                 ],
               ),
@@ -662,21 +745,21 @@ class _HomePageState extends State<HomePage> {
       'time': '04/10/2025 . 3:00 pm',
       'amount': 1300.00,
       'type': 'sent',
-      'status': 'successful'
+      'status': 'successful',
     },
     {
       'name': 'Sophia Adams',
       'time': '05/10/2025 . 10:10 am',
       'amount': 2000.00,
       'type': 'received',
-      'status': 'successful'
+      'status': 'successful',
     },
     {
       'name': 'James Doe',
       'time': '06/10/2025 . 11:20 am',
       'amount': 500.00,
       'type': 'sent',
-      'status': 'failed'
+      'status': 'failed',
     },
   ];
 }

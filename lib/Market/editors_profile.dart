@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:globalpay/Market/seller_chart.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+// Ensure these matches your project file names
 import 'add_listings.dart';
 
 class OwnerPage extends StatefulWidget {
@@ -15,25 +17,28 @@ class OwnerPage extends StatefulWidget {
 }
 
 class _OwnerPageState extends State<OwnerPage> {
-  String ownerName = "Temu";
-  String ownerBio = "Top Seller & Curator";
-  String ownerAvatar = "assets/images/png/gold.jpg";
-
+  String ownerName = "Loading...";
+  String ownerBio = "Welcome to my store";
+  String ownerAvatar = "";
   List<Map<String, dynamic>> listings = [];
 
   @override
   void initState() {
     super.initState();
-    _loadListings();
-    _loadOwnerProfile();
+    _syncAndLoad();
+  }
+
+  Future<void> _syncAndLoad() async {
+    await _loadOwnerProfile();
+    await _loadListings();
   }
 
   Future<void> _loadOwnerProfile() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      ownerName = prefs.getString('ownerName') ?? ownerName;
-      ownerBio = prefs.getString('ownerBio') ?? ownerBio;
-      ownerAvatar = prefs.getString('ownerAvatar') ?? ownerAvatar;
+      ownerName = prefs.getString('ownerName') ?? "New Merchant";
+      ownerBio = prefs.getString('ownerBio') ?? "Top Seller & Curator";
+      ownerAvatar = prefs.getString('ownerAvatar') ?? "";
     });
   }
 
@@ -55,87 +60,21 @@ class _OwnerPageState extends State<OwnerPage> {
     }
   }
 
-  Future<void> _saveListings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('my_listings', jsonEncode(listings));
-  }
-
+  // --- UI ACTIONS ---
   void _editName() {
     final controller = TextEditingController(text: ownerName);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              left: 16,
-              right: 16,
-              top: 24
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Edit Name",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                  onPressed: () {
-                    setState(() => ownerName = controller.text);
-                    _saveOwnerProfile();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text("Save"))
-            ],
-          ),
-        );
-      },
-    );
+    _showEditSheet("Edit Name", controller, (val) {
+      setState(() => ownerName = val);
+      _saveOwnerProfile();
+    });
   }
 
   void _editBio() {
     final controller = TextEditingController(text: ownerBio);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              left: 16,
-              right: 16,
-              top: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Edit Bio",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextField(
-                controller: controller,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Bio'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                  onPressed: () {
-                    setState(() => ownerBio = controller.text);
-                    _saveOwnerProfile();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text("Save"))
-            ],
-          ),
-        );
-      },
-    );
+    _showEditSheet("Edit Bio", controller, (val) {
+      setState(() => ownerBio = val);
+      _saveOwnerProfile();
+    }, maxLines: 3);
   }
 
   Future<void> _editAvatar() async {
@@ -147,379 +86,426 @@ class _OwnerPageState extends State<OwnerPage> {
     }
   }
 
-  Future<void> _deleteListing(int index) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Listing?'),
-        content: const Text('Are you sure you want to delete this listing?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      setState(() => listings.removeAt(index));
-      _saveListings();
-    }
-  }
-
-  Future<void> _createListing() async {
-    final newListing = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddListingPage()),
-    );
-    if (newListing != null && newListing is Map<String, dynamic>) {
-      newListing['sold'] = false;
-      setState(() {
-        listings.add(newListing);
-      });
-      _saveListings();
-    }
-  }
-
-  void _markSold(int index) {
-    setState(() {
-      listings[index]['sold'] = !(listings[index]['sold'] ?? false);
-    });
-    _saveListings();
-  }
-
-  void _editListingBottomSheet(int index) {
-    final item = Map<String, dynamic>.from(listings[index]);
-    final titleCtrl = TextEditingController(text: item['title'] ?? '');
-    final priceCtrl = TextEditingController(text: item['price']?.toString() ?? '');
-    final descCtrl = TextEditingController(text: item['description'] ?? '');
-
+  void _showEditSheet(
+    String title,
+    TextEditingController controller,
+    Function(String) onSave, {
+    int maxLines = 1,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 16,
-            right: 16,
-            top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Edit Listing",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
-              TextField(controller: priceCtrl, keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Price')),
-              TextField(controller: descCtrl, maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description')),
-              const SizedBox(height: 20),
-              ElevatedButton(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: controller,
+              maxLines: maxLines,
+              autofocus: true,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.grey.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: () {
-                  setState(() {
-                    listings[index]['title'] = titleCtrl.text;
-                    listings[index]['price'] = priceCtrl.text;
-                    listings[index]['description'] = descCtrl.text;
-                  });
-                  _saveListings();
+                  onSave(controller.text);
                   Navigator.pop(ctx);
                 },
-                child: const Text("Save"),
+                child: const Text(
+                  "Update Profile",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final secondaryTextColor = isDark ? Colors.white60 : Colors.grey.shade600;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       appBar: AppBar(
-        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text("Owner Page", style: TextStyle(color: textColor)),
-        iconTheme: IconThemeData(color: textColor),
+        // BACK ARROW TO GO BACK TO CARD PAGE WITH NAV BAR INTACT
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: isDark ? Colors.white : Colors.black,
+            size: 20,
+          ),
+          onPressed: () {
+            // Using pop ensures we return to the main navigation shell
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        ),
+        title: Text(
+          "Store Dashboard",
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: Text(
-                "${listings.length} listings",
-                style: TextStyle(color: textColor, fontSize: 15),
-              ),
+          IconButton(
+            onPressed: () {},
+            icon: Icon(
+              IconsaxPlusLinear.setting_2,
+              color: isDark ? Colors.white : Colors.black,
             ),
           ),
-          IconButton(
-            icon: Icon(IconsaxPlusLinear.message, color:Colors.black),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context)=> MessagesPage()));
-              // Open stats or chart page
-            },
-          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          Center(
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _editAvatar,
-                  child: Stack(
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      CircleAvatar(
-                        radius: 55,
-                        backgroundImage: ownerAvatar.startsWith('assets/')
-                            ? AssetImage(ownerAvatar) as ImageProvider
-                            : FileImage(File(ownerAvatar)),
+                      GestureDetector(
+                        onTap: _editAvatar,
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Colors.grey.shade200,
+                              backgroundImage: ownerAvatar.isEmpty
+                                  ? null
+                                  : (ownerAvatar.startsWith('assets/')
+                                        ? AssetImage(ownerAvatar)
+                                              as ImageProvider
+                                        : FileImage(File(ownerAvatar))),
+                              child: ownerAvatar.isEmpty
+                                  ? const Icon(
+                                      IconsaxPlusLinear.user,
+                                      size: 30,
+                                      color: Colors.grey,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.deepOrange,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.black54, shape: BoxShape.circle),
-                          padding: const EdgeInsets.all(6),
-                          child: const Icon(Icons.camera_alt,
-                              color: Colors.white, size: 20),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  ownerName,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                const Icon(
+                                  IconsaxPlusBold.verify,
+                                  color: Colors.blue,
+                                  size: 16,
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  onPressed: _editName,
+                                  icon: const Icon(
+                                    IconsaxPlusLinear.edit,
+                                    size: 18,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            GestureDetector(
+                              onTap: _editBio,
+                              child: Text(
+                                ownerBio,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(ownerName,
-                        style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.w500,
-                            color: textColor)),
-                    const SizedBox(width: 5),
-                    Icon(IconsaxPlusBold.verify, color: Colors.deepOrange),
-                    IconButton(
-                        onPressed: _editName,
-                        icon: Icon(Icons.edit, color: Colors.blue, size: 22)),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: _editBio,
-                  child: Text(ownerBio,
-                      style: TextStyle(fontSize: 16, color: secondaryTextColor)),
-                ),
-                const SizedBox(height: 20),
-                InkWell(
-                  onTap: _createListing,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 18, right: 18),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 17, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.deepOrange,
-                        borderRadius: BorderRadius.circular(15),
+                  const SizedBox(height: 25),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem("Listings", listings.length.toString()),
+                      _buildStatDivider(),
+                      _buildStatItem(
+                        "Sold",
+                        listings
+                            .where((it) => it['sold'] == true)
+                            .length
+                            .toString(),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.add, color: Colors.white),
-                          SizedBox(width: 6),
-                          Text("Create listings",
-                              style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white)),
-                        ],
+                      _buildStatDivider(),
+                      _buildStatItem("Rating", "5.0"),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddListingPage(),
+                          ),
+                        );
+                        _loadListings(); // Sync listings when returning from creation
+                      },
+                      icon: const Icon(
+                        IconsaxPlusLinear.add_square,
+                        color: Colors.deepOrange,
+                      ),
+                      label: const Text(
+                        "Create New Listing",
+                        style: TextStyle(
+                          color: Colors.deepOrange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.deepOrange),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverToBoxAdapter(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Active Listings",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    child: const Text(
+                      "View All",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          listings.isEmpty
+              ? SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          IconsaxPlusLinear.shop,
+                          size: 50,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "No active listings yet",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SliverPadding(
+                  padding: const EdgeInsets.all(20),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 15,
+                          crossAxisSpacing: 15,
+                          childAspectRatio: 0.75,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) =>
+                          _buildListingCard(listings[index], index, isDark),
+                      childCount: listings.length,
+                    ),
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() =>
+      Container(height: 20, width: 1, color: Colors.grey.withOpacity(0.3));
+
+  Widget _buildListingCard(Map<String, dynamic> item, int index, bool isDark) {
+    final images = List<String>.from(item['images'] ?? []);
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    image: images.isNotEmpty
+                        ? DecorationImage(
+                            image: images[0].startsWith('assets/')
+                                ? AssetImage(images[0]) as ImageProvider
+                                : FileImage(File(images[0])),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                ),
+                if (item['sold'] == true)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black45,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "SOLD",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['title'] ?? 'No Title',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "₦${item['price']}",
+                  style: const TextStyle(
+                    color: Colors.deepOrange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.65,
-              ),
-              itemCount: listings.length,
-              itemBuilder: (context, index) {
-                final item = listings[index];
-                final images = List<String>.from(item['images'] ?? []);
-                final pageController = PageController();
-
-                return Card(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (images.isNotEmpty)
-                        Stack(
-                          children: [
-                            SizedBox(
-                              height: 140,
-                              width: double.infinity,
-                              child: PageView.builder(
-                                controller: pageController,
-                                itemCount: images.length,
-                                itemBuilder: (context, i) {
-                                  final imgPath = images[i];
-                                  final imgWidget = imgPath.startsWith('assets/')
-                                      ? Image.asset(imgPath, fit: BoxFit.cover)
-                                      : Image.file(File(imgPath),
-                                      fit: BoxFit.cover);
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: imgWidget,
-                                  );
-                                },
-                              ),
-                            ),
-                            if (item['sold'] == true)
-                              Positioned.fill(
-                                child: IgnorePointer(
-                                  ignoring: true,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "SOLD",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 30,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _editListingBottomSheet(index),
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (images.isNotEmpty) const SizedBox(height: 4),
-                      if (images.isNotEmpty)
-                        StatefulBuilder(builder: (context, setSB) {
-                          int currentPage = 0;
-                          pageController.addListener(() {
-                            final newPage =
-                                pageController.page?.round() ?? 0;
-                            if (newPage != currentPage) {
-                              currentPage = newPage;
-                              setSB(() {});
-                            }
-                          });
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(images.length, (dotIndex) {
-                              final active =
-                                  (pageController.page?.round() ?? 0) ==
-                                      dotIndex;
-                              return Container(
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 2.0),
-                                width: active ? 8 : 6,
-                                height: active ? 8 : 6,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: active
-                                      ? Colors.deepOrange
-                                      : Colors.grey.shade400,
-                                ),
-                              );
-                            }),
-                          );
-                        }),
-                      Padding(
-                        padding: const EdgeInsets.all(6.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item['title'] ?? '',
-                                style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold)),
-                            Text("₦${item['price'] ?? ''}",
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500)),
-                            Text(item['description'] ?? '',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: secondaryTextColor),
-                                maxLines: 2),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                InkWell(
-                                  onTap: () => _markSold(index),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: item['sold'] == true
-                                          ? Colors.green
-                                          : Colors.grey.shade300,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      item['sold'] == true
-                                          ? 'Unsold'
-                                          : 'Sold',
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Colors.black),
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red, size: 18),
-                                  onPressed: () => _deleteListing(index),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
         ],
       ),
-    );
+    ).animate().scale(delay: (index * 50).ms);
   }
 }

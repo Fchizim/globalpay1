@@ -62,8 +62,7 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                   CircleAvatar(
                     radius: 45,
                     backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    backgroundImage:
-                        (user.image != null && user.image.isNotEmpty)
+                    backgroundImage: (user.image.isNotEmpty)
                         ? NetworkImage(user.image)
                         : const AssetImage('assets/images/png/gold.jpg')
                               as ImageProvider,
@@ -454,8 +453,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                 userId: user.userId,
                 body: {"gender": tempGender},
               );
-              if (updated != null)
+              if (updated != null) {
                 context.read<UserProvider>().setUser(updated);
+              }
               Navigator.pop(context);
             },
             child: const Text("Save"),
@@ -492,8 +492,9 @@ class _ProfileDetailsState extends State<ProfileDetails> {
                   userId: user.userId,
                   body: {"dob": formatted},
                 );
-                if (updatedUser != null)
+                if (updatedUser != null) {
                   context.read<UserProvider>().setUser(updatedUser);
+                }
                 Navigator.pop(context);
               },
             ),

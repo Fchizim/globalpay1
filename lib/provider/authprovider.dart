@@ -19,12 +19,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     // ── One-time cache bust ──────────────────────────────────
-    const _storage = FlutterSecureStorage();
-    final version = await _storage.read(key: 'cache_version');
+    const storage = FlutterSecureStorage();
+    final version = await storage.read(key: 'cache_version');
     if (version != '2') {
       // Old cache — delete it so user logs in fresh
       await SecureStorageService.clearAll();
-      await _storage.write(key: 'cache_version', value: '2');
+      await storage.write(key: 'cache_version', value: '2');
       _isCheckingAuth = false;
       notifyListeners();
       return; // force user to log in again

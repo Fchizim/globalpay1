@@ -23,10 +23,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   String? _emailError;
 
   // OTP
-  final List<TextEditingController> _otpControllers =
-  List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _otpFocusNodes =
-  List.generate(4, (_) => FocusNode());
+  final List<TextEditingController> _otpControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
   String? _otpError;
 
   // PIN
@@ -176,15 +177,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       setState(() => _verifyingOtp = true);
 
       try {
-        print("Sending OTP verification: email=${_emailController.text.trim()}, otp=$otp"); // debug log
+        print(
+          "Sending OTP verification: email=${_emailController.text.trim()}, otp=$otp",
+        ); // debug log
 
         final response = await http.post(
           Uri.parse("https://glopa.org/glo/verify_change_pin_otp.php"),
           headers: {"Content-Type": "application/json"},
-          body: jsonEncode({
-            "email": _emailController.text.trim(),
-            "otp": otp,
-          }),
+          body: jsonEncode({"email": _emailController.text.trim(), "otp": otp}),
         );
 
         print("Response body: ${response.body}"); // debug log
@@ -200,7 +200,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             _otpError = null;
           } else {
             _otpError = data["message"] ?? "Invalid OTP";
-            for (var c in _otpControllers) c.clear();
+            for (var c in _otpControllers) {
+              c.clear();
+            }
             _otpFocusNodes[0].requestFocus();
           }
         });
@@ -300,8 +302,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           foregroundColor: text,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: bg,
-            statusBarIconBrightness:
-            isDark ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
           ),
         ),
         body: AnimatedSwitcher(
@@ -309,32 +312,37 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           child: _showSuccess
               ? _successView(primary)
               : Padding(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: !_codeSent
-                ? _emailView(primary, text, subText, fill)
-                : _otpVerified
-                ? _pinView(primary, fill)
-                : _otpView(primary, fill, text, subText),
-          ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
+                  ),
+                  child: !_codeSent
+                      ? _emailView(primary, text, subText, fill)
+                      : _otpVerified
+                      ? _pinView(primary, fill)
+                      : _otpView(primary, fill, text, subText),
+                ),
         ),
       ),
     );
   }
 
   // ---------------- EMAIL ----------------
-  Widget _emailView(
-      Color primary, Color text, Color subText, Color fill) {
+  Widget _emailView(Color primary, Color text, Color subText, Color fill) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 30),
-        Text("Forgot your PIN?",
-            style: TextStyle(
-                fontSize: 26, fontWeight: FontWeight.bold, color: text)),
+        Text(
+          "Forgot your PIN?",
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: text,
+          ),
+        ),
         const SizedBox(height: 10),
-        Text("Enter your email address",
-            style: TextStyle(color: subText)),
+        Text("Enter your email address", style: TextStyle(color: subText)),
         const SizedBox(height: 30),
         TextField(
           controller: _emailController,
@@ -344,8 +352,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             errorText: _emailError,
             filled: true,
             fillColor: fill,
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
           ),
           onChanged: (_) => setState(() => _emailError = null),
         ),
@@ -355,21 +362,20 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: primary,
             minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
           child: _sendingCode
               ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              color: Colors.black,
-              strokeWidth: 2,
-            ),
-          )
-              : const Text(
-            "Send Code",
-            style: TextStyle(color: Colors.black),
-          ),
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text("Send Code", style: TextStyle(color: Colors.black)),
         ),
       ],
     );
@@ -389,16 +395,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          "Enter the 4-digit code",
-          style: TextStyle(color: subText),
-        ),
+        Text("Enter the 4-digit code", style: TextStyle(color: subText)),
         const SizedBox(height: 25),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(
             4,
-                (i) => SizedBox(
+            (i) => SizedBox(
               width: 46,
               child: TextField(
                 controller: _otpControllers[i],
@@ -412,7 +415,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   filled: true,
                   fillColor: fill,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onTap: () => _onOtpTap(i),
                 onChanged: (v) => _onOtpChanged(i, v),
@@ -436,16 +440,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         const SizedBox(height: 30),
         _secondsLeft > 0
             ? Text(
-          "Resend code in $_secondsLeft s",
-          style: TextStyle(color: subText),
-        )
+                "Resend code in $_secondsLeft s",
+                style: TextStyle(color: subText),
+              )
             : TextButton(
-          onPressed: _sendingCode ? null : _sendCode,
-          child: const Text("Didn’t receive code? Send again"),
-        ),
+                onPressed: _sendingCode ? null : _sendCode,
+                child: const Text("Didn’t receive code? Send again"),
+              ),
       ],
     );
   }
+
   // ---------------- PIN ----------------
   Widget _pinView(Color primary, Color fill) {
     return Column(
@@ -460,8 +465,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             errorText: _pinError,
             filled: true,
             fillColor: fill,
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
           ),
           onChanged: (_) => setState(() => _pinError = null),
         ),
@@ -476,11 +480,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             errorText: _confirmPinError,
             filled: true,
             fillColor: fill,
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
           ),
-          onChanged: (_) =>
-              setState(() => _confirmPinError = null),
+          onChanged: (_) => setState(() => _confirmPinError = null),
         ),
         const SizedBox(height: 30),
         ElevatedButton(
@@ -488,11 +490,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: primary,
             minimumSize: const Size(double.infinity, 56),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
-          child: const Text("Confirm PIN",
-              style: TextStyle(color: Colors.black)),
+          child: const Text(
+            "Confirm PIN",
+            style: TextStyle(color: Colors.black),
+          ),
         ),
       ],
     );

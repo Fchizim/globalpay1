@@ -17,8 +17,10 @@ class EmailCodePage extends StatefulWidget {
 }
 
 class _EmailCodePageState extends State<EmailCodePage> {
-  final List<TextEditingController> _controllers =
-  List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focus = List.generate(4, (_) => FocusNode());
 
   int seconds = 60;
@@ -44,8 +46,12 @@ class _EmailCodePageState extends State<EmailCodePage> {
 
   @override
   void dispose() {
-    for (final c in _controllers) c.dispose();
-    for (final f in _focus) f.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focus) {
+      f.dispose();
+    }
     timer?.cancel();
     super.dispose();
   }
@@ -55,8 +61,9 @@ class _EmailCodePageState extends State<EmailCodePage> {
 
   Future<void> verifyOtp() async {
     if (otp.length != 4) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Enter all 4 digits")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter all 4 digits")));
       return;
     }
 
@@ -65,28 +72,25 @@ class _EmailCodePageState extends State<EmailCodePage> {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "user_id": widget.userId,
-          "otp": otp,
-        }),
+        body: jsonEncode({"user_id": widget.userId, "otp": otp}),
       );
 
       final data = jsonDecode(response.body);
 
       if (data["status"] == "success") {
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => const VerificationSuccess()));
+          context,
+          MaterialPageRoute(builder: (_) => const VerificationSuccess()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"] ?? "Verification failed")),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Network error, try again")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Network error, try again")));
     }
   }
 
@@ -111,9 +115,9 @@ class _EmailCodePageState extends State<EmailCodePage> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Network error, try again")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Network error, try again")));
     }
   }
 
@@ -179,7 +183,10 @@ class _EmailCodePageState extends State<EmailCodePage> {
             Text(
               "Please enter verification code",
               style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -190,7 +197,10 @@ class _EmailCodePageState extends State<EmailCodePage> {
             Text(
               widget.email,
               style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: Colors.green),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.green,
+              ),
             ),
             const SizedBox(height: 40),
             Row(
@@ -200,16 +210,20 @@ class _EmailCodePageState extends State<EmailCodePage> {
             const SizedBox(height: 30),
             Center(
               child: seconds > 0
-                  ? Text("Resend code in $seconds s", style: TextStyle(color: subText))
+                  ? Text(
+                      "Resend code in $seconds s",
+                      style: TextStyle(color: subText),
+                    )
                   : GestureDetector(
-                onTap: resendOtp,
-                child: const Text(
-                  "Didn't get the code? Resend",
-                  style: TextStyle(
-                      color: Colors.deepOrange,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
+                      onTap: resendOtp,
+                      child: const Text(
+                        "Didn't get the code? Resend",
+                        style: TextStyle(
+                          color: Colors.deepOrange,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
             ),
             const Spacer(),
             GestureDetector(
@@ -225,7 +239,10 @@ class _EmailCodePageState extends State<EmailCodePage> {
                   child: Text(
                     "Continue",
                     style: TextStyle(
-                        color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),

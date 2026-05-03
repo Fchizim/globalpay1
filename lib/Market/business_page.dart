@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/Market/StoreSetupPage.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../market/market_page.dart';
@@ -11,26 +12,25 @@ class BusinessPage extends StatefulWidget {
 }
 
 class _BusinessPageState extends State<BusinessPage> {
+  // State for acceptance checkbox
+  bool _isAccepted = false;
+
   final List<Map<String, dynamic>> features = [
-    {
-      'icon': IconsaxPlusLinear.wallet_1,
-      'title': 'Personal Wallet',
-      'subtitle': 'Keep your earnings from marketplace sales safe and separate.'
-    },
     {
       'icon': IconsaxPlusLinear.star_1,
       'title': 'Marketplace Store',
-      'subtitle': 'Set up your own store and start listing products to sell.'
+      'subtitle': 'Set up your own store and start listing products to sell.',
     },
     {
       'icon': IconsaxPlusLinear.people,
       'title': 'Customer Connections',
-      'subtitle': 'Easily communicate with buyers and manage orders efficiently.'
+      'subtitle':
+          'Easily communicate with buyers and manage orders efficiently.',
     },
     {
       'icon': IconsaxPlusLinear.trend_up,
       'title': 'Sales Insights',
-      'subtitle': 'Track your sales, profits, and top-selling items with ease.'
+      'subtitle': 'Track your sales, profits, and top-selling items with ease.',
     },
   ];
 
@@ -38,86 +38,126 @@ class _BusinessPageState extends State<BusinessPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = Colors.deepOrange;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
-        actions: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CardPage()),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: Container(
-                height: 30,
-                width: 60,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Center(
-                  child: Text(
-                    "Next",
-                    style: TextStyle(
-                      color: theme.colorScheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          )
-        ],
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 10),
             // Main Title
             Text(
-              'Welcome, set up your\nGlobalBiz Profile.',
+              'Set up your\nGlobalBiz Profile',
               style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
+                //letterSpacing: 1,
+                color: isDark ? Colors.white : Colors.black,
               ),
-            )
-                .animate(delay: 0.ms)
-                .fadeIn(duration: 500.ms)
-                .slideY(begin: 0.2, duration: 500.ms),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
 
-            // Subtitle
             Text(
-              'Start selling in the marketplace with your own GlobalBiz profile. '
-                  'Manage your sales, earnings, and customer connections seamlessly '
-                  'while keeping everything secure in one place.',
-              style: theme.textTheme.bodyMedium,
-            )
-                .animate(delay: 200.ms)
-                .fadeIn(duration: 500.ms)
-                .slideY(begin: 0.2, duration: 500.ms),
+              'Start selling in the marketplace. Manage your sales, earnings, and customers in one professional dashboard.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ).animate(delay: 100.ms).fadeIn(),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 30),
 
-            // Key Features Header
+            // Pricing Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: primaryColor.withOpacity(0.15)),
+              ),
+              child: Column(
+                children: [
+                  _pricingRow(
+                    IconsaxPlusLinear.card_pos,
+                    "Subscription",
+                    "₦500 / Year",
+                    isDark,
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1),
+                  ),
+                  _pricingRow(
+                    IconsaxPlusLinear.percentage_square,
+                    "Service Fee",
+                    "2% per sale",
+                    isDark,
+                  ),
+                  const SizedBox(height: 15),
+                  // Acceptance Checkbox
+                  InkWell(
+                    onTap: () => setState(() => _isAccepted = !_isAccepted),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _isAccepted,
+                            activeColor: primaryColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            onChanged: (val) {
+                              setState(() => _isAccepted = val!);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            "I accept the terms and service fees",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ).animate(delay: 200.ms).scale(curve: Curves.easeOutBack),
+
+            const SizedBox(height: 35),
+
             Text(
               'Key Features',
               style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
-            )
-                .animate(delay: 400.ms)
-                .fadeIn(duration: 500.ms)
-                .slideY(begin: 0.2, duration: 500.ms),
+            ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 15),
 
             // Features list
             ...features.asMap().entries.map((entry) {
@@ -125,47 +165,128 @@ class _BusinessPageState extends State<BusinessPage> {
               var feature = entry.value;
 
               return _featureItem(
-                theme,
-                feature['icon'] as IconData,
-                feature['title'] as String,
-                feature['subtitle'] as String,
-              )
-                  .animate(delay: (500 + index * 150).ms)
-                  .fadeIn(duration: 500.ms)
-                  .slideY(begin: 0.2, duration: 500.ms);
+                    theme,
+                    feature['icon'] as IconData,
+                    feature['title'] as String,
+                    feature['subtitle'] as String,
+                    isDark,
+                  )
+                  .animate(delay: (400 + index * 100).ms)
+                  .fadeIn()
+                  .slideX(begin: 0.1);
             }),
+
+            const SizedBox(height: 40),
+
+            // Main Action Button (Reactive)
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _isAccepted
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StoreSetupPage(),
+                          ),
+                        );
+                      }
+                    : null, // Button is disabled if not accepted
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  disabledForegroundColor: Colors.grey.shade500,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  "Get Started",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _isAccepted ? Colors.white : Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ).animate(delay: 800.ms).fadeIn(),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _featureItem(ThemeData theme, IconData icon, String title, String subtitle) {
+  Widget _pricingRow(IconData icon, String label, String value, bool isDark) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.deepOrange, size: 22),
+        const SizedBox(width: 15),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.deepOrange,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _featureItem(
+    ThemeData theme,
+    IconData icon,
+    String title,
+    String subtitle,
+    bool isDark,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            height: 55,
-            width: 55,
+            height: 50,
+            width: 50,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(13),
+              color: isDark ? Colors.white10 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(icon, color: theme.colorScheme.onPrimary, size: 30),
+            child: Icon(icon, color: Colors.deepOrange, size: 26),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
-                const SizedBox(height: 3),
-                Text(subtitle, style: theme.textTheme.bodySmall),
+                Text(
+                  title,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade500,
+                    height: 1.3,
+                  ),
+                ),
               ],
             ),
           ),

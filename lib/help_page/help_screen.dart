@@ -79,7 +79,10 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
 
           return SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: spacing, vertical: spacing / 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: spacing,
+                vertical: spacing / 2,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -134,7 +137,10 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                         padding: EdgeInsets.all(s(context, 16)),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.red.shade400, Colors.orange.shade300],
+                            colors: [
+                              Colors.red.shade400,
+                              Colors.orange.shade300,
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(s(context, 16)),
                         ),
@@ -143,7 +149,8 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => ReportFraudPage()),
+                                builder: (context) => ReportFraudPage(),
+                              ),
                             );
                           },
                           child: Row(
@@ -154,8 +161,11 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                                   color: Colors.white,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(IconsaxPlusBold.warning_2,
-                                    color: Colors.red, size: s(context, 24)),
+                                child: Icon(
+                                  IconsaxPlusBold.warning_2,
+                                  color: Colors.red,
+                                  size: s(context, 24),
+                                ),
                               ),
                               SizedBox(width: s(context, 12)),
                               Expanded(
@@ -168,8 +178,11 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-                              Icon(IconsaxPlusLinear.arrow_right_3,
-                                  color: Colors.white, size: s(context, 20)),
+                              Icon(
+                                IconsaxPlusLinear.arrow_right_3,
+                                color: Colors.white,
+                                size: s(context, 20),
+                              ),
                             ],
                           ),
                         ),
@@ -179,18 +192,23 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
 
                   // Action Grid: 4 per row, responsive height
                   SizedBox(height: s(context, 16)),
-                  LayoutBuilder(builder: (context, gridConstraints) {
-                    final cellWidth = (gridConstraints.maxWidth - 3 * s(context, 12)) / 4;
-                    return GridView.count(
-                      shrinkWrap: true,
-                      crossAxisCount: 4,
-                      crossAxisSpacing: s(context, 12),
-                      mainAxisSpacing: s(context, 12),
-                      childAspectRatio: cellWidth / (cellWidth + s(context, 24)), // ensures text fits
-                      physics: NeverScrollableScrollPhysics(),
-                      children: _actionItems(theme, context),
-                    );
-                  }),
+                  LayoutBuilder(
+                    builder: (context, gridConstraints) {
+                      final cellWidth =
+                          (gridConstraints.maxWidth - 3 * s(context, 12)) / 4;
+                      return GridView.count(
+                        shrinkWrap: true,
+                        crossAxisCount: 4,
+                        crossAxisSpacing: s(context, 12),
+                        mainAxisSpacing: s(context, 12),
+                        childAspectRatio:
+                            cellWidth /
+                            (cellWidth + s(context, 24)), // ensures text fits
+                        physics: NeverScrollableScrollPhysics(),
+                        children: _actionItems(theme, context),
+                      );
+                    },
+                  ),
 
                   // TabBar
                   SizedBox(height: s(context, 16)),
@@ -199,7 +217,10 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                     labelColor: Colors.deepOrange,
                     unselectedLabelColor: theme.textTheme.bodyMedium?.color,
                     indicator: UnderlineTabIndicator(
-                      borderSide: BorderSide(color: Colors.deepOrange, width: 3),
+                      borderSide: BorderSide(
+                        color: Colors.deepOrange,
+                        width: 3,
+                      ),
                       insets: EdgeInsets.symmetric(horizontal: 16),
                     ),
                     tabs: const [
@@ -248,7 +269,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
 
     final items = [
       {
-        'icon':  IconsaxPlusLinear.message,
+        'icon': IconsaxPlusLinear.message,
         'title': 'Chat',
         'onTap': () => launchUrl(
           Uri.parse('https://wa.me/${settings.whatsappNumber}'),
@@ -256,86 +277,92 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
         ),
       },
       {
-        'icon':  IconsaxPlusLinear.call,
+        'icon': IconsaxPlusLinear.call,
         'title': 'Call',
         'onTap': () => launchUrl(Uri(scheme: 'tel', path: settings.callNumber)),
       },
       {
-        'icon':  IconsaxPlusLinear.security,
+        'icon': IconsaxPlusLinear.security,
         'title': 'Account',
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => HelpDetailScreen(title: 'Account Help')),
+            builder: (_) => HelpDetailScreen(title: 'Account Help'),
+          ),
         ),
       },
       {
-        'icon':  IconsaxPlusLinear.refresh,
+        'icon': IconsaxPlusLinear.refresh,
         'title': 'Transactions',
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) =>
-                  HelpDetailScreen(title: 'Transaction Issues')),
+            builder: (_) => HelpDetailScreen(title: 'Transaction Issues'),
+          ),
         ),
       },
       {
-        'icon':  IconsaxPlusLinear.book,
+        'icon': IconsaxPlusLinear.book,
         'title': 'FAQs',
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(
-              builder: (_) => HelpDetailScreen(title: 'FAQs')),
+          MaterialPageRoute(builder: (_) => HelpDetailScreen(title: 'FAQs')),
         ),
       },
       {
-        'icon':  IconsaxPlusLinear.direct_inbox,
+        'icon': IconsaxPlusLinear.direct_inbox,
         'title': 'Email',
-        'onTap': () => launchUrl(
-          Uri(scheme: 'mailto', path: settings.supportEmail),
-        ),
+        'onTap': () =>
+            launchUrl(Uri(scheme: 'mailto', path: settings.supportEmail)),
       },
       {
-        'icon':  IconsaxPlusLinear.profile_tick,
+        'icon': IconsaxPlusLinear.profile_tick,
         'title': 'KYC Upgrade',
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => HelpDetailScreen(title: 'KYC Upgrade')),
+            builder: (_) => HelpDetailScreen(title: 'KYC Upgrade'),
+          ),
         ),
       },
       {
-        'icon':  IconsaxPlusLinear.global,
+        'icon': IconsaxPlusLinear.global,
         'title': 'Office',
         'onTap': () {
           // Show address in a snackbar or navigate to a map
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(settings.address.isNotEmpty
-                ? settings.address
-                : 'Address not available')),
+            SnackBar(
+              content: Text(
+                settings.address.isNotEmpty
+                    ? settings.address
+                    : 'Address not available',
+              ),
+            ),
           );
         },
       },
     ];
 
     return items
-        .map((item) => _actionCard(
-      item['icon'] as IconData,
-      item['title'] as String,
-      item['onTap'] as VoidCallback,
-      theme,
-      context,
-    ))
+        .map(
+          (item) => _actionCard(
+            item['icon'] as IconData,
+            item['title'] as String,
+            item['onTap'] as VoidCallback,
+            theme,
+            context,
+          ),
+        )
         .toList();
   }
 
   Widget _actionCard(
-      IconData icon,
-      String title,
-      VoidCallback onTap,
-      ThemeData theme,
-      BuildContext context,
-      ) {
+    IconData icon,
+    String title,
+    VoidCallback onTap,
+    ThemeData theme,
+    BuildContext context,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -367,7 +394,11 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTabContent(BuildContext context, ThemeData theme, List<String> items) {
+  Widget _buildTabContent(
+    BuildContext context,
+    ThemeData theme,
+    List<String> items,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return ListView.separated(
@@ -386,13 +417,17 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
               onTap: () {
                 if (items[index] == "What is Stamp Duty") {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => StampDutyPage()));
+                    context,
+                    MaterialPageRoute(builder: (context) => StampDutyPage()),
+                  );
                 } else {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => HelpDetailScreen(title: items[index])));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          HelpDetailScreen(title: items[index]),
+                    ),
+                  );
                 }
               },
             );
@@ -433,12 +468,12 @@ class HelpDetailScreen extends StatelessWidget {
 
 // Well-designed Stamp Duty Page
 class StampDutyPage extends StatelessWidget {
+  const StampDutyPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("What is Stamp Duty"),
-      ),
+      appBar: AppBar(title: Text("What is Stamp Duty")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -463,7 +498,9 @@ class StampDutyPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("• Stamp duty applies to property transactions."),
-                Text("• It may also apply to shares and certain legal documents."),
+                Text(
+                  "• It may also apply to shares and certain legal documents.",
+                ),
                 Text("• The rate depends on the value of the asset."),
                 Text("• Paid to the government, usually during registration."),
               ],
@@ -494,7 +531,11 @@ class WaveClipperSmall extends CustomClipper<Path> {
     var controlPoint = Offset(size.width / 2, size.height + 16);
     var endPoint = Offset(size.width, size.height - 16);
     path.quadraticBezierTo(
-        controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+      controlPoint.dx,
+      controlPoint.dy,
+      endPoint.dx,
+      endPoint.dy,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;

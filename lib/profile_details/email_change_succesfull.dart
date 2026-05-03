@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../apps/apps.dart';
-import '../home/home_page.dart';
 import 'profile_details.dart'; // adjust path if needed
 
 class VerificationSuccess extends StatefulWidget {
@@ -21,16 +20,15 @@ class _VerificationSuccessState extends State<VerificationSuccess> {
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => MyAppsPage(onToggleTheme: () {  },)),
-            (route) => false,
+        MaterialPageRoute(builder: (_) => MyAppsPage(onToggleTheme: () {})),
+        (route) => false,
       );
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {  },)),
+        MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {})),
       );
-    }
-);
+    });
   }
 
   @override
@@ -38,14 +36,11 @@ class _VerificationSuccessState extends State<VerificationSuccess> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final scaffoldColor =
-    isDark ? const Color(0xFF121212) : Colors.white;
+    final scaffoldColor = isDark ? const Color(0xFF121212) : Colors.white;
 
-    final textColor =
-    isDark ? Colors.white : Colors.black87;
+    final textColor = isDark ? Colors.white : Colors.black87;
 
-    final subText =
-    isDark ? Colors.white70 : Colors.grey.shade600;
+    final subText = isDark ? Colors.white70 : Colors.grey.shade600;
 
     return Scaffold(
       backgroundColor: scaffoldColor,
@@ -69,23 +64,20 @@ class _VerificationSuccessState extends State<VerificationSuccess> {
 
             const SizedBox(height: 30),
 
-             Text(
+            Text(
               "Email Changed Successful",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: textColor
+                color: textColor,
               ),
             ),
 
             const SizedBox(height: 10),
 
-             Text(
+            Text(
               "Your Email has been verified successfully.",
-              style: TextStyle(
-                color: subText,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: subText, fontSize: 16),
             ),
 
             const SizedBox(height: 40),
