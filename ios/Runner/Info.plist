@@ -57,11 +57,10 @@
 
         <!-- Optional permissions (add only if needed) -->
         <key>NSCameraUsageDescription</key>
-        <string>We need camera access for profile and verification</string>
+        <string>We need camera access for profile photo and business logo</string>
 
         <key>NSPhotoLibraryUsageDescription</key>
-        <string>We need access to photos for uploads</string>
-
+        <string>We need access to photos for profile and business logo uploads</string>
         <!-- Scene config -->
         <key>UIApplicationSceneManifest</key>
         <dict>

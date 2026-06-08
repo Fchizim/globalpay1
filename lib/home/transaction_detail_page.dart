@@ -1,73 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+// import '../../../../res/app_colors.dart';
 import 'airtime_receipt.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
   final int amount;
   final String network;
+  final String action;
   final String phone;
+  final String transactionId;
+  final String ref;
+  final double newBalance;
+
+  // ── Optional electricity fields ──────────────────────────
+  final String? eleToken;
+  final String? eleUnits;
+  final String? eleMeter;
+  final String? customerName;
+  final String? customerAddress;
+  final String? billType;
+  final String? examPin;
+  final String? examSerial;
 
   const TransactionDetailScreen({
     super.key,
     required this.amount,
     required this.network,
+    required this.action,
     required this.phone,
+    required this.transactionId,
+    required this.ref,
+    required this.newBalance,
+    this.eleToken,
+    this.eleUnits,
+    this.eleMeter,
+    this.customerName,
+    this.customerAddress,
+    this.billType,
+    this.examPin,
+    this.examSerial,
   });
 
-  String _getNetworkLogo(String network) {
-    switch (network.toLowerCase()) {
-      case 'mtn':
-        return 'assets/images/png/mtn.jpeg';
-      case 'airtel':
-        return 'assets/images/png/airtel.jpeg';
-      case 'glo':
-        return 'assets/images/png/glo.jpeg';
-      case '9mobile':
-      case 'etisalat':
-        return 'assets/images/png/9mobile.jpeg';
-      default:
-        return 'assets/images/png/mtn.jpeg';
+  String get _transactionTypeLabel {
+    switch (action.toUpperCase()) {
+      case 'DATA':    return 'Data Purchase';
+      case 'ELE':     return 'Electricity';
+      case 'AIRTIME': return 'Airtime Top-up';
+      case 'CABLE':   return 'Cable TV';
+      case 'BETTING': return 'Betting';
+      case 'EXAM':    return 'Exam Card';
+      case 'A2C':     return 'Airtime to Cash';
+      default:        return action;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String transactionId = "TXN-${DateTime.now().millisecondsSinceEpoch}";
-    final String time =
-    DateFormat('HH:mm, MMM dd, yyyy').format(DateTime.now());
-
-    final formattedAmount = NumberFormat.decimalPattern().format(amount);
-    final orderAmount = "₦$formattedAmount";
-    final paymentAmount = "₦$formattedAmount";
-
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Theme-aware colors
-    final Color primary = Colors.deepOrange;
-    final Color textPrimary = isDark ? Colors.white : const Color(0xFF111827);
-    final Color textSecondary =
-    isDark ? Colors.white70 : const Color(0xFF6B7280);
-    final Color cardColor =
-    isDark ? const Color(0xFF1C1C1E) : Colors.white.withOpacity(0.98);
-    final Color background =
-    isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF9FAFB);
-    final Color borderColor = isDark
+    final String time         = DateFormat('HH:mm, MMM dd, yyyy').format(DateTime.now());
+    final numFormat           = NumberFormat.decimalPattern('en_US');
+    final bool isDark         = Theme.of(context).brightness == Brightness.dark;
+    final Color primary       = Colors.deepOrange;
+    final Color textPrimary   = isDark ? Colors.white : const Color(0xFF111827);
+    final Color textSecondary = isDark ? Colors.white70 : const Color(0xFF6B7280);
+    final Color cardColor     = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final Color background    = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF9FAFB);
+    final Color borderColor   = isDark
         ? Colors.white.withOpacity(0.08)
         : Colors.grey.shade300.withOpacity(0.7);
+
+    final bool isEle = action.toUpperCase() == 'ELE';
+    final bool isExam = action.toUpperCase() == 'EXAM';
 
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
         scrolledUnderElevation: 0,
-        title: Text(
-          "Transaction Detail",
-          style: TextStyle(
-            color: textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
+        title: Text('Transaction Detail',
+            style: TextStyle(color: textPrimary,
+                fontWeight: FontWeight.w600, fontSize: 18)),
         backgroundColor: background,
         elevation: 0,
         leading: IconButton(
@@ -76,271 +87,237 @@ class TransactionDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-
-      // Bottom bar
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: cardColor,
-          border: Border(top: BorderSide(color: borderColor)),
-          boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-          ],
-        ),
-        child: SafeArea(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TransactionReceiptScreen(
-                    amount: amount,
-                    network: network,
-                    recipientPhone: phone,
-                    payerPhone: "08167907085", // replace with real user number
-                    transactionId:
-                    "TXN${DateTime.now().millisecondsSinceEpoch}",
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              elevation: 0,
-            ),
-            icon: const Icon(Icons.receipt_long_rounded, size: 20),
-            label: const Text(
-              "View Receipt",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
-
-      // Body
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Transaction Summary
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    if (!isDark)
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundImage: AssetImage(_getNetworkLogo(network)),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      network.toUpperCase(),
-                      style: TextStyle(fontSize: 15, color: textPrimary),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "₦$formattedAmount",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 26,
-                        color: textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.check_circle,
-                            color: Color(0xFF22C55E), size: 18),
-                        SizedBox(width: 5),
-                        Text(
-                          "Successful",
-                          style: TextStyle(
-                            color: Color(0xFF22C55E),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Divider(color: borderColor),
-                    const SizedBox(height: 5),
-                    _buildRow("Order Amount", orderAmount, isDark),
-                    _buildRow("Payment Amount", paymentAmount, isDark),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+          child: Column(children: [
 
-              // Transaction Info
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
+            // ── Summary card ──────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor),
+                boxShadow: [
+                  if (!isDark)
+                    BoxShadow(color: Colors.black.withOpacity(0.05),
+                        blurRadius: 6, offset: const Offset(0, 3)),
+                ],
+              ),
+              child: Column(children: [
+                Text(network.toUpperCase(),
+                    style: TextStyle(fontSize: 15, color: textPrimary)),
+                const SizedBox(height: 8),
+                Text('₦${numFormat.format(amount)}',
+                    style: TextStyle(fontWeight: FontWeight.w700,
+                        fontSize: 26, color: textPrimary)),
+                const SizedBox(height: 6),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildRow("Recipient Mobile", phone, isDark),
-                    _buildRow("Transaction Type", "Airtime Top-up", isDark),
-                    _buildTransactionIdRow(context, transactionId, isDark),
-                    _buildRow("Create Time", time, isDark),
-                    _buildRow("Completion Time", time, isDark),
+                    Icon(Icons.check_circle,
+                        color: Color(0xFF22C55E), size: 18),
+                    SizedBox(width: 5),
+                    Text('Successful',
+                        style: TextStyle(color: Color(0xFF22C55E),
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                   ],
                 ),
-              ),
-              const SizedBox(height: 25),
+                const SizedBox(height: 5),
+                Divider(color: borderColor),
+                const SizedBox(height: 5),
+                _buildRow('Order Amount',
+                    '₦${numFormat.format(amount)}', isDark),
+              ]),
+            ),
+            const SizedBox(height: 20),
 
-              // Support Section
+            // ── Details card ──────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(children: [
+                if (isEle) ...[
+                  if (customerName?.isNotEmpty == true)
+                    _buildRow('Customer Name', customerName!, isDark),
+                  if (customerAddress?.isNotEmpty == true)
+                    _buildRow('Address', customerAddress!, isDark),
+                  _buildRow('Meter Number', eleMeter ?? phone, isDark),
+                  _buildRow('Bill Type', billType ?? 'Prepaid', isDark),
+                ] else
+                  _buildRow('Recipient', phone, isDark),
+                _buildRow('Network',          network,               isDark),
+                _buildRow('Transaction Type', _transactionTypeLabel, isDark),
+                if (isExam) ...[
+                  if (examPin?.isNotEmpty == true)
+                    _buildRow('Exam PIN', examPin!, isDark),
+
+                  if (examSerial?.isNotEmpty == true)
+                    _buildRow('Serial', examSerial!, isDark),
+                ],
+
+                if (isEle && eleUnits?.isNotEmpty == true)
+                  _buildRow('Units', '${eleUnits}kWh', isDark),
+                _buildCopyRow(context, 'Transaction ID', transactionId, isDark),
+                _buildCopyRow(context, 'Reference',      ref,           isDark),
+                _buildRow('Date & Time',     time,     isDark),
+                _buildRow('Payment Method', 'Wallet',  isDark),
+              ]),
+            ),
+
+            // ── Electricity token box ─────────────────────────────────
+            if (isEle && eleToken?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(18),
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
+                  color: Colors.green.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: Colors.green.withOpacity(0.3), width: 1.5),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      "Any questions about this transaction?",
+                child: Column(children: [
+                  Text('ELECTRICITY TOKEN',
                       style: TextStyle(
-                        color: textSecondary,
-                        fontSize: 14,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.green.shade700,
+                          letterSpacing: 1.2)),
+                  const SizedBox(height: 10),
+                  Text(eleToken!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 3,
+                          color: Colors.black87)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: eleToken!));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Token copied to clipboard'),
+                              duration: Duration(seconds: 1)),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Copy Token'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.green,
+                        side: BorderSide(color: Colors.green.shade400),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _supportButton(Icons.headset_mic, "Customer Service"),
-                        const SizedBox(width: 20),
-                        _supportButton(Icons.report_problem, "Report a Dispute"),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ]),
               ),
-              const SizedBox(height: 80),
             ],
-          ),
+
+            const SizedBox(height: 20),
+
+            // ── View Receipt Button ───────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TransactionReceiptScreen(
+                        amount: amount,
+                        action: action,
+                        network: network,
+                        recipientPhone: phone,
+                        payerPhone: phone,
+                        transactionId: transactionId,
+                      ),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.receipt_long, color: primary),
+                label: Text('View Receipt',
+                    style: TextStyle(
+                        color: primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: primary),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 80),
+          ]),
         ),
       ),
     );
   }
 
-  // Reusable Info Row
   static Widget _buildRow(String title, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: isDark ? Colors.white70 : Colors.black54,
-              fontSize: 14,
-            ),
-          ),
+          Text(title,
+              style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontSize: 14)),
           const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              color: isDark ? Colors.white : const Color(0xFF111827),
-              fontWeight: FontWeight.w600,
-            ),
+          Flexible(
+            child: Text(value,
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF111827),
+                    fontWeight: FontWeight.w600)),
           ),
         ],
       ),
     );
   }
 
-  // Transaction ID row with Copy Icon
-  static Widget _buildTransactionIdRow(
-      BuildContext context, String value, bool isDark) {
+  static Widget _buildCopyRow(BuildContext context,
+      String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Text(
-            "Transaction ID",
+      child: Row(children: [
+        Text(label,
             style: TextStyle(
-              color: isDark ? Colors.white70 : Colors.black54,
-              fontSize: 14,
-            ),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Text(
-                value,
-                style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontSize: 14)),
+        const Spacer(),
+        Flexible(
+          child: Text(value,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF111827),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () async {
-                  await Clipboard.setData(ClipboardData(text: value));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Transaction ID copied to clipboard"),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
-                child: Icon(Icons.copy,
-                    size: 16, color: isDark ? Colors.grey[400] : Colors.grey),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Support buttons
-  static Widget _supportButton(IconData icon, String label) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.deepOrange),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.deepOrange,
-            fontWeight: FontWeight.w600,
-          ),
+                  fontWeight: FontWeight.w600)),
         ),
-      ],
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () async {
+            await Clipboard.setData(ClipboardData(text: value));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$label copied'),
+                  duration: const Duration(seconds: 1)),
+            );
+          },
+          child: Icon(Icons.copy, size: 16,
+              color: isDark ? Colors.grey[400] : Colors.grey),
+        ),
+      ]),
     );
   }
 }

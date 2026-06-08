@@ -3,10 +3,15 @@ import 'package:flutter/rendering.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:globalpay/Market/business_page.dart';
 import 'package:globalpay/Market/seller_chart.dart'; // Ensure correct casing
-
-// Custom File Imports
+import 'editors_profile.dart';
 import 'product_card.dart';
 import 'product_data.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../provider/user_provider.dart';
+import 'package:globalpay/Market/StoreSetupPage.dart';
+
 
 class CardPage extends StatefulWidget {
   const CardPage({super.key});
@@ -105,11 +110,73 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
         title: Row(
           children: [
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => BusinessPage()),
+              onTap: () async {
+                final user = context.read<UserProvider>().user;
+                if (user == null) return;
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(
+                    child: CircularProgressIndicator(color: Colors.deepOrange),
+                  ),
                 );
+
+                try {
+                  // ── Step 1: Check subscription ────────────────────────────
+                  final checkResponse = await http.get(
+                    Uri.parse('https://glopa.org/glo/check_subscription.php?user_id=${user.userId}'),
+                  );
+                  final checkData = jsonDecode(checkResponse.body);
+
+                  if (!mounted) return;
+
+                  if (checkData['status'] != 'success' || checkData['active'] != true) {
+                    // ── No subscription → go to BusinessPage ─────────────
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BusinessPage()),
+                    );
+                    return;
+                  }
+
+                  // ── Step 2: Has subscription → check business profile ────
+                  final profileRes = await http.post(
+                    Uri.parse('https://glopa.org/glo/get_business_profile.php'),
+                    headers: {'Content-Type': 'application/json'},
+                    body: jsonEncode({'user_id': user.userId}),
+                  );
+                  final profileData = jsonDecode(profileRes.body);
+
+                  if (!mounted) return;
+                  Navigator.pop(context); // close loader
+
+                  if (profileData['status'] == 'success') {
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OwnerPage()),
+                    );
+                  } else {
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StoreSetupPage()),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Network error. Please try again.'),
+                      backgroundColor: Colors.red.shade600,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
               },
               child: AnimatedBuilder(
                 animation: _rotationController,

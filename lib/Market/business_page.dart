@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:globalpay/Market/StoreSetupPage.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../market/market_page.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../provider/user_provider.dart';
 
 class BusinessPage extends StatefulWidget {
   const BusinessPage({super.key});
@@ -12,8 +15,8 @@ class BusinessPage extends StatefulWidget {
 }
 
 class _BusinessPageState extends State<BusinessPage> {
-  // State for acceptance checkbox
   bool _isAccepted = false;
+  bool _isLoading = false; // ← loading state for button
 
   final List<Map<String, dynamic>> features = [
     {
@@ -24,8 +27,7 @@ class _BusinessPageState extends State<BusinessPage> {
     {
       'icon': IconsaxPlusLinear.people,
       'title': 'Customer Connections',
-      'subtitle':
-          'Easily communicate with buyers and manage orders efficiently.',
+      'subtitle': 'Easily communicate with buyers and manage orders efficiently.',
     },
     {
       'icon': IconsaxPlusLinear.trend_up,
@@ -33,6 +35,81 @@ class _BusinessPageState extends State<BusinessPage> {
       'subtitle': 'Track your sales, profits, and top-selling items with ease.',
     },
   ];
+
+  // ─── Subscribe Function ────────────────────────────────────────────────────
+  Future<void> _subscribe() async {
+    final user = context.read<UserProvider>().user;
+
+    if (user == null) {
+      _showSnack('User not found. Please log in again.', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // ─── 1. Check if already subscribed ──────────────────────────────────
+      final checkResponse = await http.get(
+        Uri.parse('https://glopa.org/glo/check_subscription.php?user_id=${user.userId}'),
+      );
+
+      final checkData = jsonDecode(checkResponse.body);
+
+      if (checkData['status'] == 'success' && checkData['active'] == true) {
+        // Already subscribed — go straight to StoreSetupPage
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StoreSetupPage()),
+          );
+        }
+        return;
+      }
+
+      // ─── 2. Not subscribed — pay and subscribe ────────────────────────────
+      final response = await http.post(
+        Uri.parse('https://glopa.org/glo/add_subscription.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id':    user.userId,
+          'auto_renew': 0,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['status'] == 'success') {
+        _showSnack('Subscription activated! Welcome to GlobalBiz 🎉');
+
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StoreSetupPage()),
+          );
+        }
+      } else {
+        _showSnack(data['message'] ?? 'Subscription failed', isError: true);
+      }
+    } catch (e) {
+      _showSnack('Network error. Please try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,12 +138,11 @@ class _BusinessPageState extends State<BusinessPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            // Main Title
+
             Text(
               'Set up your\nGlobalBiz Profile',
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                //letterSpacing: 1,
                 color: isDark ? Colors.white : Colors.black,
               ),
             ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
@@ -93,24 +169,15 @@ class _BusinessPageState extends State<BusinessPage> {
               ),
               child: Column(
                 children: [
-                  _pricingRow(
-                    IconsaxPlusLinear.card_pos,
-                    "Subscription",
-                    "₦500 / Year",
-                    isDark,
-                  ),
+                  _pricingRow(IconsaxPlusLinear.card_pos, "Subscription", "₦500 / Year", isDark),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Divider(height: 1),
                   ),
-                  _pricingRow(
-                    IconsaxPlusLinear.percentage_square,
-                    "Service Fee",
-                    "2% per sale",
-                    isDark,
-                  ),
+                  _pricingRow(IconsaxPlusLinear.percentage_square, "Service Fee", "2% per sale", isDark),
                   const SizedBox(height: 15),
-                  // Acceptance Checkbox
+
+                  // Checkbox
                   InkWell(
                     onTap: () => setState(() => _isAccepted = !_isAccepted),
                     borderRadius: BorderRadius.circular(12),
@@ -125,9 +192,7 @@ class _BusinessPageState extends State<BusinessPage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            onChanged: (val) {
-                              setState(() => _isAccepted = val!);
-                            },
+                            onChanged: (val) => setState(() => _isAccepted = val!),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -152,47 +217,29 @@ class _BusinessPageState extends State<BusinessPage> {
 
             Text(
               'Key Features',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
 
             const SizedBox(height: 15),
 
-            // Features list
             ...features.asMap().entries.map((entry) {
-              int index = entry.key;
-              var feature = entry.value;
-
               return _featureItem(
-                    theme,
-                    feature['icon'] as IconData,
-                    feature['title'] as String,
-                    feature['subtitle'] as String,
-                    isDark,
-                  )
-                  .animate(delay: (400 + index * 100).ms)
-                  .fadeIn()
-                  .slideX(begin: 0.1);
+                theme,
+                entry.value['icon'] as IconData,
+                entry.value['title'] as String,
+                entry.value['subtitle'] as String,
+                isDark,
+              ).animate(delay: (400 + entry.key * 100).ms).fadeIn().slideX(begin: 0.1);
             }),
 
             const SizedBox(height: 40),
 
-            // Main Action Button (Reactive)
+            // ─── Get Started Button ──────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _isAccepted
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const StoreSetupPage(),
-                          ),
-                        );
-                      }
-                    : null, // Button is disabled if not accepted
+                onPressed: (_isAccepted && !_isLoading) ? _subscribe : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
@@ -203,7 +250,16 @@ class _BusinessPageState extends State<BusinessPage> {
                   ),
                   elevation: 0,
                 ),
-                child: Text(
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+                    : Text(
                   "Get Started",
                   style: TextStyle(
                     fontSize: 16,
@@ -246,13 +302,7 @@ class _BusinessPageState extends State<BusinessPage> {
     );
   }
 
-  Widget _featureItem(
-    ThemeData theme,
-    IconData icon,
-    String title,
-    String subtitle,
-    bool isDark,
-  ) {
+  Widget _featureItem(ThemeData theme, IconData icon, String title, String subtitle, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(

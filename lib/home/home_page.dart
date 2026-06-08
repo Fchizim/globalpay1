@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:globalpay/home/bet_screen.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -479,7 +480,7 @@ class _HomePageState extends State<HomePage> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => AirtimePage()),
+              MaterialPageRoute(builder: (context) => AirtimeScreen()),
             );
           },
           child: _buildSmallCard(
@@ -494,7 +495,7 @@ class _HomePageState extends State<HomePage> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => DataPage()),
+              MaterialPageRoute(builder: (context) => DataScreen()),
             );
           },
           child: _buildSmallCard(
@@ -509,7 +510,7 @@ class _HomePageState extends State<HomePage> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ElectricityPage()),
+              MaterialPageRoute(builder: (context) => ElectricityScreen()),
             );
           },
           child: _buildSmallCard(
@@ -588,12 +589,20 @@ class _HomePageState extends State<HomePage> {
             textColor,
           ),
         ),
-        _buildSmallCard(
-          LucideIcons.handCoins,
-          "Betting",
-          Colors.blue.shade800,
-          cardColor,
-          textColor,
+        InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => BetScreen()),
+            );
+          },
+          child: _buildSmallCard(
+            LucideIcons.handCoins,
+            "Betting",
+            Colors.blue.shade800,
+            cardColor,
+            textColor,
+          ),
         ),
       ],
     );

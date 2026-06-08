@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/home/transaction_detail_page.dart';
 import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
-import 'package:globalpay/home/transaction_detail_page.dart';
 
-import 'airtime_page.dart';
 
 class AirtimeSuccessScreen extends StatefulWidget {
   final int amount;
   final String network;
   final String phone;
+  final String transactionId;
+  final String ref;
+  final double newBalance;
+  final String action;
+
 
   const AirtimeSuccessScreen({
     super.key,
     required this.amount,
     required this.network,
     required this.phone,
+    required this.transactionId,
+    required this.ref,
+    required this.newBalance,
+    required this.action,
   });
 
   @override
@@ -31,29 +39,15 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
   @override
   void initState() {
     super.initState();
-
-    // 🎬 Animations
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-
-    _scaleAnim = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    );
-
-    _fadeAnim = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
-
+    _scaleAnim = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+    _fadeAnim  = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
 
-    // 🎉 Confetti animation
-    _confettiController =
-        ConfettiController(duration: const Duration(seconds: 3));
-
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     Future.delayed(const Duration(milliseconds: 400), () {
       _confettiController.play();
     });
@@ -66,34 +60,18 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
     super.dispose();
   }
 
-  // 🏷 Returns network logo path
-  String _getNetworkLogo(String network) {
-    switch (network.toLowerCase()) {
-      case 'mtn':
-        return 'assets/images/png/mtn.jpeg';
-      case 'airtel':
-        return 'assets/images/png/airtel.jpeg';
-      case 'glo':
-        return 'assets/images/png/glo.jpeg';
-      case '9mobile':
-      case 'etisalat':
-        return 'assets/images/png/9mobile.jpeg';
-      default:
-        return 'assets/images/png/mtn.jpeg';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // 💳 Fintech Color Palette
+    final bool isDark       = Theme.of(context).brightness == Brightness.dark;
     final Color greenSuccess = const Color(0xFF22C55E);
-    final Color deepOrange = Colors.deepOrange;
-    final Color bgColor = isDark ? const Color(0xFF0D0D0D) : Colors.white;
-    final Color cardColor = isDark
+    final Color primary      = Colors.deepOrange;
+    final Color bgColor      = isDark ? const Color(0xFF0D0D0D) : Colors.white;
+    final Color cardColor    = isDark
         ? Colors.grey[900]!.withOpacity(0.6)
         : Colors.white.withOpacity(0.95);
+    final Color textColor    = isDark ? Colors.white : Colors.black87;
+    final Color subTextColor = isDark ? Colors.grey[400]! : Colors.grey[600]!;
+    final numFormat          = NumberFormat.decimalPattern('en_US');
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -101,7 +79,6 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 🎊 Confetti Effect
             ConfettiWidget(
               confettiController: _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
@@ -111,21 +88,17 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
               minBlastForce: 5,
               gravity: 0.2,
               colors: const [
-                Colors.deepOrange,
-                Colors.green,
-                Colors.amber,
-                Colors.orangeAccent,
-                Colors.white,
+                Colors.deepOrange, Colors.green,
+                Colors.amber, Colors.orangeAccent, Colors.white,
               ],
             ),
-
-            // 🧩 Main Content
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ✅ Animated Success Icon
+
+                  // ── Success icon ───────────────────────────────────────
                   ScaleTransition(
                     scale: _scaleAnim,
                     child: Container(
@@ -133,55 +106,30 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [
-                            greenSuccess,
-                            greenSuccess.withOpacity(0.8),
-                          ],
+                          colors: [greenSuccess, greenSuccess.withOpacity(0.8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        boxShadow: [
-                          BoxShadow(
+                        boxShadow: [BoxShadow(
                             color: greenSuccess.withOpacity(0.4),
-                            blurRadius: 25,
-                            spreadRadius: 3,
-                          ),
-                        ],
+                            blurRadius: 25, spreadRadius: 3)],
                       ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 60,
-                      ),
+                      child: const Icon(Icons.check, color: Colors.white, size: 60),
                     ),
                   ),
-
                   const SizedBox(height: 15),
-                  Text(
-                    'Payment Successful',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
+
+                  Text('Payment Successful',
+                      style: TextStyle(fontSize: 20,
+                          fontWeight: FontWeight.w600, color: textColor)),
                   const SizedBox(height: 5),
 
-                  // 💰 Amount
-                  Text(
-                    '₦${NumberFormat.decimalPattern().format(widget.amount)}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
-                      color:
-                      isDark ? Colors.white : Colors.black.withOpacity(0.8),
-                    ),
-                  ),
-
+                  Text('₦${numFormat.format(widget.amount)}',
+                      style: TextStyle(fontSize: 30,
+                          fontWeight: FontWeight.w600, color: textColor)),
                   const SizedBox(height: 30),
 
-                  // 💳 Info Card
+                  // ── Info card ──────────────────────────────────────────
                   FadeTransition(
                     opacity: _fadeAnim,
                     child: Container(
@@ -190,126 +138,103 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                         color: cardColor,
                         borderRadius: BorderRadius.circular(22),
                       ),
-                      child: Column(
-                        children: [
+                      child: Column(children: [
 
-                          const SizedBox(height: 20),
+                        // Recipient
+                        Row(children: [
+                          Text('Recipient',
+                              style: TextStyle(color: subTextColor)),
+                          const Spacer(),
+                          Text(widget.phone,
+                              style: TextStyle(fontSize: 15,
+                                  fontWeight: FontWeight.w600, color: primary)),
+                        ]),
+                        const SizedBox(height: 16),
 
-                          // 👤 Recipient Row
-                          Row(
-                            children: [
-                              const Text("Recipient"),
-                              const Spacer(),
-                              Text(
-                                widget.phone,
-                                style: TextStyle(
-                                  fontSize: 15,
+                        // Network
+                        Row(children: [
+                          Text('Network',
+                              style: TextStyle(color: subTextColor)),
+                          const Spacer(),
+                          Text(widget.network,
+                              style: TextStyle(fontSize: 14,
+                                  fontWeight: FontWeight.w600, color: textColor)),
+                        ]),
+                        const SizedBox(height: 16),
+
+                        // Transaction ID
+                        Row(children: [
+                          Text('Transaction ID',
+                              style: TextStyle(color: subTextColor)),
+                          const Spacer(),
+                          Flexible(
+                            child: Text(widget.transactionId,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor)),
+                          ),
+                        ]),
+                        const SizedBox(height: 16),
+
+                        // New balance
+                        Row(children: [
+                          Text('New Balance',
+                              style: TextStyle(color: subTextColor)),
+                          const Spacer(),
+                          Text('₦${numFormat.format(widget.newBalance)}',
+                              style: TextStyle(fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: deepOrange,
-                                ),
-                              ),
-                            ],
-                          ),
+                                  color: greenSuccess)),
+                        ]),
+                        const SizedBox(height: 16),
 
-                          const SizedBox(height: 25),
-
-                          // 🏷 Network Logo, Name, & View Details
-                          Column(
+                        // View details
+                        GestureDetector(
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) =>
+                                  TransactionDetailScreen(
+                                    amount:        widget.amount,
+                                    network:       widget.network,
+                                    phone:         widget.phone,
+                                    transactionId: widget.transactionId,
+                                    ref:           widget.ref,
+                                    newBalance:    widget.newBalance,
+                                    action: widget.action,
+                                  ))),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Row(
-                                children: [
-                                  Text("Network"),
-                                  Spacer(),
-                                  Container(
-                                    height: 30,
-                                    width: 30,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                    ),
-                                    clipBehavior: Clip.hardEdge,
-                                    child: Image.asset(
-                                      _getNetworkLogo(widget.network),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-
-                                  SizedBox(width: 5),
-                                  Text(
-                                    widget.network.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 15),
-
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => TransactionDetailScreen(
-                                        amount: widget.amount,
-                                        network: widget.network,
-                                        phone: widget.phone,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "View Details",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: deepOrange,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Icon(Icons.keyboard_arrow_right_outlined,color: Colors.deepOrange,size: 20,)
-                                  ],
-                                ),
-                              ),
+                              Text('View Details',
+                                  style: TextStyle(fontSize: 14,
+                                      color: primary,
+                                      fontWeight: FontWeight.w500)),
+                              Icon(Icons.keyboard_arrow_right_outlined,
+                                  color: primary, size: 20),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ]),
                     ),
                   ),
-
                   const SizedBox(height: 50),
 
-                  // ✅ Done Button
+                  // ── Done button ────────────────────────────────────────
                   FadeTransition(
                     opacity: _fadeAnim,
                     child: ElevatedButton(
-                      onPressed: () {
-                       // _confettiController.stop();
-                        Navigator.pop(context,
-                        MaterialPageRoute(builder: (_) => AirtimePage()));
-                      },
+                      onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: deepOrange,
+                        backgroundColor: primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                            borderRadius: BorderRadius.circular(14)),
                         elevation: 2,
                         minimumSize: const Size.fromHeight(52),
                       ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                        ),
-                      ),
+                      child: const Text('Done',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 17)),
                     ),
                   ),
                 ],

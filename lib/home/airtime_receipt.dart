@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 // import 'package:media_store_plus/media_store_plus.dart';
 // import 'package:gallery_saver/gallery_saver.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -17,6 +18,7 @@ class TransactionReceiptScreen extends StatefulWidget {
   final String recipientPhone;
   final String payerPhone;
   final String transactionId;
+  final String action;
 
   const TransactionReceiptScreen({
     super.key,
@@ -25,6 +27,7 @@ class TransactionReceiptScreen extends StatefulWidget {
     required this.recipientPhone,
     required this.payerPhone,
     required this.transactionId,
+    required this.action,
   });
 
   @override
@@ -44,7 +47,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
 
   Future<void> _loadLogo() async {
     final data = await rootBundle.load(
-      'assets/images/png/logo_transparent.png',
+      'assets/icons/png/globapay.jpg',
     );
     final bytes = data.buffer.asUint8List();
     final codec = await ui.instantiateImageCodec(bytes);
@@ -215,11 +218,11 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Image.asset(
-                            'assets/images/png/logo_transparent.png',
+                            'assets/icons/png/globapay.jpg',
                             height: 40,
                           ),
                           Text(
-                            "lobalPay",
+                            "lonest",
                             style: TextStyle(
                               color: textPrimary,
                               fontSize: 20,
@@ -259,7 +262,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                       const SizedBox(height: 14),
                       Divider(color: borderColor, height: 1),
                       const SizedBox(height: 10),
-                      _infoRow("Transaction Type", "Top up Airtime", isDark),
+                      _infoRow("Transaction Type", widget.action, isDark),
                       _infoRow(
                         "Bill Provider",
                         widget.network.toUpperCase(),
@@ -283,7 +286,9 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                       Divider(color: borderColor),
                       const SizedBox(height: 8),
                       Text(
-                        "Get cashbacks in Airtime & Data top-up. Unlimited free transfers every Tuesday. Up to ₦150k credit lines & 16 days interest free. Enjoy all at GlobalPay!",
+                        "Get cashbacks in Airtime & Data top-up. Unlimited free transfers "
+                            "every Tuesday. Up to ₦150k credit lines & 16 days interest free."
+                            " Enjoy all at Glonest!",
                         style: TextStyle(
                           color: textSecondary,
                           fontSize: 13,
@@ -320,7 +325,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
           const SizedBox(width: 8),
           Expanded(
             flex: 5,
-            child: Text(
+            child:Text(
               value,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
@@ -465,7 +470,7 @@ class WatermarkPainter extends CustomPainter {
         color: (isDark ? Colors.white : Colors.black).withOpacity(item.opacity),
       );
       final textPainter = TextPainter(
-        text: TextSpan(text: "lobalPay", style: textStyle),
+        text: TextSpan(text: "lonest", style: textStyle),
         textDirection: ui.TextDirection.ltr,
       );
       textPainter.layout();

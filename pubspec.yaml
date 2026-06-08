@@ -17,7 +17,7 @@ dependencies:
   flutter_svg: any
   flutter_map: any
   latlong2: any
-  image_picker: any
+  image_picker: ^1.1.2
   confetti: any
   intl: any
   share_plus: any
@@ -76,7 +76,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/png/globalpay_icon.png"
+  image_path: "assets/icons/png/globapay.jpg"
   remove_alpha_ios: true
 
 flutter:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:globalpay/provider/kyc_provider.dart';
 import 'package:globalpay/provider/settings_provider.dart';
+import 'package:globalpay/provider/subscription_provider.dart';
 import 'package:globalpay/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'splash_screen/splash_screen.dart';
@@ -17,6 +18,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => KycProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],
       child: const MyApp(),
     ),
