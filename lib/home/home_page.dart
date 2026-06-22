@@ -275,10 +275,6 @@ class _HomePageState extends State<HomePage> {
                       InkWell(
                         onTap: () => _navigateWithLoader(UserPage(
                           balance: balance,
-                          image:   'assets/images/png/profile.png',
-                          name:    'Recipient Name',
-                          account: '1234567890',
-                          bank:    'Bank Name',
                           onTransaction: (double amount) =>
                               setState(() => UserBalance.instance.balance -= amount),
                         )),
@@ -299,7 +295,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       InkWell(
                         onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => GTagPaymentPage())),
+                            MaterialPageRoute(builder: (_) => GTagPaymentPage(balance: balance))),
                         child: _buildCard(context,
                             icon: IconsaxPlusBold.tag_2,
                             label: "G-Tag",

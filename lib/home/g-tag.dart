@@ -1,6 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'gtag_transaction_page.dart'; // new success page
+import 'package:provider/provider.dart';
+import '../provider/user_provider.dart';
+import 'api_config.dart';
+import 'cpt.dart';
+import 'gtag_transaction_page.dart';
 
 // ----------------- PIN bottom sheet -----------------
 Future<bool?> showPinBottomSheet(BuildContext context) async {
@@ -58,8 +64,13 @@ Future<bool?> showPinBottomSheet(BuildContext context) async {
                       height: 60,
                       decoration: BoxDecoration(
                         color: pins[i].isNotEmpty
-                            ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                            : Theme.of(context).colorScheme.surfaceContainerHighest,
+                            ? Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.15)
+                            : Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: pins[i].isNotEmpty
@@ -108,19 +119,98 @@ Future<bool?> showPinBottomSheet(BuildContext context) async {
 
 // ----------------- GTag Payment Page -----------------
 class GTagPaymentPage extends StatefulWidget {
-  final String? recipientTag;
-  final String? recipientImage;
-
-  const GTagPaymentPage({super.key, this.recipientTag, this.recipientImage});
+  final double balance;
+  const GTagPaymentPage({super.key, required this.balance});
 
   @override
   State<GTagPaymentPage> createState() => _GTagPaymentPageState();
 }
 
 class _GTagPaymentPageState extends State<GTagPaymentPage> {
-  String amount = "";
-  final TextEditingController _tagController = TextEditingController();
 
+  // ── amount ────────────────────────────────────────────────
+  String amount = "";
+
+  // ── username lookup ───────────────────────────────────────
+  final TextEditingController _usernameCtrl = TextEditingController();
+  bool _lookupLoading = false;
+  String? _lookupError;
+  Map<String, dynamic>? _resolvedUser; // {user_id, name, username, image}
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameCtrl.addListener(_onUsernameChanged);
+  }
+
+  @override
+  void dispose() {
+    _usernameCtrl.removeListener(_onUsernameChanged);
+    _usernameCtrl.dispose();
+    super.dispose();
+  }
+
+  // ── auto-lookup when username is long enough ──────────────
+  void _onUsernameChanged() {
+    final username = _usernameCtrl.text.trim();
+    if (_resolvedUser != null || _lookupError != null) {
+      setState(() {
+        _resolvedUser = null;
+        _lookupError  = null;
+      });
+    }
+    if (username.length >= 3) {
+      _lookupUser(username);
+    }
+  }
+
+  Future<void> _lookupUser(String username) async {
+    final me = context.read<UserProvider>().user;
+    if (me == null) return;
+
+    setState(() {
+      _lookupLoading = true;
+      _lookupError   = null;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/check_gtag_recipient.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username':  username,
+          'sender_id': me.userId,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      if (!mounted) return;
+
+      if (map['status'] == 'success') {
+        setState(() {
+          _resolvedUser = map['user'] as Map<String, dynamic>;
+          _lookupError  = null;
+        });
+      } else {
+        setState(() {
+          _resolvedUser = null;
+          _lookupError  = map['message'] as String? ?? 'User not found.';
+        });
+      }
+    } catch (e) {
+      debugPrint('gtag lookup error: $e');
+      if (mounted) {
+        setState(() {
+          _resolvedUser = null;
+          _lookupError  = 'Could not reach server.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _lookupLoading = false);
+    }
+  }
+
+  // ── keypad ────────────────────────────────────────────────
   void _appendNumber(String number) {
     if (number == ".") return;
     setState(() {
@@ -136,54 +226,44 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
 
   String get formattedAmount {
     if (amount.isEmpty) return "₦0";
-    final formatter = NumberFormat.currency(locale: "en_US", symbol: "₦", decimalDigits: 0);
+    final formatter =
+    NumberFormat.currency(locale: "en_US", symbol: "₦", decimalDigits: 0);
     final intVal = int.tryParse(amount) ?? 0;
     return formatter.format(intVal);
   }
 
+  // ── send ──────────────────────────────────────────────────
   Future<void> _sendMoney() async {
-    final tag = _tagController.text.trim();
     final intVal = int.tryParse(amount) ?? 0;
-    if (intVal <= 0 || tag.isEmpty) return;
+    if (intVal <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter an amount')),
+      );
+      return;
+    }
+    if (_resolvedUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please find a valid recipient first')),
+      );
+      return;
+    }
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Confirm Payment"),
-        content: Text("Send $formattedAmount to $tag?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Continue"),
-          ),
-        ],
+    final me = context.read<UserProvider>().user;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConfirmPinTransferPage(
+          senderUserId:    me?.userId ?? '',
+          balance:         widget.balance,
+          recipient:       _resolvedUser!,
+          prefilledAmount: intVal.toDouble(),
+          onTransaction:   (double amount) {},
+        ),
       ),
     );
-
-    if (confirm == true) {
-      final pinSuccess = await showPinBottomSheet(context);
-      if (pinSuccess == true && context.mounted) {
-        final double amountValue = (intVal).toDouble();
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => GTagSuccessfulPayment(
-              amount: amountValue,
-              gTagID: '', // You can pass a generated ID here
-              recipientTag: tag, // Pass the entered GTag ID from the user
-            ),
-          ),
-        );
-      }
-    }
   }
 
+  // ── keypad button ─────────────────────────────────────────
   Widget _buildKeypadButton(String label, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap ?? () => _appendNumber(label),
@@ -192,24 +272,11 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
         alignment: Alignment.center,
         child: Text(
           label,
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+              fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.recipientTag != null) {
-      _tagController.text = widget.recipientTag!;
-    }
-  }
-
-  @override
-  void dispose() {
-    _tagController.dispose();
-    super.dispose();
   }
 
   @override
@@ -222,11 +289,15 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context)),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('G-Tag Transfer',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),
       body: Stack(
         children: [
+          // ── background ──────────────────────────────────
           Positioned.fill(
             child: Image.asset(
               isDark
@@ -235,39 +306,71 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
               fit: BoxFit.cover,
             ),
           ),
+
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 20),
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: widget.recipientImage != null
-                      ? AssetImage(widget.recipientImage!)
-                      : const AssetImage("assets/images/png/gold.jpg"),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
+
+                // ── username field + resolved card ────────
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                  child: TextField(
-                    controller: _tagController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
-                      prefixIcon:
-                      const Icon(Icons.alternate_email, color: Colors.white),
-                      hintText: "Enter Recipient G-Tag",
-                      hintStyle: const TextStyle(color: Colors.white70),
-                      contentPadding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                      border: OutlineInputBorder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      // username input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide.none),
-                    ),
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        child: TextField(
+                          controller: _usernameCtrl,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w600),
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.alternate_email,
+                                color: Colors.white70),
+                            suffixIcon: _lookupLoading
+                                ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 18, height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white),
+                              ),
+                            )
+                                : _resolvedUser != null
+                                ? const Icon(Icons.check_circle_rounded,
+                                color: Colors.greenAccent)
+                                : null,
+                            hintText: 'Enter G-Tag username',
+                            hintStyle:
+                            const TextStyle(color: Colors.white60),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 15, horizontal: 20),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // resolved user card
+                      if (_resolvedUser != null)
+                        _resolvedCard()
+                      else if (_lookupError != null)
+                        _errorCard(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 50),
+
+                const SizedBox(height: 20),
+
+                // ── amount display ────────────────────────
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Text(
@@ -279,9 +382,12 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
                         fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 50),
+
+                const SizedBox(height: 20),
+
+                // ── keypad ────────────────────────────────
                 Expanded(
-                  child: Container(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 50),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -290,11 +396,12 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
                           ["1", "2", "3"],
                           ["4", "5", "6"],
                           ["7", "8", "9"],
-                          [".", "0", "<"]
+                          [".", "0", "<"],
                         ])
                           Expanded(
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceEvenly,
                               children: row.map((key) {
                                 return Expanded(
                                   child: _buildKeypadButton(
@@ -307,32 +414,114 @@ class _GTagPaymentPageState extends State<GTagPaymentPage> {
                               }).toList(),
                             ),
                           ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
-                          height: 60,
+                          height: 56,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
+                              disabledBackgroundColor:
+                              Colors.white.withOpacity(0.4),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30)),
                             ),
-                            onPressed: _sendMoney,
+                            onPressed: (_resolvedUser != null &&
+                                (int.tryParse(amount) ?? 0) > 0)
+                                ? _sendMoney
+                                : null,
                             child: Text(
                               "Send Money",
                               style: TextStyle(
-                                  color: Colors.deepOrange.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20),
+                                color: Colors.deepOrange.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── resolved recipient card ───────────────────────────────
+  Widget _resolvedCard() {
+    final name     = (_resolvedUser!['name']     as String?) ?? 'User';
+    final username = (_resolvedUser!['username'] as String?) ?? '';
+    final image    = (_resolvedUser!['image']    as String?) ?? '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.white24,
+            backgroundImage:
+            image.isNotEmpty ? NetworkImage(image) : null,
+            child: image.isEmpty
+                ? Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700))
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+                if (username.isNotEmpty)
+                  Text('@$username',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+          ),
+          const Icon(Icons.check_circle_rounded,
+              color: Colors.greenAccent, size: 20),
+        ],
+      ),
+    );
+  }
+
+  // ── error card ────────────────────────────────────────────
+  Widget _errorCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: Colors.redAccent, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _lookupError ?? 'User not found.',
+              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
             ),
           ),
         ],
