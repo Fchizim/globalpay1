@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../Market/cart_provider.dart';
 import '../apps/apps.dart';
 import '../provider/user_provider.dart';
 import 'forgot_password.dart';
@@ -66,12 +67,13 @@ class _LoginPageState extends State<LoginPage> {
       print('Referral code: ${user.referralCode}');
 
 
-      // printrint('Referral code: ${user.referralCode}'); // already shows GBx2345 ✅
+      // printrint('Referral code: ${user.referralCode}');
 
-      await SecureStorageService.saveUser(user); // ← this now saves correctly
+      await SecureStorageService.saveUser(user);
       if (!mounted) return;
       context.read<AuthProvider>().setUser(user);
-      context.read<UserProvider>().setUser(user); // ← make sure this is here
+      context.read<UserProvider>().setUser(user);
+      context.read<CartProvider>().fetchCount(user.userId);
       /// OPTIONAL callback
       widget.onLoginSuccess();
 

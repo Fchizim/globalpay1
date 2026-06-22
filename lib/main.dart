@@ -4,9 +4,12 @@ import 'package:globalpay/provider/settings_provider.dart';
 import 'package:globalpay/provider/subscription_provider.dart';
 import 'package:globalpay/provider/user_provider.dart';
 import 'package:provider/provider.dart';
+import 'Market/cart_provider.dart';
 import 'splash_screen/splash_screen.dart';
 import 'provider/authprovider.dart';
 import 'apps/apps.dart';
+
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +22,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => KycProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()), // ← here
       ],
       child: const MyApp(),
     ),
@@ -60,8 +64,6 @@ class _MyAppState extends State<MyApp> {
           debugShowCheckedModeBanner: false,
           title: 'GlobalPay',
           themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
-
-          // 🌞 Light theme
           theme: ThemeData(
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
@@ -70,8 +72,6 @@ class _MyAppState extends State<MyApp> {
               secondary: Colors.deepOrange,
             ),
           ),
-
-          // 🌙 Dark theme
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             scaffoldBackgroundColor: const Color(0xFF000000),
@@ -80,8 +80,7 @@ class _MyAppState extends State<MyApp> {
               secondary: Colors.deepOrange,
             ),
           ),
-
-          // 🏁 Start screen (SAFE)
+          // ← NO builder here
           home: auth.isCheckingAuth
               ? const Scaffold(body: Center(child: CircularProgressIndicator()))
               : auth.isLoggedIn
