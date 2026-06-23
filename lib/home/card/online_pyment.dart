@@ -67,13 +67,16 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
       ),
       builder: (context) {
         return Padding(
-          padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: StatefulBuilder(
             builder: (context, setModalState) {
               return Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -88,12 +91,15 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                     const SizedBox(height: 20),
                     const Text(
                       "Enter 4-Digit PIN",
-                      style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 25),
                     GestureDetector(
-                      onTap: () => FocusScope.of(context).requestFocus(focusNode),
+                      onTap: () =>
+                          FocusScope.of(context).requestFocus(focusNode),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: List.generate(4, (index) {
@@ -180,10 +186,7 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text("Confirm Details"),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text("Confirm Details"), elevation: 0),
       body: Stack(
         children: [
           Padding(
@@ -194,15 +197,20 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                 Card(
                   color: theme.cardColor,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text("Personal Information",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          "Personal Information",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         SizedBox(height: 8),
                         _InfoRow(title: "First Name", value: "Gold"),
                         _InfoRow(title: "Middle Name", value: "Chile"),
@@ -217,7 +225,8 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                 Card(
                   color: theme.cardColor,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -225,12 +234,18 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text("Coupon",
-                                style: TextStyle(
-                                    fontSize: 15, fontWeight: FontWeight.w500)),
+                            const Text(
+                              "Coupon",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: _isCouponValid
                                     ? Colors.deepOrange.withOpacity(0.1)
@@ -253,8 +268,9 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                         if (_isCouponValid)
                           const _InfoRow(title: "Discount", value: "-₦500.00"),
                         _InfoRow(
-                            title: "Card Fee",
-                            value: "₦${_isCouponValid ? 1000 : 1500}.00"),
+                          title: "Card Fee",
+                          value: "₦${_isCouponValid ? 1000 : 1500}.00",
+                        ),
                       ],
                     ),
                   ),
@@ -275,11 +291,11 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                           style: theme.textTheme.bodyMedium,
                           children: const [
                             TextSpan(
-                              text:
-                              "GlobalPay Debit Card Terms & Conditions",
+                              text: "Glonest Debit Card Terms & Conditions",
                               style: TextStyle(
-                                  color: Colors.deepOrange,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.deepOrange,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -292,10 +308,12 @@ class _OnlinePaymentPageState extends State<OnlinePaymentPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      _agreed ? Colors.deepOrange : Colors.grey,
+                      backgroundColor: _agreed
+                          ? Colors.deepOrange
+                          : Colors.grey,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: _agreed ? _showPinModal : null,
@@ -342,9 +360,12 @@ class _InfoRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: theme.textTheme.bodySmall),
-          Text(value,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -365,13 +386,17 @@ class PaymentSuccessPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_rounded,
-                color: Colors.greenAccent.shade400, size: 100),
+            Icon(
+              Icons.check_circle_rounded,
+              color: Colors.greenAccent.shade400,
+              size: 100,
+            ),
             const SizedBox(height: 20),
             Text(
               "Payment Successful!",
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
             const Text(
@@ -382,14 +407,24 @@ class PaymentSuccessPage extends StatelessWidget {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
-                padding:
-                const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 10,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () => Navigator.pop(context),
-              child: const Text("Done",style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),),
-            )
+              child: const Text(
+                "Done",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
         ),
       ),

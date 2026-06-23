@@ -9,11 +9,13 @@ class AllAsset extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final backgroundColor = isDark? theme.scaffoldBackgroundColor : Colors.grey[100];
+    final backgroundColor = isDark
+        ? theme.scaffoldBackgroundColor
+        : Colors.grey[100];
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
     final subTextColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
-    final accentColor = isDark? Colors.deepOrange : Colors.deepOrange.shade500;
+    final accentColor = isDark ? Colors.deepOrange : Colors.deepOrange.shade500;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -55,7 +57,7 @@ class AllAsset extends StatelessWidget {
                 ],
               ),
             ),
-           // const SizedBox(height: 16),
+            // const SizedBox(height: 16),
 
             // Total Assets Card
             Container(
@@ -79,7 +81,7 @@ class AllAsset extends StatelessWidget {
                           color: textColor,
                         ),
                       ),
-                      Icon(IconsaxPlusLinear.eye, size: 20, color: textColor,)
+                      Icon(IconsaxPlusLinear.eye, size: 20, color: textColor),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -117,9 +119,7 @@ class AllAsset extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Total Balance Section
-            _sectionCard(context, 'Balance', {
-              'Balance': '₦0.00',
-            }),
+            _sectionCard(context, 'Balance', {'Balance': '₦0.00'}),
             const SizedBox(height: 16),
 
             // Savings Section
@@ -128,31 +128,6 @@ class AllAsset extends StatelessWidget {
               'SafeBox': '₦0.00',
               'Spend & Save': '₦0.00',
             }),
-            const SizedBox(height: 16),
-
-            // GlobalPoints Section
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('GlobalPoints', style: TextStyle(color: textColor)),
-                  Text('5', style: TextStyle(color: textColor)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Text(
-                'Your 0 GlobalPoints will expire on 2025/09/30',
-                style: TextStyle(color: accentColor, fontSize: 12),
-              ),
-            ),
             const SizedBox(height: 16),
 
             // Insurance Section
@@ -176,7 +151,11 @@ class AllAsset extends StatelessWidget {
     );
   }
 
-  Widget _sectionCard(BuildContext context, String title, Map<String, String> items) {
+  Widget _sectionCard(
+    BuildContext context,
+    String title,
+    Map<String, String> items,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -194,19 +173,23 @@ class AllAsset extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textColor),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
           ),
           const SizedBox(height: 12),
           ...items.entries.map(
-                (e) => Padding(
+            (e) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: Colors.deepOrange.shade50.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(10)
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                
+
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

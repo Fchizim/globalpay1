@@ -111,17 +111,18 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
-                      Spacer(),
+                      //Spacer(),
                       Container(
                         width: s(context, 50),
                         height: s(context, 50),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          // image: DecorationImage(
-                          //   image: AssetImage(
-                          //       "assets/images/png/friendlyroboticsalesmanager.jpeg"),
-                          //   fit: BoxFit.cover,
-                          // ),
+                          image: DecorationImage(
+                            image: AssetImage(
+                              "assets/images/png/friendlyroboticsalesmanager.jpeg",
+                            ),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ],

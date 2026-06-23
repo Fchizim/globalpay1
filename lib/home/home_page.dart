@@ -168,10 +168,10 @@ class _HomePageState extends State<HomePage> {
                       gradient: LinearGradient(
                         colors: isDark
                             ? [
-                          Colors.deepOrange.shade500,
-                          Colors.white12,
-                          Colors.deepOrange.shade400,
-                        ]
+                                Colors.deepOrange.shade500,
+                                Colors.white12,
+                                Colors.deepOrange.shade400,
+                              ]
                             : [Colors.deepOrange.shade200, Colors.white],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -183,24 +183,31 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(IconsaxPlusBold.shield_tick,
-                                color: Colors.green.shade600, size: 20),
+                            Icon(
+                              IconsaxPlusBold.shield_tick,
+                              color: Colors.green.shade600,
+                              size: 20,
+                            ),
                             Text(
                               ' Available Balance ',
                               style: TextStyle(
                                 fontWeight: FontWeight.w500,
-                                fontSize:   22,
+                                fontSize: 22,
                                 letterSpacing: -1,
                                 color: textColor,
                               ),
                             ),
-                            Icon(IconsaxPlusLinear.eye,
-                                size: 20, color: hintColor),
+                            Icon(
+                              IconsaxPlusLinear.eye,
+                              size: 20,
+                              color: hintColor,
+                            ),
                             if (canToggle) ...[
                               const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: () => setState(
-                                        () => _showFullFormat = !_showFullFormat),
+                                  () => _showFullFormat = !_showFullFormat,
+                                ),
                                 child: Icon(
                                   _showFullFormat
                                       ? Icons.toggle_on
@@ -223,15 +230,17 @@ class _HomePageState extends State<HomePage> {
                               Text(
                                 displayedBalance,
                                 style: TextStyle(
-                                  fontSize:     37,
+                                  fontSize: 37,
                                   letterSpacing: -2,
-                                  fontWeight:   FontWeight.w500,
-                                  color:        textColor,
+                                  fontWeight: FontWeight.w500,
+                                  color: textColor,
                                 ),
                               ),
                               const SizedBox(width: 5),
-                              Icon(IconsaxPlusLinear.add_circle,
-                                  color: textColor),
+                              Icon(
+                                IconsaxPlusLinear.add_circle,
+                                color: textColor,
+                              ),
                             ],
                           ),
                         ),
@@ -257,50 +266,70 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       InkWell(
-                        onTap: () => _navigateWithLoader(SendMoney(
-                          balance: balance,
-                          image:   'assets/images/png/profile.png',
-                          name:    'Recipient Name',
-                          account: '1234567890',
-                          bank:    'Bank Name',
-                          onTransaction: (double amount) =>
-                              setState(() => UserBalance.instance.balance -= amount),
-                        )),
-                        child: _buildCard(context,
-                            icon: IconsaxPlusBold.bank,
-                            label: "To Bank",
-                            cardColor: cardColor,
-                            textColor: textColor),
+                        onTap: () => _navigateWithLoader(
+                          SendMoney(
+                            balance: balance,
+                            image: 'assets/images/png/profile.png',
+                            name: 'Recipient Name',
+                            account: '1234567890',
+                            bank: 'Bank Name',
+                            onTransaction: (double amount) => setState(
+                              () => UserBalance.instance.balance -= amount,
+                            ),
+                          ),
+                        ),
+                        child: _buildCard(
+                          context,
+                          icon: IconsaxPlusBold.bank,
+                          label: "To Bank",
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
                       ),
                       InkWell(
-                        onTap: () => _navigateWithLoader(UserPage(
-                          balance: balance,
-                          onTransaction: (double amount) =>
-                              setState(() => UserBalance.instance.balance -= amount),
-                        )),
-                        child: _buildCard(context,
-                            icon: Icons.diversity_1,
-                            label: "To User",
-                            cardColor: cardColor,
-                            textColor: textColor),
+                        onTap: () => _navigateWithLoader(
+                          UserPage(
+                            balance: balance,
+                            onTransaction: (double amount) => setState(
+                              () => UserBalance.instance.balance -= amount,
+                            ),
+                          ),
+                        ),
+                        child: _buildCard(
+                          context,
+                          icon: Icons.diversity_1,
+                          label: "To User",
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
                       ),
                       InkWell(
-                        onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => MoneyDropPage())),
-                        child: _buildCard(context,
-                            icon: IconsaxPlusBold.coin_1,
-                            label: "G-Drop",
-                            cardColor: cardColor,
-                            textColor: textColor),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => MoneyDropPage()),
+                        ),
+                        child: _buildCard(
+                          context,
+                          icon: IconsaxPlusBold.coin_1,
+                          label: "G-Drop",
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
                       ),
                       InkWell(
-                        onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => GTagPaymentPage(balance: balance))),
-                        child: _buildCard(context,
-                            icon: IconsaxPlusBold.tag_2,
-                            label: "G-Tag",
-                            cardColor: cardColor,
-                            textColor: textColor),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GTagPaymentPage(balance: balance),
+                          ),
+                        ),
+                        child: _buildCard(
+                          context,
+                          icon: IconsaxPlusBold.tag_2,
+                          label: "G-Tag",
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
                       ),
                     ],
                   ),
@@ -341,8 +370,8 @@ class _HomePageState extends State<HomePage> {
                         count: 1,
                         effect: WormEffect(
                           dotHeight: 7,
-                          dotWidth:  20,
-                          dotColor:  hintColor,
+                          dotWidth: 20,
+                          dotColor: hintColor,
                           activeDotColor: Colors.deepOrange,
                         ),
                       ),
@@ -358,7 +387,7 @@ class _HomePageState extends State<HomePage> {
                 cardColor: cardColor,
                 textColor: textColor,
                 hintColor: hintColor,
-                isDark:    isDark,
+                isDark: isDark,
               ),
 
               const SizedBox(height: 70),
@@ -372,29 +401,39 @@ class _HomePageState extends State<HomePage> {
   // ── Helpers ───────────────────────────────────────────────
 
   Widget _buildCard(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required Color cardColor,
-        required Color textColor,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color cardColor,
+    required Color textColor,
+  }) {
     return Container(
       height: 100,
       decoration: BoxDecoration(
-          color: cardColor, borderRadius: BorderRadius.circular(20)),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            height: 49, width: 49,
+            height: 49,
+            width: 49,
             decoration: BoxDecoration(
-                color: Colors.deepOrange.shade50, shape: BoxShape.circle),
+              color: Colors.deepOrange.shade50,
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: Colors.deepOrange, size: 25),
           ),
           const SizedBox(height: 10),
-          Text(label,
-              style: TextStyle(
-                  color: textColor, fontWeight: FontWeight.w500, fontSize: 14)),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );
@@ -406,27 +445,55 @@ class _HomePageState extends State<HomePage> {
       children: [
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => AirtimeScreen())),
-          child: _buildSmallCard(LucideIcons.tabletSmartphone400, "Airtime",
-              Colors.deepOrange, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => AirtimeScreen()),
+          ),
+          child: _buildSmallCard(
+            IconsaxPlusBold.call,
+            "Airtime",
+            Colors.deepOrange,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => DataScreen())),
-          child: _buildSmallCard(IconsaxPlusBold.radar_2, "Data",
-              Colors.deepPurple, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => DataScreen()),
+          ),
+          child: _buildSmallCard(
+            IconsaxPlusBold.radar_2,
+            "Data",
+            Colors.deepPurple,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => ElectricityScreen())),
-          child: _buildSmallCard(LucideIcons.lightbulb, "Electricity",
-              Colors.blueAccent, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => ElectricityScreen()),
+          ),
+          child: _buildSmallCard(
+            LucideIcons.lightbulb,
+            "Electricity",
+            Colors.blueAccent,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => GiftCardPage())),
-          child: _buildSmallCard(IconsaxPlusBold.ship, "Gift Card",
-              Colors.blue.shade800, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => GiftCardPage()),
+          ),
+          child: _buildSmallCard(
+            IconsaxPlusBold.ship,
+            "Gift Card",
+            Colors.blue.shade800,
+            cardColor,
+            textColor,
+          ),
         ),
       ],
     );
@@ -438,50 +505,86 @@ class _HomePageState extends State<HomePage> {
       children: [
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => InviteFriends())),
-          child: _buildSmallCard(LucideIcons.gem, "Earn",
-              Colors.deepOrange, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => InviteFriends()),
+          ),
+          child: _buildSmallCard(
+            LucideIcons.gem,
+            "Earn",
+            Colors.deepOrange,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => InviteFriends())),
-          child: _buildSmallCard(LucideIcons.tv, "TV",
-              Colors.deepPurple, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => InviteFriends()),
+          ),
+          child: _buildSmallCard(
+            LucideIcons.tv,
+            "TV",
+            Colors.deepPurple,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => CreateTargetPage())),
-          child: _buildSmallCard(LucideIcons.target, "T-save",
-              Colors.blueAccent, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => CreateTargetPage()),
+          ),
+          child: _buildSmallCard(
+            Icons.savings_outlined,
+            "T-save",
+            Colors.blueAccent,
+            cardColor,
+            textColor,
+          ),
         ),
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => BetScreen())),
-          child: _buildSmallCard(LucideIcons.handCoins, "Betting",
-              Colors.blue.shade800, cardColor, textColor),
+            context,
+            MaterialPageRoute(builder: (_) => BetScreen()),
+          ),
+          child: _buildSmallCard(
+            LucideIcons.handCoins,
+            "Betting",
+            Colors.blue.shade800,
+            cardColor,
+            textColor,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildSmallCard(
-      IconData icon,
-      String label,
-      Color color,
-      Color cardColor,
-      Color textColor,
-      ) {
+    IconData icon,
+    String label,
+    Color color,
+    Color cardColor,
+    Color textColor,
+  ) {
     return Container(
-      height: 65, width: 75,
+      height: 65,
+      width: 75,
       decoration: BoxDecoration(
-          color: cardColor, borderRadius: BorderRadius.circular(12)),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: color),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w500, color: textColor)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
+          ),
         ],
       ),
     );
@@ -525,7 +628,10 @@ class _LoaderWrapperState extends State<LoaderWrapper> {
                 child: Container(
                   color: Colors.white.withOpacity(0.1),
                   child: const Center(
-                    child: SpinKitFadingCube(color: Colors.deepOrange, size: 60),
+                    child: SpinKitFadingCube(
+                      color: Colors.deepOrange,
+                      size: 60,
+                    ),
                   ),
                 ),
               ),

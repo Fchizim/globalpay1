@@ -64,16 +64,13 @@ class PaymentSuccessPage extends StatelessWidget {
 
                   const Text(
                     "Payment Successful",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                   ),
 
                   const SizedBox(height: 10),
 
                   Text(
-                    "Your GlobalPay card will be delivered\nwithin 3 weeks.",
+                    "Your Glonest card will be delivered\nwithin 3 weeks.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,

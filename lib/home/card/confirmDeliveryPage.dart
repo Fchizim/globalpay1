@@ -131,8 +131,7 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
   }
 
   void _showPinModal(BuildContext context) {
-    final pinControllers =
-    List.generate(4, (_) => TextEditingController());
+    final pinControllers = List.generate(4, (_) => TextEditingController());
     final focusNodes = List.generate(4, (_) => FocusNode());
     bool processing = false;
 
@@ -149,8 +148,7 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             void checkPin() async {
-              final pin =
-              pinControllers.map((c) => c.text).join();
+              final pin = pinControllers.map((c) => c.text).join();
               if (pin.length == 4) {
                 setModalState(() => processing = true);
                 await Future.delayed(const Duration(seconds: 1));
@@ -178,8 +176,7 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
                 children: [
                   const Text(
                     "Enter 4-digit PIN",
-                    style:
-                    TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 20),
 
@@ -250,8 +247,7 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
           Text(title, style: const TextStyle(fontSize: 15)),
           Text(
             value,
-            style:
-            const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -283,13 +279,10 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style:
-              const TextStyle(fontSize: 14, color: Colors.grey)),
+          Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
           Text(
             value,
-            style: const TextStyle(
-                fontWeight: FontWeight.w700, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
           ),
         ],
       ),
@@ -347,10 +340,18 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
                       _infoRow(LucideIcons.mapPin, 'State', widget.state),
                       _infoRow(LucideIcons.building, 'LGA', widget.lga),
                       _infoRow(LucideIcons.map, 'Address', widget.address),
-                      _infoRow(LucideIcons.landmark, 'Landmark', widget.landmark),
+                      _infoRow(
+                        LucideIcons.landmark,
+                        'Landmark',
+                        widget.landmark,
+                      ),
                       _infoRow(LucideIcons.smartphone, 'Phone', widget.phone),
                       if (widget.additionalPhone.isNotEmpty)
-                        _infoRow(LucideIcons.phone, 'Additional', widget.additionalPhone),
+                        _infoRow(
+                          LucideIcons.phone,
+                          'Additional',
+                          widget.additionalPhone,
+                        ),
                     ],
                   ),
                   Positioned(
@@ -361,7 +362,8 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => DeliveryDetailsPage(previousData: data),
+                            builder: (_) =>
+                                DeliveryDetailsPage(previousData: data),
                           ),
                         );
                       },
@@ -410,12 +412,17 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.timer_outlined,
-                              size: 18, color: Colors.deepOrange),
+                          const Icon(
+                            Icons.timer_outlined,
+                            size: 18,
+                            color: Colors.deepOrange,
+                          ),
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.deepOrange,
                               borderRadius: BorderRadius.circular(5),
@@ -459,7 +466,7 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
                 ),
                 const Expanded(
                   child: Text(
-                    'I have read and agreed to GlobalPay Debit Card Terms & Conditions',
+                    'I have read and agreed to Glonest Debit Card Terms & Conditions',
                     style: TextStyle(fontSize: 13, height: 1.4),
                   ),
                 ),
@@ -472,17 +479,13 @@ class _ConfirmDeliveryPageState extends State<ConfirmDeliveryPage> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                  agreed ? Colors.deepOrange : Colors.grey,
+                  backgroundColor: agreed ? Colors.deepOrange : Colors.grey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
-                onPressed: agreed
-                    ? () => _showPaymentSheet(context)
-                    : null,
+                onPressed: agreed ? () => _showPaymentSheet(context) : null,
                 child: const Text(
                   'Pay ₦1,998.00',
                   style: TextStyle(

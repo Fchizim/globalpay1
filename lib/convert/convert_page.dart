@@ -4,7 +4,6 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:globalpay/home/all_asset.dart';
 import 'package:globalpay/home/finance/spend_save.dart';
 
-import '../home/finance/budgeting_page.dart';
 import '../home/finance/create_target_page.dart';
 import '../home/finance/target_save.dart';
 
@@ -27,11 +26,14 @@ class _FinancePageState extends State<FinancePage>
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide =
-        Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(
-            CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     WidgetsBinding.instance.addPostFrameCallback((_) => _controller.forward());
   }
 
@@ -63,9 +65,10 @@ class _FinancePageState extends State<FinancePage>
         title: Text(
           "Finance",
           style: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: s(24, context),
-              fontWeight: FontWeight.w600),
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: s(24, context),
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
       ),
@@ -80,9 +83,15 @@ class _FinancePageState extends State<FinancePage>
                   padding: EdgeInsets.all(s(16, context)),
                   child: _balanceCard(isDark, context),
                 ),
+                // ── Savee Banner ──────────────────────────────────────────
                 Padding(
-                  padding:
-                  EdgeInsets.symmetric(horizontal: s(16, context)),
+                  padding: EdgeInsets.symmetric(horizontal: s(16, context)),
+                  child: _saveeBanner(isDark, context),
+                ),
+                SizedBox(height: s(16, context)),
+                // ── Finance cards ─────────────────────────────────────────
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: s(16, context)),
                   child: Wrap(
                     spacing: s(16, context),
                     runSpacing: s(16, context),
@@ -90,56 +99,38 @@ class _FinancePageState extends State<FinancePage>
                       InkWell(
                         onTap: () {
                           Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => CreateTargetPage()));
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreateTargetPage(),
+                            ),
+                          );
                         },
-                        child: _financeCard(width,
-                            icon: Icons.flag,
-                            title: "Target Save",
-                            subtitle: "Set savings goals",
-                            isDark: isDark,
-                            context: context),
-                      ),
-                      _financeCard(width,
-                          icon: Icons.savings,
-                          title: "Safebox",
-                          subtitle: "Hidden stash",
+                        child: _financeCard(
+                          width,
+                          icon: Icons.savings_outlined,
+                          title: "Target Save",
+                          subtitle: "Set savings goals",
                           isDark: isDark,
-                          context: context),
-                      _financeCard(width,
-                          icon: Icons.request_quote,
-                          title: "Loan",
-                          subtitle: "Quick cash",
-                          isDark: isDark,
-                          context: context),
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => SpendAndSavePage()));
-                        },
-                        child: _financeCard(width,
-                            icon: IconsaxPlusBold.money_3,
-                            title: "Spend & Save",
-                            subtitle: "Save a percentage everytime you spend",
-                            isDark: isDark,
-                            context: context),
+                          context: context,
+                        ),
                       ),
                       InkWell(
                         onTap: () {
                           Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => BudgetingPage()));
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SpendAndSavePage(),
+                            ),
+                          );
                         },
-                        child: _financeCard(width,
-                            icon: Icons.pie_chart_outline,
-                            title: "Budgeting",
-                            subtitle: "Track expenses",
-                            isDark: isDark,
-                            context: context),
+                        child: _financeCard(
+                          width,
+                          icon: IconsaxPlusBold.money_3,
+                          title: "Spend & Save",
+                          subtitle: "Save a percentage everytime you spend",
+                          isDark: isDark,
+                          context: context,
+                        ),
                       ),
                     ],
                   ),
@@ -153,10 +144,148 @@ class _FinancePageState extends State<FinancePage>
     );
   }
 
+  // ── Savee Banner ────────────────────────────────────────────────────────────
+
+  Widget _saveeBanner(bool isDark, BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(s(18, context)),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TargetSavingsPage()),
+      ),
+      child: Container(
+        width: double.infinity,
+        height: s(130, context),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(s(18, context)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.deepOrange.withOpacity(isDark ? 0.18 : 0.13),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(s(18, context)),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Your banner image
+              Image.asset(
+                'assets/images/png/savee.png',
+                fit: BoxFit.cover,
+                // Fallback if image isn't registered yet
+                errorBuilder: (ctx, err, stack) => Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.deepOrange.shade700,
+                        Colors.deepOrange.shade400,
+                        Colors.orange.shade300,
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                  padding: EdgeInsets.all(s(20, context)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '🎯  Start Saving Today',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: s(17, context),
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(height: s(6, context)),
+                      Text(
+                        'Set a target and watch your\nmoney grow automatically.',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: s(12, context),
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Left scrim so any text over the image stays readable
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: s(200, context),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withOpacity(0.2),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // "Get started" chip — bottom right
+              Positioned(
+                bottom: s(14, context),
+                right: s(14, context),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: s(12, context),
+                    vertical: s(6, context),
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Get started',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: s(11, context),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(width: s(4, context)),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: s(12, context),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Balance card ────────────────────────────────────────────────────────────
+
   Widget _balanceCard(bool isDark, BuildContext context) {
     return InkWell(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => AllAsset()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AllAsset()),
+        );
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -166,9 +295,10 @@ class _FinancePageState extends State<FinancePage>
           borderRadius: BorderRadius.circular(s(16, context)),
           boxShadow: [
             BoxShadow(
-                color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4))
+              color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
@@ -178,11 +308,12 @@ class _FinancePageState extends State<FinancePage>
               height: s(5, context),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.purple.shade400, Colors.deepOrange.shade300],
+                  colors: [Colors.deepOrange.shade400, Colors.pink.shade300],
                 ),
                 borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(s(16, context)),
-                    topRight: Radius.circular(s(16, context))),
+                  topLeft: Radius.circular(s(16, context)),
+                  topRight: Radius.circular(s(16, context)),
+                ),
               ),
             ),
             Stack(
@@ -199,24 +330,25 @@ class _FinancePageState extends State<FinancePage>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("Total Assets",
-                                  style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.grey[700],
-                                      fontSize: s(14, context),
-                                      fontWeight: FontWeight.w500)),
+                              Text(
+                                "Total Assets",
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.grey[700],
+                                  fontSize: s(14, context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                               SizedBox(height: s(5, context)),
                               Text(
-                                  _hideBalances
-                                      ? "*****"
-                                      : "₦0.00",
-                                  style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontSize: s(28, context),
-                                      fontWeight: FontWeight.bold)),
+                                _hideBalances ? "*****" : "₦0.00",
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black87,
+                                  fontSize: s(28, context),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           Row(
@@ -236,18 +368,21 @@ class _FinancePageState extends State<FinancePage>
                                 }),
                               ),
                               IconButton(
-                                  icon: Icon(
-                                      _showDetails
-                                          ? Icons.keyboard_arrow_up
-                                          : Icons.keyboard_arrow_down,
-                                      size: s(28, context),
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.grey[700]),
-                                  onPressed: () =>
-                                      setState(() => _showDetails = !_showDetails))
+                                icon: Icon(
+                                  _showDetails
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
+                                  size: s(28, context),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.grey[700],
+                                ),
+                                onPressed: () => setState(
+                                  () => _showDetails = !_showDetails,
+                                ),
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                       SizedBox(height: s(10, context)),
@@ -256,20 +391,44 @@ class _FinancePageState extends State<FinancePage>
                         secondChild: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            _subBalance(
+                              "Glonest Balance",
+                              "₦0.00",
+                              isDark,
+                              context,
+                            ),
+
                             InkWell(
                               onTap: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context)=> SpendAndSavePage()));
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SpendAndSavePage(),
+                                  ),
+                                );
                               },
-                              child: _subBalance("Spend & Save", "₦0.00",
-                                  isDark, context),
+                              child: _subBalance(
+                                "Spend & Save",
+                                "₦0.00",
+                                isDark,
+                                context,
+                              ),
                             ),
-                            _subBalance("Safebox Balance", "₦0.00", isDark, context),
                             InkWell(
-                              onTap: (){
-                                Navigator.push(context, MaterialPageRoute(builder: (context)=> TargetSavingsPage()));
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TargetSavingsPage(),
+                                  ),
+                                );
                               },
-                              child: _subBalance("Target Save Balance", "₦0.00",
-                                  isDark, context),
+                              child: _subBalance(
+                                "Target Savings",
+                                "₦0.00",
+                                isDark,
+                                context,
+                              ),
                             ),
                             SizedBox(height: s(10, context)),
                           ],
@@ -279,12 +438,6 @@ class _FinancePageState extends State<FinancePage>
                             : CrossFadeState.showFirst,
                         duration: const Duration(milliseconds: 300),
                       ),
-                      SizedBox(height: s(15, context)),
-                      _actionButton(
-                          title: "Set a New Saving Goal",
-                          icon: Icons.add_task,
-                          onTap: () {},
-                          context: context),
                     ],
                   ),
                 ),
@@ -296,38 +449,52 @@ class _FinancePageState extends State<FinancePage>
     );
   }
 
-  Widget _subBalance(String label, String amount, bool isDark, BuildContext context) {
+  Widget _subBalance(
+    String label,
+    String amount,
+    bool isDark,
+    BuildContext context,
+  ) {
     return Padding(
       padding: EdgeInsets.only(bottom: s(8, context)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.grey.shade700,
-                  fontSize: s(14, context))),
-          Text(_hideBalances ? "*****" : amount,
-              style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: s(15, context),
-                  fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.white70 : Colors.grey.shade700,
+              fontSize: s(14, context),
+            ),
+          ),
+          Text(
+            _hideBalances ? "*****" : amount,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: s(15, context),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _actionButton(
-      {required String title,
-        required IconData icon,
-        required VoidCallback onTap,
-        required BuildContext context}) {
+  Widget _actionButton({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+    required BuildContext context,
+  }) {
     return InkWell(
       borderRadius: BorderRadius.circular(s(12, context)),
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(
-            vertical: s(14, context), horizontal: s(12, context)),
+          vertical: s(14, context),
+          horizontal: s(12, context),
+        ),
         decoration: BoxDecoration(
           color: Colors.purple,
           borderRadius: BorderRadius.circular(s(12, context)),
@@ -338,12 +505,15 @@ class _FinancePageState extends State<FinancePage>
             Icon(icon, color: Colors.white, size: s(18, context)),
             SizedBox(width: s(8, context)),
             Flexible(
-              child: Text(title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: s(13, context),
-                      fontWeight: FontWeight.w600)),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: s(13, context),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
@@ -351,12 +521,14 @@ class _FinancePageState extends State<FinancePage>
     );
   }
 
-  Widget _financeCard(double width,
-      {required IconData icon,
-        required String title,
-        required String subtitle,
-        required bool isDark,
-        required BuildContext context}) {
+  Widget _financeCard(
+    double width, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isDark,
+    required BuildContext context,
+  }) {
     final cardWidth = (width - s(48, context)) / 2;
     return Container(
       width: cardWidth,
@@ -369,7 +541,7 @@ class _FinancePageState extends State<FinancePage>
             color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       padding: EdgeInsets.all(s(16, context)),
@@ -382,28 +554,37 @@ class _FinancePageState extends State<FinancePage>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                  colors: [Colors.purple.shade400, Colors.deepOrange.shade400],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight),
+                colors: [Colors.purple.shade400, Colors.deepOrange.shade400],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
             child: Icon(icon, color: Colors.white, size: s(20, context)),
           ),
           const Spacer(),
-          Text(title,
-              style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: s(16, context),
-                  fontWeight: FontWeight.bold)),
-          Text(subtitle,
-              style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.grey.shade600,
-                  fontSize: s(12, context),
-                  fontWeight: FontWeight.w400)),
+          Text(
+            title,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: s(16, context),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: isDark ? Colors.white70 : Colors.grey.shade600,
+              fontSize: s(12, context),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
         ],
       ),
     );
   }
 }
+
+// ─── Patch painter ──────────────────────────────────────────────────────────────
 
 class _PatchPainter extends CustomPainter {
   final Random _rand = Random();

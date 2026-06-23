@@ -66,17 +66,23 @@ class CardDetailsPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         alignment: Alignment.center,
-                        child: const Text("•••",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, color: Colors.black)),
+                        child: const Text(
+                          "•••",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
                       ),
                       Row(
                         children: [
-                          Icon(Icons.credit_card,
-                              color: Colors.white.withOpacity(0.9)),
+                          Icon(
+                            Icons.credit_card,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
                           const SizedBox(width: 6),
                           const Text(
-                            "GlobalPay",
+                            "Glonest",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -94,10 +100,11 @@ class CardDetailsPage extends StatelessWidget {
                   Text(
                     cardNumber,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 22,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -105,12 +112,20 @@ class CardDetailsPage extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(holderName,
-                          style:
-                          const TextStyle(color: Colors.white, fontSize: 14)),
-                      Text(expiry,
-                          style:
-                          const TextStyle(color: Colors.white, fontSize: 14)),
+                      Text(
+                        holderName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        expiry,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -120,8 +135,10 @@ class CardDetailsPage extends StatelessWidget {
                     alignment: Alignment.bottomRight,
                     child: network.toLowerCase() == "visa"
                         ? Image.asset("assets/images/png/visa.jpeg", height: 40)
-                        : Image.asset("assets/images/png/Mastercard.jpeg",
-                        height: 40),
+                        : Image.asset(
+                            "assets/images/png/Mastercard.jpeg",
+                            height: 40,
+                          ),
                   ),
                 ],
               ),
@@ -151,7 +168,10 @@ class CardDetailsPage extends StatelessWidget {
                       title: "Shopping",
                       radius: 50,
                       titleStyle: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     PieChartSectionData(
                       value: 30,
@@ -159,7 +179,10 @@ class CardDetailsPage extends StatelessWidget {
                       title: "Bills",
                       radius: 50,
                       titleStyle: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     PieChartSectionData(
                       value: 25,
@@ -167,7 +190,10 @@ class CardDetailsPage extends StatelessWidget {
                       title: "Others",
                       radius: 50,
                       titleStyle: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                   centerSpaceRadius: 40,
@@ -181,8 +207,9 @@ class CardDetailsPage extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 "Recent Transactions",
-                style: theme.textTheme.titleMedium!
-                    .copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium!.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -223,23 +250,34 @@ class CardDetailsPage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(title,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(value,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _transactionTile(
-      {required String title,
-        required String date,
-        required String amount,
-        required Color color}) {
+  Widget _transactionTile({
+    required String title,
+    required String date,
+    required String amount,
+    required Color color,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(16),
@@ -260,16 +298,28 @@ class CardDetailsPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.black87)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(date, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                date,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ],
           ),
-          Text(amount,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: color, fontSize: 14)),
+          Text(
+            amount,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );

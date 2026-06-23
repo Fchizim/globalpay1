@@ -46,9 +46,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data = await rootBundle.load(
-      'assets/icons/png/globapay.jpg',
-    );
+    final data = await rootBundle.load('assets/icons/png/globapay.jpg');
     final bytes = data.buffer.asUint8List();
     final codec = await ui.instantiateImageCodec(bytes);
     final frame = await codec.getNextFrame();
@@ -92,8 +90,10 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
       if (baseDir == null) throw Exception("Storage not available");
 
       // Convert: /Android/data/<pkg>/files → /Pictures/GlobalPay
-      final String picturesPath = baseDir.path
-          .replaceFirst(RegExp(r'Android/data/.+/files'), 'Pictures/GlobalPay');
+      final String picturesPath = baseDir.path.replaceFirst(
+        RegExp(r'Android/data/.+/files'),
+        'Pictures/GlobalPay',
+      );
 
       final Directory picturesDir = Directory(picturesPath);
       if (!picturesDir.existsSync()) {
@@ -107,8 +107,9 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
       await file.writeAsBytes(image);
 
       // Tell Android Gallery about the new image
-      const MethodChannel('media_scanner')
-          .invokeMethod('scanFile', {'path': filePath});
+      const MethodChannel(
+        'media_scanner',
+      ).invokeMethod('scanFile', {'path': filePath});
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,9 +118,9 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Error saving receipt: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("❌ Error saving receipt: $e")));
       }
     }
   }
@@ -287,8 +288,8 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                       const SizedBox(height: 8),
                       Text(
                         "Get cashbacks in Airtime & Data top-up. Unlimited free transfers "
-                            "every Tuesday. Up to ₦150k credit lines & 16 days interest free."
-                            " Enjoy all at Glonest!",
+                        "every Tuesday. Up to ₦150k credit lines & 16 days interest free."
+                        " Enjoy all at Glonest!",
                         style: TextStyle(
                           color: textSecondary,
                           fontSize: 13,
@@ -325,7 +326,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
           const SizedBox(width: 8),
           Expanded(
             flex: 5,
-            child:Text(
+            child: Text(
               value,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
@@ -342,10 +343,10 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
   }
 
   static Widget _transactionIdRow(
-      BuildContext context,
-      String id,
-      bool isDark,
-      ) {
+    BuildContext context,
+    String id,
+    bool isDark,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -411,7 +412,7 @@ class WatermarkPainter extends CustomPainter {
   final List<_WatermarkItem> _items;
 
   WatermarkPainter({required this.isDark, required this.logoImage})
-      : _items = _generateItems(logoImage);
+    : _items = _generateItems(logoImage);
 
   static List<_WatermarkItem> _generateItems(ui.Image logoImage) {
     const spacingX = 140.0;
