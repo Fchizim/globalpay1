@@ -6,8 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:globalpay/help_page/help_screen.dart';
 import 'package:globalpay/profile_details/profile_details.dart';
 
+import '../Market/market_page.dart';
 import '../Market/orders_page.dart';
-import '../market/market_page.dart';
 import '../convert/convert_page.dart';
 import '../home/home_page.dart';
 import '../me/me_page.dart';

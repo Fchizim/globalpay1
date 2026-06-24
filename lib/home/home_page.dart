@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:globalpay/home/bet_screen.dart';
 import 'package:globalpay/home/transaction.dart';
+import 'package:globalpay/home/tv.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -519,7 +520,7 @@ class _HomePageState extends State<HomePage> {
         InkWell(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => InviteFriends()),
+            MaterialPageRoute(builder: (_) => TvScreen()),
           ),
           child: _buildSmallCard(
             LucideIcons.tv,

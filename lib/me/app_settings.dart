@@ -92,7 +92,9 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               }),
               _divider(dividerColor),
               _buildTile(Icons.history, "Active session", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveSessionsPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveSessionsPage()
+                )
+                );
               }),
             ],
           ),
@@ -102,20 +104,20 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           _buildContainer(
             containerColor,
             [
-              _buildSwitchTile(Icons.fingerprint, "Use Biometrics for transactions", biometric2,
-                      (val) => setState(() => biometric2 = val), isDark),
+              // _buildSwitchTile(Icons.fingerprint, "Use Biometrics for transactions", biometric2,
+              //         (val) => setState(() => biometric2 = val), isDark),
               _divider(dividerColor),
               _buildTile(IconsaxPlusBold.password_check, "Transaction Pin", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionPinPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePinPage()));
               }),
+              // _divider(dividerColor),
+              // _buildTile(Icons.timelapse, "Limit daily/Weekly transactions", textColor, () {
+              //   Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionLimitPage()));
+              // }),
               _divider(dividerColor),
-              _buildTile(Icons.timelapse, "Limit daily/Weekly transactions", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionLimitPage()));
-              }),
-              _divider(dividerColor),
-              _buildTile(Icons.public, "Enable / Disable\nInternational Transactions", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const InternationalTransactionPage()));
-              }),
+              // _buildTile(Icons.public, "Enable / Disable\nInternational Transactions", textColor, () {
+              //   Navigator.push(context, MaterialPageRoute(builder: (_) => const InternationalTransactionPage()));
+              // }),
             ],
           ),
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/Market/vendor_store_page.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:provider/provider.dart';
 import 'checkout.dart';
@@ -260,58 +261,74 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
                       SizedBox(height: s(20)),
 
-                      // ── Seller card ──────────────────────
-                      Container(
-                        padding: EdgeInsets.all(s(12)),
-                        decoration: BoxDecoration(
-                          color:        cardColor,
-                          borderRadius: BorderRadius.circular(s(15)),
-                          border: Border.all(
-                              color: Colors.grey.withOpacity(0.1)),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius:          s(22),
-                              backgroundColor: Colors.deepOrange,
-                              child: Text(
-                                sellerName[0].toUpperCase(),
-                                style: const TextStyle(
-                                    color:      Colors.white,
-                                    fontWeight: FontWeight.bold),
+
+                      GestureDetector(
+                        onTap: () {
+                          debugPrint('p.vendorId = ${p.vendorId}');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VendorStorePage(
+                                vendorId: p.vendorId ?? '',
+                                vendorName: sellerName,
+                                vendorRating: vendorRating,
+                                vendorLocation: p.vendorLocation,
                               ),
                             ),
-                            SizedBox(width: s(12)),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(sellerName,
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize:   s(15),
-                                          color:      textColor)),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.star_rounded,
-                                          color: Colors.amber, size: s(13)),
-                                      SizedBox(width: s(3)),
-                                      Text(
-                                        vendorRating > 0
-                                            ? vendorRating.toStringAsFixed(1)
-                                            : 'New Seller',
+                          );
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(s(12)),
+                          decoration: BoxDecoration(
+                            color:        cardColor,
+                            borderRadius: BorderRadius.circular(s(15)),
+                            border: Border.all(
+                                color: Colors.grey.withOpacity(0.1)),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius:          s(22),
+                                backgroundColor: Colors.deepOrange,
+                                child: Text(
+                                  sellerName[0].toUpperCase(),
+                                  style: const TextStyle(
+                                      color:      Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              SizedBox(width: s(12)),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(sellerName,
                                         style: TextStyle(
-                                            fontSize: s(12),
-                                            color:    Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                            fontWeight: FontWeight.bold,
+                                            fontSize:   s(15),
+                                            color:      textColor)),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.star_rounded,
+                                            color: Colors.amber, size: s(13)),
+                                        SizedBox(width: s(3)),
+                                        Text(
+                                          vendorRating > 0
+                                              ? vendorRating.toStringAsFixed(1)
+                                              : 'New Seller',
+                                          style: TextStyle(
+                                              fontSize: s(12),
+                                              color:    Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(IconsaxPlusLinear.arrow_right_3,
-                                size: s(18), color: Colors.grey),
-                          ],
+                              Icon(IconsaxPlusLinear.arrow_right_3,
+                                  size: s(18), color: Colors.grey),
+                            ],
+                          ),
                         ),
                       ),
 
