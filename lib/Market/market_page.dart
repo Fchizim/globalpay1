@@ -552,7 +552,9 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
             IconButton(
               icon: Icon(IconsaxPlusLinear.shopping_bag, color: textColor),
               onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => const CartScreen())),
+                  context, MaterialPageRoute(builder: (_) => const CartScreen()
+              )
+              ),
             ),
             Positioned(
               top: 6, right: 6,

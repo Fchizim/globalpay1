@@ -29,6 +29,7 @@ class _VendorStorePageState extends State<VendorStorePage> {
   List<MarketProduct> _products = [];
   bool _isLoading = true;
   String? _error;
+  String? _bio;
 
   // ── Search ───────────────────────────────────────────────
   final TextEditingController _searchController = TextEditingController();
@@ -65,8 +66,10 @@ class _VendorStorePageState extends State<VendorStorePage> {
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         final list = data['products'] as List;
+        final vendor = data['vendor'] as Map<String, dynamic>?;
         setState(() {
           _products  = list.map((e) => MarketProduct.fromJson(e)).toList();
+          _bio       = vendor?['business_bio']?.toString();
           _isLoading = false;
         });
       } else {
@@ -91,15 +94,16 @@ class _VendorStorePageState extends State<VendorStorePage> {
 
     final double topInset = MediaQuery.of(context).padding.top;
     final bool hasLocation = widget.vendorLocation?.isNotEmpty == true;
-
-    // Header height: avatar row + stats strip + search bar
+    final bool hasBio = _bio != null && _bio!.isNotEmpty;
     final double headerContentHeight =
         (hasLocation ? s(82) : s(64))
-            + s(12)   // gap
-            + s(40)   // stats strip
-            + s(16)   // gap
-            + s(44)   // search bar
-            + s(12)   // bottom padding
+            + s(12)
+            + s(40)
+            + s(16)
+            + (hasBio ? s(56) : 0)
+            + (hasBio ? s(12) : 0)
+            + s(44)
+            + s(12)
             + 12;
     final double expandedH = topInset + 56 + headerContentHeight;
 
@@ -231,6 +235,35 @@ class _VendorStorePageState extends State<VendorStorePage> {
                       ),
 
                       SizedBox(height: s(16)),
+                      if (hasBio) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: s(14), vertical: s(10)),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.04)
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(s(12)),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.06)
+                                  : Colors.grey.shade200,
+                            ),
+                          ),
+                          child: Text(
+                            _bio!,
+                            style: TextStyle(
+                              fontSize: s(12),
+                              color: isDark ? Colors.white60 : Colors.grey.shade600,
+                              height: 1.5,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(height: s(12)),
+                      ],
 
                       // ── Search bar ─────────────────────────
                       Container(

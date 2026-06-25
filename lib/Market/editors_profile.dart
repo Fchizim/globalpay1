@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:globalpay/Market/store_settings.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../provider/user_provider.dart';
 import 'add_listings.dart';
+import 'edit_listing_page.dart';
 
 class OwnerPage extends StatefulWidget {
   const OwnerPage({super.key});
@@ -105,7 +107,17 @@ class _OwnerPageState extends State<OwnerPage> {
                 fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              if (_business == null) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StoreSettingsPage(business: _business!),
+                ),
+              ).then((updated) {
+                if (updated == true) _fetchBusinessThenListings();
+              });
+            },
             icon: Icon(IconsaxPlusLinear.setting_2,
                 color: isDark ? Colors.white : Colors.black),
           ),
@@ -152,17 +164,17 @@ class _OwnerPageState extends State<OwnerPage> {
                             size: 30, color: Colors.grey)
                             : null,
                       ),
-                      Positioned(
-                        bottom: 0, right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                              color: Colors.deepOrange,
-                              shape: BoxShape.circle),
-                          child: const Icon(Icons.camera_alt,
-                              color: Colors.white, size: 12),
-                        ),
-                      ),
+                      // Positioned(
+                      //   bottom: 0, right: 0,
+                      //   child: Container(
+                      //     padding: const EdgeInsets.all(4),
+                      //     decoration: const BoxDecoration(
+                      //         color: Colors.deepOrange,
+                      //         shape: BoxShape.circle),
+                      //     child: const Icon(Icons.camera_alt,
+                      //         color: Colors.white, size: 12),
+                      //   ),
+                      // ),
                     ]),
                     const SizedBox(width: 15),
 
@@ -222,6 +234,9 @@ class _OwnerPageState extends State<OwnerPage> {
                       const SizedBox(height: 8),
                       _detailRow(Icons.badge_outlined,
                           'RC: ${_business?['rc_number'] ?? ''}'),
+                      const SizedBox(height: 8),
+                      _detailRow(Icons.badge_outlined,
+                          'Bio: ${_business?['business_bio'] ?? ''}'),
                     ]),
                   ),
                   const SizedBox(height: 20),
@@ -394,6 +409,32 @@ class _OwnerPageState extends State<OwnerPage> {
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
+            // ── Edit pencil badge ──
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditListingPage(
+                        product: item,
+                      ),
+                    ),
+                  );
+                  _loadListings(); // refresh in case it changed
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.deepOrange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                ),
+              ),
+            ),
           ]),
         ),
         Padding(
