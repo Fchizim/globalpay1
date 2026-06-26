@@ -82,7 +82,10 @@ class _TvScreenState extends State<TvScreen> {
 
   CableProvider? get _selectedProvider => providers.isEmpty
       ? null
-      : providers.firstWhere((p) => p.isSelected, orElse: () => providers.first);
+      : providers.firstWhere(
+          (p) => p.isSelected,
+          orElse: () => providers.first,
+        );
 
   // ─────────────────────────────────────────────────────────────────────────
   @override
@@ -110,10 +113,10 @@ class _TvScreenState extends State<TvScreen> {
     try {
       final response = await http
           .post(
-        Uri.parse('https://glopa.org/glo/get_plans.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'fetch': 'CABLE'}),
-      )
+            Uri.parse('https://glopa.org/glo/get_plans.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'fetch': 'CABLE'}),
+          )
           .timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
@@ -143,20 +146,20 @@ class _TvScreenState extends State<TvScreen> {
           final name = group['name'].toString();
           final logo = group['icon'].toString();
 
-          loadedProviders.add(CableProvider(
-            name: name,
-            logo: logo,
-            planId: providerPlanId,
-          ));
+          loadedProviders.add(
+            CableProvider(name: name, logo: logo, planId: providerPlanId),
+          );
 
           final List options = group['options'] ?? [];
           plansMap[providerPlanId] = options
-              .map<CablePlan>((opt) => CablePlan(
-            planId: opt['planID'].toString(),
-            name: opt['package'].toString(),
-            amount: opt['price'].toString(),
-            validity: opt['validation']?.toString() ?? '30 days',
-          ))
+              .map<CablePlan>(
+                (opt) => CablePlan(
+                  planId: opt['planID'].toString(),
+                  name: opt['package'].toString(),
+                  amount: opt['price'].toString(),
+                  validity: opt['validation']?.toString() ?? '30 days',
+                ),
+              )
               .toList();
         }
 
@@ -237,13 +240,13 @@ class _TvScreenState extends State<TvScreen> {
         try {
           final response = await http
               .post(
-            Uri.parse('https://glopa.org/glo/validate_cable.php'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              "plan_id": _selectedProvider!.planId,
-              "number": card,
-            }),
-          )
+                Uri.parse('https://glopa.org/glo/validate_cable.php'),
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode({
+                  "plan_id": _selectedProvider!.planId,
+                  "number": card,
+                }),
+              )
               .timeout(const Duration(seconds: 30));
 
           if (!mounted) return;
@@ -265,21 +268,32 @@ class _TvScreenState extends State<TvScreen> {
           } else {
             setState(() {
               _isCardValid = false;
-              _cardError = (data['message'] ?? 'Invalid smart card number').toString();
+              _cardError = (data['message'] ?? 'Invalid smart card number')
+                  .toString();
             });
             return;
           }
         } on TimeoutException {
           if (attempt == 2) {
-            if (mounted) setState(() => _cardError = 'Validation timed out. Please try again.');
+            if (mounted)
+              setState(
+                () => _cardError = 'Validation timed out. Please try again.',
+              );
           } else {
             await Future.delayed(const Duration(seconds: 2));
           }
         } on FormatException {
-          if (mounted) setState(() => _cardError = 'Unexpected server response. Please try again.');
+          if (mounted)
+            setState(
+              () =>
+                  _cardError = 'Unexpected server response. Please try again.',
+            );
           return;
         } catch (e) {
-          if (mounted) setState(() => _cardError = 'Network error. Check your connection.');
+          if (mounted)
+            setState(
+              () => _cardError = 'Network error. Check your connection.',
+            );
           return;
         }
       }
@@ -330,17 +344,17 @@ class _TvScreenState extends State<TvScreen> {
     try {
       final response = await http
           .post(
-        Uri.parse('https://glopa.org/glo/buy_utility.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "user_id": userId,
-          "action": "CABLE",
-          "plan_id": _selectedPlan!.planId,
-          "number": _smartCardController.text.trim(),
-          "amount": double.tryParse(_selectedPlan!.amount)?.toInt() ?? 0,
-          "network": _selectedProvider!.name,
-        }),
-      )
+            Uri.parse('https://glopa.org/glo/buy_utility.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              "user_id": userId,
+              "action": "CABLE",
+              "plan_id": _selectedPlan!.planId,
+              "number": _smartCardController.text.trim(),
+              "amount": double.tryParse(_selectedPlan!.amount)?.toInt() ?? 0,
+              "network": _selectedProvider!.name,
+            }),
+          )
           .timeout(const Duration(seconds: 30));
 
       _dismissLoader(loaderCtx);
@@ -349,7 +363,9 @@ class _TvScreenState extends State<TvScreen> {
       final data = jsonDecode(response.body);
       final status = (data['status'] ?? '').toString();
       final code = (data['code'] ?? '').toString();
-      final message = (data['message'] ?? 'Transaction failed. Please try again.').toString();
+      final message =
+          (data['message'] ?? 'Transaction failed. Please try again.')
+              .toString();
 
       if (status == 'success') {
         await _refreshUser();
@@ -371,7 +387,8 @@ class _TvScreenState extends State<TvScreen> {
           icon: Icons.hourglass_bottom_rounded,
           iconColor: Colors.orange,
           title: 'Transaction Processing',
-          message: 'Your subscription is being processed. You will be notified once confirmed.',
+          message:
+              'Your subscription is being processed. You will be notified once confirmed.',
         );
       } else if (code == 'INSUFFICIENT_BALANCE') {
         await _refreshUser();
@@ -421,11 +438,13 @@ class _TvScreenState extends State<TvScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Icon(icon, color: iconColor, size: 22),
-          const SizedBox(width: 8),
-          Expanded(child: Text(title)),
-        ]),
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
         content: Text(message),
         actions: [
           TextButton(
@@ -439,8 +458,9 @@ class _TvScreenState extends State<TvScreen> {
 
   void _filterProviders(String query) {
     setState(() {
-      filteredProviders =
-          providers.where((p) => p.name.toLowerCase().contains(query.toLowerCase())).toList();
+      filteredProviders = providers
+          .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
   }
 
@@ -454,11 +474,8 @@ class _TvScreenState extends State<TvScreen> {
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.tv_outlined,
-            size: radius,
-            color: Colors.grey,
-          ),
+          errorBuilder: (_, __, ___) =>
+              Icon(Icons.tv_outlined, size: radius, color: Colors.grey),
         ),
       ),
     );
@@ -468,7 +485,9 @@ class _TvScreenState extends State<TvScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.grey.shade100;
+    final backgroundColor = isDark
+        ? const Color(0xFF121212)
+        : Colors.grey.shade100;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final fillColor = isDark ? Colors.grey[850]! : Colors.grey[100]!;
     final textColor = isDark ? Colors.white : Colors.black;
@@ -479,18 +498,26 @@ class _TvScreenState extends State<TvScreen> {
       appBar: AppBar(
         backgroundColor: backgroundColor,
         elevation: 0,
-        title: Text('TV Subscription', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        title: Text(
+          'TV Subscription',
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
         iconTheme: IconThemeData(color: textColor),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BillHistoryScreen(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const BillHistoryScreen(
                   action: 'CABLE',
-                  title:  'Cable History',
-                )
-                )
+                  title: 'Cable History',
                 ),
-            child: const Text('History', style: TextStyle(color: Colors.deepOrange)),
+              ),
+            ),
+            child: const Text(
+              'History',
+              style: TextStyle(color: Colors.deepOrange),
+            ),
           ),
         ],
       ),
@@ -507,39 +534,70 @@ class _TvScreenState extends State<TvScreen> {
                   ? _fetchAllPlans
                   : () => setState(() => showProviders = !showProviders),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   color: cardColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: _loadingProviders
-                    ? const Row(children: [
-                  SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                  SizedBox(width: 12),
-                  Text('Loading providers...'),
-                ])
+                    ? const Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 12),
+                          Text('Loading providers...'),
+                        ],
+                      )
                     : _providerError != null
-                    ? Row(children: [
-                  const Icon(Icons.refresh, color: Colors.red),
-                  const SizedBox(width: 8),
-                  Text(_providerError!, style: const TextStyle(color: Colors.red)),
-                ])
+                    ? Row(
+                        children: [
+                          const Icon(Icons.refresh, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Text(
+                            _providerError!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      )
                     : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(children: [
-                      _providerAvatar(_selectedProvider!.logo, 22),
-                      const SizedBox(width: 12),
-                      Text(_selectedProvider!.name,
-                          style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 16)),
-                    ]),
-                    Icon(showProviders ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: secondaryTextColor, size: 28),
-                  ],
-                ),
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              _providerAvatar(_selectedProvider!.logo, 22),
+                              const SizedBox(width: 12),
+                              Text(
+                                _selectedProvider!.name,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Icon(
+                            showProviders
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: secondaryTextColor,
+                            size: 28,
+                          ),
+                        ],
+                      ),
               ),
             ),
             const SizedBox(height: 12),
@@ -548,61 +606,91 @@ class _TvScreenState extends State<TvScreen> {
             AnimatedCrossFade(
               firstChild: const SizedBox.shrink(),
               secondChild: Container(
-                decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(16)),
-                child: Column(children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _filterProviders,
-                      decoration: InputDecoration(
-                        hintText: 'Search Provider',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        filled: true,
-                        fillColor: fillColor,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _filterProviders,
+                        decoration: InputDecoration(
+                          hintText: 'Search Provider',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: fillColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 0,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 250),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: filteredProviders.length,
-                      itemBuilder: (context, index) {
-                        final provider = filteredProviders[index];
-                        return GestureDetector(
-                          onTap: () => _switchProvider(provider),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: provider.isSelected
-                                  ? Colors.deepOrange.withOpacity(0.15)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 250),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filteredProviders.length,
+                        itemBuilder: (context, index) {
+                          final provider = filteredProviders[index];
+                          return GestureDetector(
+                            onTap: () => _switchProvider(provider),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
+                              ),
+                              margin: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: provider.isSelected
+                                    ? Colors.deepOrange.withOpacity(0.15)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  _providerAvatar(provider.logo, 20),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      provider.name,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    provider.isSelected
+                                        ? Icons.check_box
+                                        : Icons.check_box_outline_blank,
+                                    color: provider.isSelected
+                                        ? Colors.deepOrange
+                                        : secondaryTextColor,
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: Row(children: [
-                              _providerAvatar(provider.logo, 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(provider.name,
-                                    style: TextStyle(color: textColor, fontWeight: FontWeight.w500, fontSize: 15)),
-                              ),
-                              Icon(
-                                provider.isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                color: provider.isSelected ? Colors.deepOrange : secondaryTextColor,
-                              ),
-                            ]),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
               ),
-              crossFadeState: showProviders ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              crossFadeState: showProviders
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
               duration: const Duration(milliseconds: 300),
             ),
             const SizedBox(height: 24),
@@ -613,162 +701,282 @@ class _TvScreenState extends State<TvScreen> {
               decoration: BoxDecoration(
                 color: cardColor,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Smart card input + Verify ────────────────────────
-                  Row(children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _smartCardController,
-                        style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
-                        keyboardType: TextInputType.text,
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]'))],
-                        onChanged: (_) => setState(() {
-                          _isCardValid = false;
-                          _customerName = null;
-                          _cardError = null;
-                        }),
-                        decoration: InputDecoration(
-                          labelText: 'Enter Smart Card / IUC Number',
-                          labelStyle: TextStyle(color: secondaryTextColor, fontWeight: FontWeight.w500),
-                          filled: true,
-                          fillColor: fillColor,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                          suffixIcon: _isCardValid ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _smartCardController,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          keyboardType: TextInputType.text,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z0-9]'),
+                            ),
+                          ],
+                          onChanged: (_) => setState(() {
+                            _isCardValid = false;
+                            _customerName = null;
+                            _cardError = null;
+                          }),
+                          decoration: InputDecoration(
+                            labelText: 'Enter Smart Card / IUC Number',
+                            labelStyle: TextStyle(
+                              color: secondaryTextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            filled: true,
+                            fillColor: fillColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 16,
+                            ),
+                            suffixIcon: _isCardValid
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  )
+                                : null,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isValidating ? null : _validateSmartCard,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepOrange,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 40,
+                        child: ElevatedButton(
+                          onPressed: _isValidating ? null : _validateSmartCard,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isValidating
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Verify',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
-                        child: _isValidating
-                            ? const SizedBox(
-                            width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('Verify', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                       ),
-                    ),
-                  ]),
-
+                    ],
+                  ),
                   if (_cardError != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 6, left: 4),
-                      child: Text(_cardError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      child: Text(
+                        _cardError!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
                     ),
 
                   if (_customerName != null)
                     Container(
                       margin: const EdgeInsets.only(top: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(
+                          color: Colors.green.withOpacity(0.3),
+                        ),
                       ),
-                      child: Row(children: [
-                        const Icon(Icons.person_outline, color: Colors.green, size: 16),
-                        const SizedBox(width: 6),
-                        Text(_customerName!,
-                            style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 13)),
-                      ]),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.person_outline,
+                            color: Colors.green,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _customerName!,
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                   const SizedBox(height: 24),
 
-                  Text('Select Plan', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 15)),
+                  Text(
+                    'Select Plan',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
                   const SizedBox(height: 12),
 
                   if (_isLoadingPlans)
-                    const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
                   else if (_plansError != null)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.wifi_off_rounded, size: 40, color: Colors.grey.shade400),
-                          const SizedBox(height: 8),
-                          Text(_plansError!, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500)),
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            onPressed: _fetchAllPlans,
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Retry'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepOrange,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.wifi_off_rounded,
+                              size: 40,
+                              color: Colors.grey.shade400,
                             ),
-                          ),
-                        ]),
+                            const SizedBox(height: 8),
+                            Text(
+                              _plansError!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey.shade500),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _fetchAllPlans,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepOrange,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else if (_allPlans.isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text('No plans available.', style: TextStyle(color: Colors.grey.shade500)),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No plans available.',
+                          style: TextStyle(color: Colors.grey.shade500),
                         ),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _allPlans.length,
-                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
-                        itemBuilder: (_, i) {
-                          final plan = _allPlans[i];
-                          final isSelected = _selectedPlan?.planId == plan.planId;
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedPlan = plan),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.deepOrange.withOpacity(0.08) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? Colors.deepOrange : Colors.grey.shade200,
-                                  width: isSelected ? 1.5 : 1,
-                                ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _allPlans.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: Colors.grey.shade100),
+                      itemBuilder: (_, i) {
+                        final plan = _allPlans[i];
+                        final isSelected = _selectedPlan?.planId == plan.planId;
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedPlan = plan),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.deepOrange.withOpacity(0.08)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.deepOrange
+                                    : Colors.grey.shade200,
+                                width: isSelected ? 1.5 : 1,
                               ),
-                              child: Row(children: [
+                            ),
+                            child: Row(
+                              children: [
                                 Icon(
-                                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                                  color: isSelected ? Colors.deepOrange : Colors.grey.shade400,
+                                  isSelected
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_unchecked,
+                                  color: isSelected
+                                      ? Colors.deepOrange
+                                      : Colors.grey.shade400,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(plan.name,
-                                          style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                                      Text(
+                                        plan.name,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
                                       const SizedBox(height: 2),
-                                      Text(plan.validity, style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                                      Text(
+                                        plan.validity,
+                                        style: TextStyle(
+                                          color: secondaryTextColor,
+                                          fontSize: 11,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 Text(
                                   '₦${_numFormat.format(double.tryParse(plan.amount)?.toInt() ?? 0)}',
-                                  style:
-                                  const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: const TextStyle(
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
-                              ]),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    ),
 
                   const SizedBox(height: 24),
 
@@ -779,7 +987,9 @@ class _TvScreenState extends State<TvScreen> {
                       decoration: BoxDecoration(
                         color: Colors.deepOrange.withOpacity(0.06),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.deepOrange.withOpacity(0.2)),
+                        border: Border.all(
+                          color: Colors.deepOrange.withOpacity(0.2),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -787,15 +997,31 @@ class _TvScreenState extends State<TvScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Selected Plan', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                              Text(
+                                'Selected Plan',
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 11,
+                                ),
+                              ),
                               const SizedBox(height: 2),
-                              Text(_selectedPlan!.name,
-                                  style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                              Text(
+                                _selectedPlan!.name,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                           Text(
                             '₦${_numFormat.format(double.tryParse(_selectedPlan!.amount)?.toInt() ?? 0)}',
-                            style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                              color: Colors.deepOrange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -804,13 +1030,20 @@ class _TvScreenState extends State<TvScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: (_isCardValid && _selectedPlan != null) ? _buyCable : null,
+                      onPressed: (_isCardValid && _selectedPlan != null)
+                          ? _buyCable
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                        (_isCardValid && _selectedPlan != null) ? Colors.deepOrange : Colors.grey.shade400,
+                        backgroundColor: (_isCardValid && _selectedPlan != null)
+                            ? Colors.deepOrange
+                            : Colors.grey.shade400,
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: (_isCardValid && _selectedPlan != null) ? 6 : 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: (_isCardValid && _selectedPlan != null)
+                            ? 6
+                            : 0,
                       ),
                       child: Text(
                         _selectedPlan != null && _isCardValid
@@ -818,7 +1051,11 @@ class _TvScreenState extends State<TvScreen> {
                             : !_isCardValid
                             ? 'Verify Smart Card to Continue'
                             : 'Select a Plan to Continue',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
