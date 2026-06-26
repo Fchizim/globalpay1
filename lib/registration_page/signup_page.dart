@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'set_pin.dart';
 // import 'package:http/http.dart';
-import 'dart:convert'; // for jsonEncode & jsonDecode
-import 'package:http/http.dart' as http; // for http.post
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class SignupPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -31,7 +31,7 @@ class _SignupPageState extends State<SignupPage> {
   bool isLoading = false;
   int currentPage = 0;
 
-  bool useEmail = true; // tab state
+  // bool useEmail = true; // tab state
 
   final allowedDomains = ["gmail.com", "outlook.com", "yahoo.com"];
 
@@ -58,11 +58,26 @@ class _SignupPageState extends State<SignupPage> {
     return allowedDomains.contains(domain);
   }
 
+  // Mirrors the backend's preg_match("/^[0-9]{10,15}$/", $phone) check
+  bool _isValidPhone(String phone) {
+    final regex = RegExp(r"^[0-9]{10,15}$");
+    return regex.hasMatch(phone);
+  }
+
   void _gotoOtpScreen() async {
     if (!_isValidEmail(emailController.text.trim())) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Enter valid email")));
+      return;
+    }
+
+    if (!_isValidPhone(phoneController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter a valid phone number (10-15 digits)"),
+        ),
+      );
       return;
     }
 
@@ -74,15 +89,12 @@ class _SignupPageState extends State<SignupPage> {
       body: jsonEncode({
         "name": fullNameController.text.trim(),
         "email": emailController.text.trim(),
-        "phone": phoneController.text.trim().isEmpty
-            ? "0000000000"
-            : phoneController.text.trim(),
-        "gender": selectedGender, // ✅ ADD THIS
+        "phone": phoneController.text.trim(),
+        "gender": selectedGender,
         "pin": "0000",
         "address": "Not set",
       }),
     );
-
     setState(() => isLoading = false);
 
     final data = jsonDecode(res.body);
@@ -275,67 +287,24 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // PAGE 2 EMAIL OR PHONE TABS
+// PAGE 2 EMAIL + PHONE (both required)
   Widget _pageContactChoice(bool isDark) {
     return _buildPage(
       title: "Verify your contact",
       isDark: isDark,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[850] : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => setState(() => useEmail = true),
-                  child: Text(
-                    "Email",
-                    style: TextStyle(
-                      color: useEmail ? Colors.deepOrange : Colors.grey,
-                      fontWeight: useEmail
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: TextButton(
-                  onPressed: () => setState(() => useEmail = false),
-                  child: Text(
-                    "Phone",
-                    style: TextStyle(
-                      color: !useEmail ? Colors.deepOrange : Colors.grey,
-                      fontWeight: !useEmail
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        _textField(
+          "Email Address",
+          emailController,
+          isDark,
+          keyboardType: TextInputType.emailAddress,
         ),
-
-        const SizedBox(height: 12),
-
-        if (useEmail)
-          _textField(
-            "Email Address",
-            emailController,
-            isDark,
-            keyboardType: TextInputType.emailAddress,
-          )
-        else
-          _textField(
-            "Phone Number",
-            phoneController,
-            isDark,
-            keyboardType: TextInputType.phone,
-          ),
+        _textField(
+          "Phone Number",
+          phoneController,
+          isDark,
+          keyboardType: TextInputType.phone,
+        ),
 
         const SizedBox(height: 15),
 

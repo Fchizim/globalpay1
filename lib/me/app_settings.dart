@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../provider/user_provider.dart';
 import '../services/secure_storage_service.dart';
 import 'package:provider/provider.dart';
 import '../provider/authprovider.dart'; // make sure path is correct
@@ -169,14 +170,15 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(ctx); // close dialog first
+              Navigator.pop(ctx);
 
               // 🔐 Clear secure storage
               await SecureStorageService.logout();
 
-              // 🧩 Clear provider state
+
               final auth = context.read<AuthProvider>();
               auth.logout();
+              context.read<UserProvider>().clearUser();
 
               // 🚀 Navigate to login and remove all previous routes
               Navigator.pushAndRemoveUntil(

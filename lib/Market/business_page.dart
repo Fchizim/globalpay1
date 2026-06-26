@@ -16,7 +16,34 @@ class BusinessPage extends StatefulWidget {
 
 class _BusinessPageState extends State<BusinessPage> {
   bool _isAccepted = false;
-  bool _isLoading = false; // ← loading state for button
+  bool _isLoading = false;
+
+  double? _subFee;
+  bool _loadingFee = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubFee();
+  }
+
+  // 👇 confirm this matches your actual fees endpoint filename
+  Future<void> _fetchSubFee() async {
+    try {
+      final res = await http.get(Uri.parse('https://glopa.org/glo/get_fees.php'));
+      final data = jsonDecode(res.body);
+      if (data['status'] == 'success' && mounted) {
+        setState(() {
+          _subFee = (data['sub_fee'] as num).toDouble();
+          _loadingFee = false;
+        });
+      } else if (mounted) {
+        setState(() => _loadingFee = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingFee = false);
+    }
+  }
 
   final List<Map<String, dynamic>> features = [
     {
@@ -37,36 +64,58 @@ class _BusinessPageState extends State<BusinessPage> {
   ];
 
   // ─── Subscribe Function ────────────────────────────────────────────────────
+  // In _subscribe(), update the confirmation snack to show the real fee:
   Future<void> _subscribe() async {
     final user = context.read<UserProvider>().user;
-
     if (user == null) {
       _showSnack('User not found. Please log in again.', isError: true);
       return;
     }
 
+    // Show confirmation with the actual fee before proceeding
+    if (_subFee != null) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Confirm Subscription'),
+          content: Text(
+            '₦${_subFee!.toStringAsFixed(0)} will be deducted from your wallet for a 1-year GlobalBiz subscription.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // ─── 1. Check if already subscribed ──────────────────────────────────
       final checkResponse = await http.get(
         Uri.parse('https://glopa.org/glo/check_subscription.php?user_id=${user.userId}'),
       );
-
       final checkData = jsonDecode(checkResponse.body);
 
       if (checkData['status'] == 'success' && checkData['active'] == true) {
-        // Already subscribed — go straight to StoreSetupPage
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StoreSetupPage()),
-          );
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const StoreSetupPage()));
         }
         return;
       }
 
-      // ─── 2. Not subscribed — pay and subscribe ────────────────────────────
       final response = await http.post(
         Uri.parse('https://glopa.org/glo/add_subscription.php'),
         headers: {'Content-Type': 'application/json'},
@@ -80,14 +129,10 @@ class _BusinessPageState extends State<BusinessPage> {
 
       if (data['status'] == 'success') {
         _showSnack('Subscription activated! Welcome to GlobalBiz 🎉');
-
         await Future.delayed(const Duration(milliseconds: 800));
-
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StoreSetupPage()),
-          );
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const StoreSetupPage()));
         }
       } else {
         _showSnack(data['message'] ?? 'Subscription failed', isError: true);
@@ -169,7 +214,16 @@ class _BusinessPageState extends State<BusinessPage> {
               ),
               child: Column(
                 children: [
-                  _pricingRow(IconsaxPlusLinear.card_pos, "Subscription", "₦500 / Year", isDark),
+                  _pricingRow(
+                    IconsaxPlusLinear.card_pos,
+                    "Subscription",
+                    _loadingFee
+                        ? "Loading..."
+                        : _subFee != null
+                        ? "₦${_subFee!.toStringAsFixed(0)} / Year"
+                        : "Unavailable",
+                    isDark,
+                  ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Divider(height: 1),
