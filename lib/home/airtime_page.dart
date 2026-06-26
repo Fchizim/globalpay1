@@ -309,6 +309,83 @@ class _AirtimeScreenState extends State<AirtimeScreen>
     }
   }
 
+  Future<void> buyBulkAirtime(BuildContext loaderContext) async {
+    if (userId.isEmpty) {
+      _dismissLoader(loaderContext);
+      _showSnack("Session expired. Please login again.");
+      return;
+    }
+
+    int successCount = 0;
+    int failCount    = 0;
+    double lastNewBalance = double.tryParse(userWallet) ?? 0;
+
+    for (int i = 0; i < bulkItems.length; i++) {
+      final item    = bulkItems[i];
+      final phone   = _cleanPhone(item.phoneCtrl.text);
+      final amount  = _controllerToInt(item.amountCtrl) ?? 0;
+      final network = _allNetworks.isNotEmpty
+          ? _allNetworks[item.networkIndex]
+          : null;
+
+      if (network == null || phone.isEmpty || amount < 50) {
+        failCount++;
+        continue;
+      }
+
+      try {
+        final response = await http.post(
+          Uri.parse("https://glopa.org/glo/buy_utility.php"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "user_id": userId,
+            "action":  "AIRTIME",
+            "plan_id": network.planId,
+            "number":  phone,
+            "amount":  amount,
+            "network": network.displayName,
+          }),
+        ).timeout(const Duration(seconds: 30));
+
+        if (response.body.isEmpty) { failCount++; continue; }
+
+        final data   = jsonDecode(response.body);
+        final status = data['status'] ?? '';
+
+        if (status == 'success') {
+          successCount++;
+          lastNewBalance =
+              (data['new_balance'] as num?)?.toDouble() ?? lastNewBalance;
+        } else {
+          failCount++;
+          debugPrint('Bulk item $i failed: ${data['message']}');
+        }
+      } catch (e) {
+        failCount++;
+        debugPrint('Bulk item $i error: $e');
+      }
+    }
+
+    _dismissLoader(loaderContext);
+    if (!mounted) return;
+
+    // Navigate to success screen summarising the batch
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => AirtimeSuccessScreen(
+          amount:        _bulkTotal(),
+          network:       'Bulk (${bulkItems.length} recipients)',
+          phone:         '$successCount sent · $failCount failed',
+          transactionId: '',
+          ref:           '',
+          newBalance:    lastNewBalance,
+          action:        'AIRTIME',
+        ),
+      ),
+    );
+  }
+
+
   void _dismissLoader(BuildContext loaderContext) {
     if (mounted) {
       try { Navigator.of(loaderContext).pop(); } catch (_) {}
@@ -558,12 +635,15 @@ class _AirtimeScreenState extends State<AirtimeScreen>
 
   // ── Bulk confirm modal ─────────────────────────────────────────────────────
   void _showBulkConfirmModal() {
-    final recipients = bulkItems.map((b) => {
-      'phone':   b.phoneCtrl.text.trim(),
-      'network': _allNetworks.isNotEmpty
+    final recipients = bulkItems.map((b) {
+      final network = _allNetworks.isNotEmpty
           ? _allNetworks[b.networkIndex].displayName
-          : 'Network',
-      'amount':  _controllerToInt(b.amountCtrl) ?? 0,
+          : 'Network';
+      return {
+        'phone':   _cleanPhone(b.phoneCtrl.text),
+        'network': network,
+        'amount':  _controllerToInt(b.amountCtrl) ?? 0,
+      };
     }).toList();
 
     final total = _bulkTotal();
@@ -574,39 +654,48 @@ class _AirtimeScreenState extends State<AirtimeScreen>
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
-        final showCount =
-        recipients.length > 3 ? 3 : recipients.length;
+        final showCount = recipients.length > 3 ? 3 : recipients.length;
         return Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding:
+          EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 18, vertical: 16),
-            child:
-            Column(mainAxisSize: MainAxisSize.min, children: [
-              Center(
-                  child: Text('Bulk Airtime Payment',
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold))),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Center(
+                child: Text('Bulk Airtime Payment',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
               const SizedBox(height: 8),
               Text('₦${_numFormat.format(total)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.deepOrange)),
               const SizedBox(height: 12),
+
+              // Preview first 3
               Column(children: [
                 for (var i = 0; i < showCount; i++)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Recipient ${i + 1}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                        '${recipients[i]['phone']} · ${recipients[i]['network']}'),
+                    leading: CircleAvatar(
+                      radius: 18,
+                      backgroundColor:
+                      Colors.deepOrange.withOpacity(0.1),
+                      child: Text('${i + 1}',
+                          style: const TextStyle(
+                              color: Colors.deepOrange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
+                    ),
+                    title: Text(recipients[i]['phone'].toString(),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(recipients[i]['network'].toString()),
                     trailing: Text(
-                        '₦${_numFormat.format(recipients[i]['amount'])}'),
+                        '₦${_numFormat.format(recipients[i]['amount'])}',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 if (recipients.length > 3)
                   GestureDetector(
@@ -615,23 +704,27 @@ class _AirtimeScreenState extends State<AirtimeScreen>
                       _showAllRecipientsSheet(recipients);
                     },
                     child: Padding(
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text('See All',
-                          style: TextStyle(
-                              color: Colors.deepOrange)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'See all ${recipients.length} recipients',
+                        style: const TextStyle(color: Colors.deepOrange),
+                      ),
                     ),
                   ),
               ]),
+
               const SizedBox(height: 8),
               _confirmRow(
-                  'Payment method',
-                  'Wallet (₦${_numFormat.format(double.tryParse(
-                      userWallet ?? '0') ?? 0)})'),
+                'Payment method',
+                'Wallet (₦${_numFormat.format(double.tryParse(userWallet) ?? 0)})',
+              ),
+              const SizedBox(height: 4),
+              _confirmRow('Recipients', '${bulkItems.length}'),
               const SizedBox(height: 20),
+
               ElevatedButton(
                 onPressed: () async {
-                  Navigator.of(ctx).pop();
+                  Navigator.of(ctx).pop(); // close sheet first
                   BuildContext? loaderCtx;
                   showDialog(
                     context: context,
@@ -639,11 +732,12 @@ class _AirtimeScreenState extends State<AirtimeScreen>
                     builder: (c) {
                       loaderCtx = c;
                       return const Center(
-                          child: CircularProgressIndicator());
+                          child: CircularProgressIndicator(
+                              color: Colors.deepOrange));
                     },
                   );
                   await Future.microtask(() {});
-                  await buyAirtime(loaderCtx ?? context);
+                  await buyBulkAirtime(loaderCtx ?? context); // ← correct call
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepOrange,
@@ -652,7 +746,8 @@ class _AirtimeScreenState extends State<AirtimeScreen>
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text('Confirm to Pay',
-                    style: TextStyle(color: Colors.white)),
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700)),
               ),
               const SizedBox(height: 12),
             ]),

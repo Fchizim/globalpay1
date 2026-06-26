@@ -29,8 +29,10 @@
         "glassmorphism",
         "glassmorphism_ui",
         "google_fonts",
+        "google_mlkit_barcode_scanning",
         "http",
         "iconsax_plus",
+        "image_gallery_saver",
         "image_picker",
         "intl",
         "intl_phone_field",
@@ -479,6 +481,13 @@
       "dependencies": [
         "flutter",
         "vector_math"
+      ]
+    },
+    {
+      "name": "image_gallery_saver",
+      "version": "2.0.3",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -1604,6 +1613,21 @@
       "version": "1.0.1",
       "dependencies": [
         "meta"
+      ]
+    },
+    {
+      "name": "google_mlkit_barcode_scanning",
+      "version": "0.12.1",
+      "dependencies": [
+        "flutter",
+        "google_mlkit_commons"
+      ]
+    },
+    {
+      "name": "google_mlkit_commons",
+      "version": "0.8.1",
+      "dependencies": [
+        "flutter"
       ]
     }
   ],

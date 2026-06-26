@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';   // ← needed for RenderRepaintBoundary
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
-class QrCodeGenerator extends StatelessWidget {
+class QrCodeGenerator extends StatefulWidget {   // ← StatefulWidget
   final String qrData;
   final double amount;
 
@@ -12,8 +17,29 @@ class QrCodeGenerator extends StatelessWidget {
     required this.amount,
   });
 
-  void _shareQR(BuildContext context) {
-    Share.share('MoneyDrop QR: $qrData');
+  @override
+  State<QrCodeGenerator> createState() => _QrCodeGeneratorState();
+}
+
+class _QrCodeGeneratorState extends State<QrCodeGenerator> {
+  final GlobalKey _qrKey = GlobalKey();   // ← lives in State, stable across rebuilds
+
+  Future<void> _shareQR() async {
+    try {
+      final boundary =
+      _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      final tmp   = await getTemporaryDirectory();
+      final file  = File('${tmp.path}/moneydrop_qr.png');
+      await file.writeAsBytes(bytes!.buffer.asUint8List());
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '💸 Scan to claim ₦${widget.amount.toStringAsFixed(0)} via MoneyDrop!',
+      );
+    } catch (_) {
+      Share.share('MoneyDrop QR: ${widget.qrData}');  // fallback
+    }
   }
 
   @override
@@ -32,18 +58,21 @@ class QrCodeGenerator extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 200,
-                  backgroundColor: Colors.white,
+                RepaintBoundary(            // ← wraps QrImageView for screenshot
+                  key: _qrKey,
+                  child: QrImageView(
+                    data:            widget.qrData,
+                    version:         QrVersions.auto,
+                    size:            200,
+                    backgroundColor: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  "Scan to claim ₦${amount.toStringAsFixed(0)}",
+                  "Scan to claim ₦${widget.amount.toStringAsFixed(0)}",
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                    color:      Colors.white,
+                    fontSize:   18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -52,24 +81,20 @@ class QrCodeGenerator extends StatelessWidget {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: () => _shareQR(context),
-                    icon: Icon(
-                      Icons.share,
-                      color: Colors.deepOrange.shade700,
-                    ),
+                    onPressed: _shareQR,    // ← no longer needs context param
+                    icon: Icon(Icons.share, color: Colors.deepOrange.shade700),
                     label: Text(
                       "Share QR Code",
                       style: TextStyle(
-                        color: Colors.deepOrange.shade700,
+                        color:      Colors.deepOrange.shade700,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize:   18,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ),

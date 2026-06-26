@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   bool isRefreshing = false;
   bool _showFullFormat = false;
   Timer? _autoRefreshTimer;
+  String? _lastSyncedUserId;
 
   @override
   void initState() {
@@ -125,8 +126,9 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (UserBalance.instance.balance == 0) {
+    if (_lastSyncedUserId != user.userId) {
       UserBalance.instance.balance = user.wallet ?? 0;
+      _lastSyncedUserId = user.userId;
     }
 
     double balance = UserBalance.instance.balance;
@@ -307,7 +309,7 @@ class _HomePageState extends State<HomePage> {
                       InkWell(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => MoneyDropPage()),
+                          MaterialPageRoute(builder: (_) => GDropPage()),
                         ),
                         child: _buildCard(
                           context,
