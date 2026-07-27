@@ -15,11 +15,13 @@ import '../provider/authprovider.dart'; // your AuthProvider file
 class LoginPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
   final VoidCallback onLoginSuccess;
+  final String? prefillEmail; // 👈 add this
 
   const LoginPage({
     super.key,
     required this.onToggleTheme,
     required this.onLoginSuccess,
+    this.prefillEmail, // 👈 add this
   });
 
   @override
@@ -31,6 +33,14 @@ class _LoginPageState extends State<LoginPage> {
   final pinController = TextEditingController();
 
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.prefillEmail != null) {
+      emailController.text = widget.prefillEmail!;
+    }
+  }
 
   Future<void> _login() async {
     final email = emailController.text.trim();
@@ -221,7 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
                             builder: (_) => SignupPage(

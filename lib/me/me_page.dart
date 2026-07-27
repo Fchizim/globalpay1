@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/me/wallet_screen.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -76,6 +77,12 @@ class _MePageState extends State<MePage> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const InviteFriends()),
+        );
+        break;
+      case 'Wallet':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const WalletScreen()),
         );
         break;
       case 'Profile Upgrade':
@@ -354,6 +361,13 @@ class _MePageState extends State<MePage> {
                     _buildSetting(
                       "Transaction History",
                       IconsaxPlusLinear.activity,
+                      cardColor,
+                      textColor,
+                    ),
+
+                    _buildSetting(
+                      "Wallet",
+                      IconsaxPlusLinear.wallet_money,
                       cardColor,
                       textColor,
                     ),

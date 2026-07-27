@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http; // for http.post
 import 'package:pinput/pinput.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../apps/apps.dart';
+import 'login_page.dart';
 
 
 class SetPinPage extends StatefulWidget {
@@ -100,10 +101,20 @@ class _SetPinPageState extends State<SetPinPage> with TickerProviderStateMixin {
 
         if (mounted) {
           setState(() => isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created! Please log in to continue.'),
+              backgroundColor: Colors.green,
+            ),
+          );
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => MyAppsPage(onToggleTheme: () {}),
+              builder: (_) => LoginPage(
+                onToggleTheme: () {},
+                onLoginSuccess: () {},
+                prefillEmail: widget.email,
+              ),
             ),
           );
         }

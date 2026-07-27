@@ -24,7 +24,10 @@ class UserProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-
+  void clearUser() {
+    _user = null;
+    notifyListeners();
+  }
   Future<void> clear() async {
     _user = null;
 

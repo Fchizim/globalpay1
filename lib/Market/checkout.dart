@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/Market/paystackwebview.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../provider/user_provider.dart';
+// import 'paystack_webview.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Model
@@ -301,7 +303,6 @@ class _CartScreenState extends State<CartScreen> {
         ),
         child: Row(
           children: [
-            // Product image
             ClipRRect(
               borderRadius: BorderRadius.circular(s(12)),
               child: Image.network(
@@ -317,8 +318,6 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
             SizedBox(width: s(12)),
-
-            // Name + vendor + price
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,8 +344,6 @@ class _CartScreenState extends State<CartScreen> {
                 ],
               ),
             ),
-
-            // Quantity controls
             Column(
               children: [
                 _qtyButton(Icons.add, () => _updateQty(item, 1)),
@@ -476,15 +473,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double _deliveryFee = 0;
   bool _loadingFee = true;
 
+  static const double _serviceFeeRate = 0.08; // 8% of cart subtotal
+  double get _serviceFee => widget.total * _serviceFeeRate;
+  double get _grandTotal => widget.total + _deliveryFee + _serviceFee;
+
+  // The prefix our WebView watches for to know Paystack has redirected back.
+  static const String _paystackCallbackPrefix =
+      'https://glopa.org/glo/payment_callback.php';
+
   double s(double v) {
     final sw = MediaQuery.of(context).size.width;
     return (sw / 375 * v).clamp(v * 0.85, v * 1.25);
   }
+
   @override
   void initState() {
     super.initState();
     _fetchDeliveryFee();
   }
+
   Future<void> _fetchDeliveryFee() async {
     try {
       final res = await http.get(
@@ -522,6 +529,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           'delivery_address': _addressController.text.trim(),
           'note':             _noteController.text.trim(),
           'delivery_fee':     _deliveryFee,
+          'service_fee':      _serviceFee,
         }),
       );
 
@@ -546,12 +554,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-
   Future<void> _initiatePaystack() async {
-    _snack('Paystack integration: pass the reference here after payment.');
-    // Example with flutter_paystack:
-    // final ref = await PaystackPlugin.checkout(...);
-    // if (ref.status) _placeOrder(paystackRef: ref.reference);
+    if (_addressController.text.trim().isEmpty) {
+      _snack('Please enter a delivery address.', isError: true);
+      return;
+    }
+
+    final user = context.read<UserProvider>().user;
+    if (user == null) return;
+
+    setState(() => _placing = true);
+
+    try {
+      final initRes = await http.post(
+        Uri.parse('https://glopa.org/glo/init_payment.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id':          user.userId,
+          'amount':           _grandTotal,
+          'delivery_address': _addressController.text.trim(),
+          'note':             _noteController.text.trim(),
+          'delivery_fee':     _deliveryFee,
+          'service_fee':      _serviceFee,
+        }),
+      );
+      final initData = jsonDecode(initRes.body);
+
+      if (initData['status'] != 'success') {
+        _snack(initData['message'] ?? 'Could not start payment.', isError: true);
+        return;
+      }
+
+      if (!mounted) return;
+      final reference = await Navigator.push<String?>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaystackWebView(
+            checkoutUrl:       initData['authorization_url'],
+            callbackUrlPrefix: _paystackCallbackPrefix,
+          ),
+        ),
+      );
+
+      if (reference == null || reference.isEmpty) {
+        _snack('Payment was not completed.', isError: true);
+        return;
+      }
+
+      await _placeOrder(paystackRef: reference);
+    } catch (_) {
+      _snack('Network error. Please try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => _placing = false);
+    }
   }
 
   void _snack(String msg, {bool isError = false}) {
@@ -599,7 +654,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                // ── Order summary ──────────────────────────
                 _sectionTitle('Order Summary', textColor),
                 SizedBox(height: s(10)),
                 Container(
@@ -649,10 +703,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ],
                         ),
                       )),
-                      // After the divider in the order summary container:
                       Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
-
-// Delivery fee row
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: s(16), vertical: s(10)),
                         child: Row(
@@ -673,25 +724,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ],
                         ),
                       ),
-
                       Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
                       Padding(
-                        padding: EdgeInsets.all(s(16)),
+                        padding: EdgeInsets.symmetric(horizontal: s(16), vertical: s(10)),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Total',
+                            Text('Service Fee',
+                                style: TextStyle(color: Colors.grey.shade500, fontSize: s(13))),
+                            Text('₦${_serviceFee.toStringAsFixed(2)}',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                    fontSize: s(15))),
-                            Text(
-                              '₦${(widget.total + _deliveryFee).toStringAsFixed(2)}',
-                              style: TextStyle(
-                                  color: Colors.deepOrange,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: s(18)),
-                            ),
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: s(13))),
                           ],
                         ),
                       ),
@@ -707,7 +752,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     color: textColor,
                                     fontSize: s(15))),
                             Text(
-                              '₦${widget.total.toStringAsFixed(2)}',
+                              '₦${_grandTotal.toStringAsFixed(2)}',
                               style: TextStyle(
                                   color: Colors.deepOrange,
                                   fontWeight: FontWeight.w900,
@@ -722,7 +767,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 SizedBox(height: s(20)),
 
-                // ── Delivery address ───────────────────────
                 _sectionTitle('Delivery Address', textColor),
                 SizedBox(height: s(10)),
                 _inputField(
@@ -736,7 +780,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 SizedBox(height: s(16)),
 
-                // ── Note ──────────────────────────────────
                 _sectionTitle('Note (optional)', textColor),
                 SizedBox(height: s(10)),
                 _inputField(
@@ -749,7 +792,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 SizedBox(height: s(20)),
 
-                // ── Payment method ─────────────────────────
                 _sectionTitle('Payment Method', textColor),
                 SizedBox(height: s(10)),
                 _paymentOption(
@@ -773,7 +815,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
 
-          // ── Place order button ─────────────────────────
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -819,8 +860,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     )
                         : Text(
                       _paymentMethod == 'paystack'
-                          ? 'Pay ₦${widget.total.toStringAsFixed(2)} with Paystack'
-                          : 'Place Order  ₦${widget.total.toStringAsFixed(2)}',
+                          ? 'Pay ₦${_grandTotal.toStringAsFixed(2)} with Paystack'
+                          : 'Place Order  ₦${_grandTotal.toStringAsFixed(2)}',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: s(15)),
