@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../home/vendor_sales_analytics_page.dart';
 import '../provider/user_provider.dart';
 import 'add_listings.dart';
 import 'edit_listing_page.dart';
@@ -28,6 +29,10 @@ class _OwnerPageState extends State<OwnerPage> {
   void initState() {
     super.initState();
     _fetchBusinessThenListings(); // single entry point
+  }
+  String _formatAmount(dynamic value) {
+    final amount = double.tryParse(value?.toString() ?? '') ?? 0;
+    return amount.toStringAsFixed(2);
   }
 
   Future<void> _fetchBusinessThenListings() async {
@@ -122,6 +127,13 @@ class _OwnerPageState extends State<OwnerPage> {
                 color: isDark ? Colors.white : Colors.black),
           ),
           const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const VendorSalesAnalyticsPage()),
+            ),
+            icon: Icon(IconsaxPlusLinear.chart_2, color: isDark ? Colors.white : Colors.black),
+          ),
         ],
       ),
       body: _isLoading
@@ -240,6 +252,54 @@ class _OwnerPageState extends State<OwnerPage> {
                     ]),
                   ),
                   const SizedBox(height: 20),
+
+                  // ── Pending payout (escrow) balance ───────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: Colors.deepOrange.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Colors.deepOrange,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(IconsaxPlusBold.wallet_2,
+                              color: Colors.white, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Pending Payout',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.grey.shade600)),
+                              const SizedBox(height: 2),
+                              Text(
+                                '₦${_formatAmount(_business?['wait_wallet'])}',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
 
                   // ── Stats ─────────────────────────────────────
                   Row(

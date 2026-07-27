@@ -8,7 +8,7 @@ import 'dart:convert';
 import '../provider/user_provider.dart';
 
 // ─────────────────────────────────────────────────────────────
-// Models
+// Models (unchanged)
 // ─────────────────────────────────────────────────────────────
 
 class VendorOrderItem {
@@ -89,7 +89,7 @@ class VendorOrder {
 
   String get formattedDate {
     try {
-      return DateFormat('dd MMM yyyy • hh:mm a').format(DateTime.parse(createdAt));
+      return DateFormat('dd MMM • hh:mm a').format(DateTime.parse(createdAt));
     } catch (_) { return createdAt; }
   }
 }
@@ -112,11 +112,11 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
   static const _filters = ['all', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
   static const _labels  = ['All',  'Pending',  'Confirmed',  'Processing',  'Shipped',  'Delivered',  'Cancelled'];
 
-  final List<List<VendorOrder>> _tabOrders   = List.generate(_filters.length, (_) => []);
-  final List<int>  _pages     = List.generate(_filters.length, (_) => 1);
-  final List<bool> _loading   = List.generate(_filters.length, (_) => false);
-  final List<bool> _hasMore   = List.generate(_filters.length, (_) => true);
-  final List<bool> _loaded    = List.generate(_filters.length, (_) => false);
+  final List<List<VendorOrder>> _tabOrders = List.generate(_filters.length, (_) => []);
+  final List<int>  _pages   = List.generate(_filters.length, (_) => 1);
+  final List<bool> _loading = List.generate(_filters.length, (_) => false);
+  final List<bool> _hasMore = List.generate(_filters.length, (_) => true);
+  final List<bool> _loaded  = List.generate(_filters.length, (_) => false);
 
   static const String _base = 'https://glopa.org/glo/get_vendor_orders.php';
 
@@ -134,7 +134,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
         final i = _tabController.index;
         if (!_loaded[i]) _fetch(i);
       });
-    _fetch(0); // load "All" on start
+    _fetch(0);
   }
 
   @override
@@ -148,7 +148,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
     if (refresh) {
       setState(() {
         _tabOrders[tabIndex].clear();
-        _pages[tabIndex]  = 1;
+        _pages[tabIndex]   = 1;
         _hasMore[tabIndex] = true;
         _loaded[tabIndex]  = false;
       });
@@ -156,7 +156,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
 
     setState(() => _loading[tabIndex] = true);
 
-    final user   = context.read<UserProvider>().user;
+    final user = context.read<UserProvider>().user;
     if (user == null) { setState(() => _loading[tabIndex] = false); return; }
 
     final filter = _filters[tabIndex] == 'all' ? '' : _filters[tabIndex];
@@ -176,9 +176,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
 
       final data = jsonDecode(res.body);
       if (data['status'] == 'success' && mounted) {
-        final list = (data['orders'] as List)
-            .map((o) => VendorOrder.fromJson(o))
-            .toList();
+        final list = (data['orders'] as List).map((o) => VendorOrder.fromJson(o)).toList();
         setState(() {
           _tabOrders[tabIndex].addAll(list);
           _hasMore[tabIndex] = data['has_more'] as bool? ?? false;
@@ -210,17 +208,21 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
       if (data['status'] == 'success' && mounted) {
         setState(() => order.orderStatus = newStatus);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Order marked as ${_cap(newStatus)}'),
+          content: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text('Order marked as ${_cap(newStatus)}'),
+          ]),
           backgroundColor: Colors.green.shade600,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(12),
         ));
       }
     } catch (_) {}
   }
 
-  String _cap(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   @override
   Widget build(BuildContext context) {
@@ -231,40 +233,48 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor:      bgColor,
-        elevation:            0,
+        backgroundColor: bgColor,
+        elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('My Orders',
-            style: TextStyle(
-                color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
-          child: TabBar(
-            controller:   _tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            dividerColor: Colors.transparent,
-            indicator: BoxDecoration(
-              color:        Colors.deepOrange,
-              borderRadius: BorderRadius.circular(20),
+          preferredSize: const Size.fromHeight(52),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                  color: isDark ? Colors.white12 : Colors.grey.shade200),
             ),
-            indicatorSize:        TabBarIndicatorSize.tab,
-            labelColor:           Colors.white,
-            unselectedLabelColor: isDark ? Colors.white54 : Colors.black45,
-            labelStyle: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 12),
-            tabs: _labels.map((l) => Tab(text: l)).toList(),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              dividerColor: Colors.transparent,
+              indicator: BoxDecoration(
+                color: Colors.deepOrange,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+              tabs: _labels.map((l) => Tab(text: l, height: 36)).toList(),
+            ),
           ),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: List.generate(_filters.length,
-                (i) => _buildTab(i, isDark)),
+        children: List.generate(_filters.length, (i) => _buildTab(i, isDark)),
       ),
     );
   }
@@ -276,8 +286,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
     final loaded  = _loaded[i];
 
     if (!loaded && loading) {
-      return const Center(
-          child: CircularProgressIndicator(color: Colors.deepOrange));
+      return const Center(child: CircularProgressIndicator(color: Colors.deepOrange));
     }
 
     if (loaded && orders.isEmpty) {
@@ -285,11 +294,24 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(IconsaxPlusLinear.box, size: 64,
-                color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text('No orders here',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(IconsaxPlusLinear.box,
+                  size: 46, color: Colors.deepOrange.shade200),
+            ),
+            const SizedBox(height: 16),
+            Text('No ${_labels[i].toLowerCase()} orders',
+                style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15)),
+            const SizedBox(height: 4),
+            Text('Orders will show up here once they arrive',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12.5)),
           ],
         ),
       );
@@ -299,7 +321,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
       color: Colors.deepOrange,
       onRefresh: () => _fetch(i, refresh: true),
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: orders.length + (more ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (_, index) {
@@ -312,10 +334,8 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
                   child: loading
                       ? const SizedBox(
                       width: 18, height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.deepOrange))
-                      : const Text('Load more',
-                      style: TextStyle(color: Colors.deepOrange)),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepOrange))
+                      : const Text('Load more', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w600)),
                 ),
               ),
             );
@@ -331,139 +351,149 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
     final textColor = isDark ? Colors.white : Colors.black87;
     final status    = order.orderStatus.toLowerCase();
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => VendorOrderDetailScreen(
-            order:  order,
-            isDark: isDark,
-            onStatusChanged: (s) => _updateStatus(order, s),
+    return Material(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VendorOrderDetailScreen(
+              order: order,
+              isDark: isDark,
+              onStatusChanged: (s) => _updateStatus(order, s),
+            ),
           ),
         ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color:        cardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04),
-                blurRadius: 8, offset: const Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          children: [
-            // ── Header ────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.all(s(14)),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(order.orderId,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color:      textColor,
-                                fontSize:   s(13))),
-                        const SizedBox(height: 3),
-                        Text(order.formattedDate,
-                            style: TextStyle(
-                                color:    Colors.grey.shade500,
-                                fontSize: s(11))),
-                      ],
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+                color: isDark ? Colors.white10 : Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            children: [
+              // ── Header ──
+              Padding(
+                padding: EdgeInsets.fromLTRB(s(14), s(14), s(14), s(10)),
+                child: Row(
+                  children: [
+                    Icon(IconsaxPlusBold.receipt_2, size: s(15), color: Colors.grey.shade400),
+                    SizedBox(width: s(6)),
+                    Expanded(
+                      child: Text(order.orderId,
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                              fontSize: s(12.5),
+                              fontFamily: 'monospace'),
+                          overflow: TextOverflow.ellipsis),
                     ),
-                  ),
-                  _statusChip(status),
-                ],
+                    _statusChip(status),
+                  ],
+                ),
               ),
-            ),
 
-            const Divider(height: 1, thickness: 0.4),
+              Divider(height: 1, thickness: 0.5, color: isDark ? Colors.white10 : Colors.grey.shade100),
 
-            // ── Items preview ─────────────────────────────
-            Padding(
-              padding: EdgeInsets.all(s(12)),
-              child: Column(
-                children: order.items.take(2).map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(s(8)),
-                        child: Image.network(
-                          item.productImage,
-                          width: s(44), height: s(44),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: s(44), height: s(44),
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.image_not_supported_outlined,
-                                color: Colors.grey, size: 20),
+              // ── Items preview ──
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: s(14), vertical: s(10)),
+                child: Column(
+                  children: order.items.take(2).map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(s(10)),
+                          child: Image.network(
+                            item.productImage,
+                            width: s(46), height: s(46),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: s(46), height: s(46),
+                              color: isDark ? Colors.white10 : Colors.grey.shade100,
+                              child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 18),
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: s(10)),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.productName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: textColor, fontSize: s(13),
-                                    fontWeight: FontWeight.w500)),
-                            Text('×${item.quantity}  •  ₦${item.subtotal}',
-                                style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: s(11))),
-                          ],
+                        SizedBox(width: s(12)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.productName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: textColor, fontSize: s(13), fontWeight: FontWeight.w600)),
+                              SizedBox(height: s(2)),
+                              Text('Qty ${item.quantity}  •  ₦${item.subtotal}',
+                                  style: TextStyle(color: Colors.grey.shade500, fontSize: s(11.5))),
+                            ],
+                          ),
                         ),
+                      ],
+                    ),
+                  )).toList(),
+                ),
+              ),
+
+              if (order.items.length > 2)
+                Padding(
+                  padding: EdgeInsets.only(left: s(14), bottom: s(10)),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ],
+                      child: Text('+${order.items.length - 2} more item(s)',
+                          style: TextStyle(color: Colors.deepOrange, fontSize: s(11.5), fontWeight: FontWeight.w600)),
+                    ),
                   ),
-                )).toList(),
-              ),
-            ),
+                ),
 
-            if (order.items.length > 2)
+              Divider(height: 1, thickness: 0.5, color: isDark ? Colors.white10 : Colors.grey.shade100),
+
+              // ── Footer ──
               Padding(
-                padding: EdgeInsets.only(bottom: s(8)),
-                child: Text('+${order.items.length - 2} more item(s)',
-                    style: TextStyle(
-                        color: Colors.deepOrange, fontSize: s(12))),
+                padding: EdgeInsets.symmetric(horizontal: s(14), vertical: s(12)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: s(11),
+                          backgroundColor: isDark ? Colors.white10 : Colors.grey.shade100,
+                          child: Icon(IconsaxPlusLinear.user, size: s(12), color: Colors.grey.shade500),
+                        ),
+                        SizedBox(width: s(6)),
+                        Text(order.buyerName,
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: s(12), fontWeight: FontWeight.w500)),
+                        SizedBox(width: s(8)),
+                        Text('•', style: TextStyle(color: Colors.grey.shade300)),
+                        SizedBox(width: s(8)),
+                        Text(order.formattedDate,
+                            style: TextStyle(color: Colors.grey.shade400, fontSize: s(11))),
+                      ],
+                    ),
+                    Text('₦${order.vendorSubtotal}',
+                        style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w800, fontSize: s(15))),
+                  ],
+                ),
               ),
-
-            const Divider(height: 1, thickness: 0.4),
-
-            // ── Footer ────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: s(14), vertical: s(10)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(IconsaxPlusLinear.user, size: s(14),
-                          color: Colors.grey.shade500),
-                      SizedBox(width: s(4)),
-                      Text(order.buyerName,
-                          style: TextStyle(
-                              color: Colors.grey.shade500, fontSize: s(12))),
-                    ],
-                  ),
-                  Text('₦${order.vendorSubtotal}',
-                      style: TextStyle(
-                          color:      Colors.deepOrange,
-                          fontWeight: FontWeight.w800,
-                          fontSize:   s(15))),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -471,23 +501,29 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen>
 
   Widget _statusChip(String status) {
     Color color;
+    IconData icon;
     switch (status) {
-      case 'delivered':  color = Colors.green;        break;
-      case 'shipped':    color = Colors.blue;         break;
-      case 'processing': color = Colors.purple;       break;
-      case 'confirmed':  color = Colors.teal;         break;
-      case 'cancelled':  color = Colors.red;          break;
-      default:           color = Colors.orange;
+      case 'delivered':  color = Colors.green;  icon = Icons.check_circle_rounded;      break;
+      case 'shipped':    color = Colors.blue;   icon = Icons.local_shipping_rounded;    break;
+      case 'processing': color = Colors.purple; icon = Icons.sync_rounded;              break;
+      case 'confirmed':  color = Colors.teal;   icon = Icons.task_alt_rounded;          break;
+      case 'cancelled':  color = Colors.red;    icon = Icons.cancel_rounded;            break;
+      default:           color = Colors.orange; icon = Icons.schedule_rounded;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color:        color.withOpacity(0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(_cap(status),
-          style: TextStyle(
-              color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(_cap(status), style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }
@@ -517,7 +553,7 @@ class _VendorOrderDetailScreenState extends State<VendorOrderDetailScreen> {
   bool _updating = false;
 
   static const _statusFlow = [
-    'pending', 'confirmed', 'processing', 'shipped', 'delivered'
+    'pending', 'confirmed', 'processing', 'shipped'
   ];
 
   String get _nextStatus {
@@ -531,7 +567,6 @@ class _VendorOrderDetailScreenState extends State<VendorOrderDetailScreen> {
       case 'confirmed':  return 'Confirm Order';
       case 'processing': return 'Mark Processing';
       case 'shipped':    return 'Mark as Shipped';
-      case 'delivered':  return 'Mark as Delivered';
       default:           return '';
     }
   }
@@ -769,8 +804,8 @@ class _VendorOrderDetailScreenState extends State<VendorOrderDetailScreen> {
 
   Widget _buildStatusTracker(
       String current, Color card, Color text) {
-    const steps   = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
-    const labels  = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered'];
+    const steps   = ['pending', 'confirmed', 'processing', 'shipped'];
+    const labels  = ['Pending', 'Confirmed', 'Processing', 'Shipped'];
     final curIdx  = steps.indexOf(current);
 
     return Container(
