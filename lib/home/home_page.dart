@@ -13,6 +13,7 @@ import 'package:globalpay/home/fund_wallet/fund_wallet.dart';
 import 'package:globalpay/home/send_money.dart';
 import 'package:intl/intl.dart';
 import 'package:globalpay/home/user_page.dart';
+import '../me/wallet_screen.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
 import '../provider/user_provider.dart';
@@ -21,6 +22,7 @@ import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
 import 'airtime_page.dart';
 import 'all_asset.dart';
+import 'coming_soon.dart';
 import 'currency_con.dart';
 import 'data_page.dart';
 import 'electricity.dart';
@@ -46,15 +48,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
-      final userProvider = context.read<UserProvider>();
-      final localUser = await SecureStorageService.getUser();
-      if (localUser != null) {
-        final freshUser = await ProfileService.getProfile(localUser.userId);
-        if (freshUser != null) {
-          await userProvider.updateUser(freshUser);
-        }
-      }
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _refreshUserData();
     });
   }
 
@@ -127,11 +122,17 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (_lastSyncedUserId != user.userId) {
-      UserBalance.instance.balance = user.wallet ?? 0;
       _lastSyncedUserId = user.userId;
+      final walletValue = user.wallet ?? 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          UserBalance.instance.balance = walletValue;
+        }
+      });
     }
 
-    double balance = UserBalance.instance.balance;
+    final balanceNotifier = context.watch<UserBalance>();
+    double balance = balanceNotifier.balance;
     final bool canToggle = balance >= 1000000;
     final String displayedBalance = (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)
@@ -226,7 +227,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 10),
                         GestureDetector(
-                          onTap: () => _navigateWithLoader(const FundWallet()),
+                          onTap: () => _navigateWithLoader( WalletScreen() ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -272,12 +273,9 @@ class _HomePageState extends State<HomePage> {
                         onTap: () => _navigateWithLoader(
                           SendMoney(
                             balance: balance,
-                            image: 'assets/images/png/profile.png',
-                            name: 'Recipient Name',
-                            account: '1234567890',
-                            bank: 'Bank Name',
+                            userId: context.read<UserProvider>().user?.userId ?? '',
                             onTransaction: (double amount) => setState(
-                              () => UserBalance.instance.balance -= amount,
+                                  () => UserBalance.instance.balance -= amount,
                             ),
                           ),
                         ),
@@ -488,7 +486,8 @@ class _HomePageState extends State<HomePage> {
         InkWell(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => GiftCardPage()),
+            MaterialPageRoute(builder: (_) => ComingSoonScreen()),
+            // MaterialPageRoute(builder: (_) => GiftCardPage()),
           ),
           child: _buildSmallCard(
             IconsaxPlusBold.ship,
@@ -535,7 +534,8 @@ class _HomePageState extends State<HomePage> {
         InkWell(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => CreateTargetPage()),
+            // MaterialPageRoute(builder: (_) => CreateTargetPage()),
+             MaterialPageRoute(builder: (_) => ComingSoonScreen())
           ),
           child: _buildSmallCard(
             Icons.savings_outlined,

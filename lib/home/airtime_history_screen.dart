@@ -159,7 +159,7 @@ class _AirtimeHistoryScreenState extends State<AirtimeHistoryScreen> {
           final ref     = trx['ref']?.toString() ?? '';
           final date    = trx['created_at']?.toString() ?? '';
           final action    = trx['action']?.toString() ?? '';
-          final transactionId = trx['transaction_id']?.toString() ?? ref; // 👈 use ref as fallback
+          final transactionId = trx['transaction_id']?.toString() ?? ref;
 
           return GestureDetector(
             onTap: () {
@@ -175,6 +175,8 @@ class _AirtimeHistoryScreenState extends State<AirtimeHistoryScreen> {
                     newBalance: double.tryParse(
                         trx['new_balance']?.toString() ?? '0') ?? 0.0,
                     action: action,
+                    paymentStatus: status,
+                    responseMessage: trx['response_message']?.toString(),
                   ),
                 ),
               );

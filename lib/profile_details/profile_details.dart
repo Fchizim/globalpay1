@@ -121,7 +121,7 @@ class _ProfileDetailsState extends State<ProfileDetails> {
             const SizedBox(height: 30),
 
             _profileInfoCard(cardColor, [
-              _row("Account Number", accountNumber),
+              // _row("Account Number", accountNumber),
               _row(
                 "Email",
                 email,

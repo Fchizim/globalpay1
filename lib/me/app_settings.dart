@@ -62,13 +62,13 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           _buildContainer(
             containerColor,
             [
-              _buildTile(IconsaxPlusBold.link, "Linked Accounts", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const KycLevelsPage()));
-              }),
+              // _buildTile(IconsaxPlusBold.link, "Linked Accounts", textColor, () {
+              //   Navigator.push(context, MaterialPageRoute(builder: (_) => const KycLevelsPage()));
+              // }),
               _divider(dividerColor),
-              _buildTile(Icons.block, "Freeze Account", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const FreezeAccountPage()));
-              }),
+              // _buildTile(Icons.block, "Freeze Account", textColor, () {
+              //   Navigator.push(context, MaterialPageRoute(builder: (_) => const FreezeAccountPage()));
+              // }),
               _divider(dividerColor),
               _buildTile(Icons.warning, "Report Suspicious Activities", textColor, () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportSuspiciousActivityPage()));
@@ -81,22 +81,23 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           _buildContainer(
             containerColor,
             [
-              _buildSwitchTile(Icons.fingerprint, "Use Biometrics for login", biometric,
-                      (val) => setState(() => biometric = val), isDark),
+              // _buildSwitchTile(Icons.fingerprint, "Use Biometrics for login", biometric,
+              //         (val) => setState(() => biometric = val), isDark),
               _divider(dividerColor),
               _buildTile(IconsaxPlusBold.lock, "Change Login Pin", textColor, () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePinPage()));
               }),
+              // _divider(dividerColor),
+              // _buildTile(IconsaxPlusBold.security_safe, "Two-Factor Auth (2FA)", textColor, () {
+              //   Navigator.push(context, MaterialPageRoute(builder: (_) => const TwoFAPage()));
+              // }),
               _divider(dividerColor),
-              _buildTile(IconsaxPlusBold.security_safe, "Two-Factor Auth (2FA)", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TwoFAPage()));
-              }),
-              _divider(dividerColor),
-              _buildTile(Icons.history, "Active session", textColor, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveSessionsPage()
-                )
-                );
-              }),
+              // _buildTile(Icons.history, "Active session", textColor, () {
+              //   Navigator.push(context, MaterialPageRoute(builder: (_) =>
+              //   const ActiveSessionsPage()
+              //   )
+              //   );
+              // }),
             ],
           ),
 

@@ -1,6 +1,15 @@
-class UserBalance {
-  UserBalance._privateConstructor();
-  static final UserBalance instance = UserBalance._privateConstructor();
+import 'package:flutter/foundation.dart';
 
-  double balance = 0.00; // initial balance
+class UserBalance extends ChangeNotifier {
+  UserBalance._();
+  static final UserBalance instance = UserBalance._();
+
+  double _balance = 0;
+  double get balance => _balance;
+
+  set balance(double value) {
+    if (_balance == value) return;
+    _balance = value;
+    notifyListeners();
+  }
 }

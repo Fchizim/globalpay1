@@ -181,6 +181,8 @@ class _EleHistoryScreenState extends State<EleHistoryScreen> {
                     customerName:    trx['customer_name']?.toString(),
                     customerAddress: trx['customer_address']?.toString(),
                     billType:        trx['ele_type']?.toString(),
+                    paymentStatus: status,
+                    responseMessage: trx['response_message']?.toString(),
                   ),
                 ),
               );

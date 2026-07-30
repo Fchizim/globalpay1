@@ -254,7 +254,8 @@ class _AirtimeScreenState extends State<AirtimeScreen>
               transactionId: data['transaction_id']?.toString() ?? '',
               ref:           data['ref']?.toString() ?? '',
               newBalance:    (data['new_balance'] as num?)?.toDouble() ?? 0.0,
-              action: data['action']?.toString() ?? '',
+              action:        data['action']?.toString() ?? '',
+              paymentStatus: 'success',
             ),
           ),
         );
@@ -369,17 +370,35 @@ class _AirtimeScreenState extends State<AirtimeScreen>
     _dismissLoader(loaderContext);
     if (!mounted) return;
 
+    final total = bulkItems.length;
+    final String bulkPaymentStatus;
+    final String bulkMessage;
+
+    if (successCount == total) {
+      bulkPaymentStatus = 'success';
+      bulkMessage = 'All $total recipients topped up successfully.';
+    } else if (successCount == 0) {
+      bulkPaymentStatus = 'failed';
+      bulkMessage = 'All $total transactions failed. Your wallet has not been charged for these.';
+    } else {
+      bulkPaymentStatus = 'partial';
+      bulkMessage = '$successCount of $total succeeded, $failCount failed. '
+          'Failed amounts have been refunded to your wallet.';
+    }
+
     // Navigate to success screen summarising the batch
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => AirtimeSuccessScreen(
-          amount:        _bulkTotal(),
-          network:       'Bulk (${bulkItems.length} recipients)',
-          phone:         '$successCount sent · $failCount failed',
-          transactionId: '',
-          ref:           '',
-          newBalance:    lastNewBalance,
-          action:        'AIRTIME',
+          amount:          _bulkTotal(),
+          network:         'Bulk ($total recipients)',
+          phone:           '$successCount sent · $failCount failed',
+          transactionId:   '',
+          ref:             '',
+          newBalance:      lastNewBalance,
+          action:          'AIRTIME',
+          paymentStatus:   bulkPaymentStatus,
+          responseMessage: bulkMessage,
         ),
       ),
     );

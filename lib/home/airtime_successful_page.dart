@@ -13,6 +13,15 @@ class AirtimeSuccessScreen extends StatefulWidget {
   final double newBalance;
   final String action;
 
+  // ── Real status from the backend (bill_transactions.payment_status) ──────
+  // Expected values: 'success', 'failed', 'pending', 'partial' (case-insensitive).
+  // 'partial' is distinct from 'pending' — it means the batch is FINISHED
+  // and some items succeeded while others failed (bulk airtime), not that
+  // something is still processing.
+  // This screen is reachable even when the purchase failed or is pending, so
+  // it must reflect that instead of always showing a success celebration.
+  final String paymentStatus;
+  final String? responseMessage;
 
   const AirtimeSuccessScreen({
     super.key,
@@ -23,6 +32,8 @@ class AirtimeSuccessScreen extends StatefulWidget {
     required this.ref,
     required this.newBalance,
     required this.action,
+    required this.paymentStatus,
+    this.responseMessage,
   });
 
   @override
@@ -36,6 +47,11 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
   late Animation<double> _fadeAnim;
   late ConfettiController _confettiController;
 
+  bool get _isSuccess => widget.paymentStatus.toLowerCase() == 'success';
+  bool get _isFailed  => widget.paymentStatus.toLowerCase() == 'failed';
+  bool get _isPartial => widget.paymentStatus.toLowerCase() == 'partial';
+  // anything else (e.g. 'pending', 'processing') is treated as still-pending
+
   @override
   void initState() {
     super.initState();
@@ -48,9 +64,12 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
     _controller.forward();
 
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    Future.delayed(const Duration(milliseconds: 400), () {
-      _confettiController.play();
-    });
+    // Only celebrate an actual success.
+    if (_isSuccess) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _confettiController.play();
+      });
+    }
   }
 
   @override
@@ -63,7 +82,32 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
   @override
   Widget build(BuildContext context) {
     final bool isDark       = Theme.of(context).brightness == Brightness.dark;
-    final Color greenSuccess = const Color(0xFF22C55E);
+    final Color greenSuccess  = const Color(0xFF22C55E);
+    final Color redFailed     = const Color(0xFFEF4444);
+    final Color orangePartial = const Color(0xFFF97316); // finished, mixed results
+    final Color bluePending   = const Color(0xFF3B82F6); // still processing
+    final Color statusColor   = _isSuccess
+        ? greenSuccess
+        : _isFailed
+        ? redFailed
+        : _isPartial
+        ? orangePartial
+        : bluePending;
+    final IconData statusIcon = _isSuccess
+        ? Icons.check
+        : _isFailed
+        ? Icons.close
+        : _isPartial
+        ? Icons.warning_amber_rounded
+        : Icons.access_time_filled;
+    final String statusHeading = _isSuccess
+        ? 'Payment Successful'
+        : _isFailed
+        ? 'Payment Failed'
+        : _isPartial
+        ? 'Partially Successful'
+        : 'Payment Pending';
+
     final Color primary      = Colors.deepOrange;
     final Color bgColor      = isDark ? const Color(0xFF0D0D0D) : Colors.white;
     final Color cardColor    = isDark
@@ -79,6 +123,9 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
+            // Confetti only plays on an actual success (see initState), but
+            // keep the widget in the tree either way so its controller is
+            // always valid to dispose.
             ConfettiWidget(
               confettiController: _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
@@ -98,7 +145,7 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
 
-                  // ── Success icon ───────────────────────────────────────
+                  // ── Status icon ────────────────────────────────────────
                   ScaleTransition(
                     scale: _scaleAnim,
                     child: Container(
@@ -106,20 +153,20 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [greenSuccess, greenSuccess.withOpacity(0.8)],
+                          colors: [statusColor, statusColor.withOpacity(0.8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: [BoxShadow(
-                            color: greenSuccess.withOpacity(0.4),
+                            color: statusColor.withOpacity(0.4),
                             blurRadius: 25, spreadRadius: 3)],
                       ),
-                      child: const Icon(Icons.check, color: Colors.white, size: 60),
+                      child: Icon(statusIcon, color: Colors.white, size: 60),
                     ),
                   ),
                   const SizedBox(height: 15),
 
-                  Text('Payment Successful',
+                  Text(statusHeading,
                       style: TextStyle(fontSize: 20,
                           fontWeight: FontWeight.w600, color: textColor)),
                   const SizedBox(height: 5),
@@ -127,6 +174,16 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                   Text('₦${numFormat.format(widget.amount)}',
                       style: TextStyle(fontSize: 30,
                           fontWeight: FontWeight.w600, color: textColor)),
+
+                  // Show the backend's failure/pending reason when available.
+                  if (!_isSuccess && (widget.responseMessage?.isNotEmpty ?? false)) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.responseMessage!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: subTextColor, fontSize: 13),
+                    ),
+                  ],
                   const SizedBox(height: 30),
 
                   // ── Info card ──────────────────────────────────────────
@@ -192,16 +249,21 @@ class _AirtimeSuccessScreenState extends State<AirtimeSuccessScreen>
                         // View details
                         GestureDetector(
                           onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) =>
-                                  TransactionDetailScreen(
-                                    amount:        widget.amount,
-                                    network:       widget.network,
-                                    phone:         widget.phone,
-                                    transactionId: widget.transactionId,
-                                    ref:           widget.ref,
-                                    newBalance:    widget.newBalance,
-                                    action: widget.action,
-                                  ))),
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      TransactionDetailScreen(
+                                        amount:        widget.amount,
+                                        network:       widget.network,
+                                        phone:         widget.phone,
+                                        transactionId: widget.transactionId,
+                                        ref:           widget.ref,
+                                        newBalance:    widget.newBalance,
+                                        action: widget.action,
+                                        paymentStatus: widget.paymentStatus,
+                                        responseMessage: widget.responseMessage,
+                                      )
+                              )
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

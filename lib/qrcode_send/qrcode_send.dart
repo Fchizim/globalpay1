@@ -125,14 +125,16 @@ class _SendTabState extends State<_SendTab> {
       _snack('Minimum amount is ₦100', error: true); return;
     }
 
-    // PIN confirmation
-    final ok = await showModalBottomSheet<bool>(
+    // PIN collection — NOT validation. The sheet just returns the 4 digits
+    // the user typed; the actual check happens server-side in
+    // gdrop_create.php (same as tfmg.php does for p2p transfers).
+    final pin = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const _PinSheet(),
     );
-    if (ok != true) return;
+    if (pin == null || pin.length != 4) return;
 
     setState(() => _loading = true);
     try {
@@ -144,6 +146,7 @@ class _SendTabState extends State<_SendTab> {
           'amount':  amt,
           'note':    _noteCtrl.text.trim(),
           'design':  _design,
+          'pin':     pin,
         }),
       ).timeout(const Duration(seconds: 20));
 
@@ -157,6 +160,7 @@ class _SendTabState extends State<_SendTab> {
           _voucherNote = data['note'] ?? '';
         });
       } else {
+        // Covers both "Incorrect PIN." and any other backend rejection
         _snack(data['message'] ?? 'Failed to create GDrop', error: true);
       }
     } catch (e) {
@@ -1148,11 +1152,6 @@ class _GDropQRCard extends StatelessWidget {
             style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
           ),
-          Text(
-            '₦${amount.toStringAsFixed(0)}',
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22),
-          ),
         ]),
         const SizedBox(height: 20),
 
@@ -1328,90 +1327,90 @@ class _HistoryCard extends StatelessWidget {
         : Colors.red;
 
     return InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => _GDropDetailPage(item: item)),
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => _GDropDetailPage(item: item)),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color:        isDark ? const Color(0xFF242424) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border:       Border.all(color: Colors.grey.withOpacity(0.1)),
         ),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color:        isDark ? const Color(0xFF242424) : Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border:       Border.all(color: Colors.grey.withOpacity(0.1)),
-          ),
-          child: Row(children: [
-        // Direction icon
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color:  (isSent ? Colors.deepOrange : Colors.green).withOpacity(0.1),
-            shape:  BoxShape.circle,
-          ),
-          child: Icon(
-            isSent ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-            color: isSent ? Colors.deepOrange : Colors.green,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-
-        // Info
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(
-                isSent ? 'Sent' : 'Received',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              Text(
-                '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
-                style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize:   16,
-                    color:      isSent ? Colors.deepOrange : Colors.green),
-              ),
-            ]),
-            const SizedBox(height: 4),
-            Text(
-              isSent
-                  ? (status == 'active' ? 'Unclaimed' : 'To @$other')
-                  : 'From @$other',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+        child: Row(children: [
+          // Direction icon
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color:  (isSent ? Colors.deepOrange : Colors.green).withOpacity(0.1),
+              shape:  BoxShape.circle,
             ),
-            if (note.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Text('"$note"',
-                    style: TextStyle(
-                        color:     Colors.grey.shade400,
-                        fontStyle: FontStyle.italic,
-                        fontSize:  12)),
-              ),
-            const SizedBox(height: 6),
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color:        statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+            child: Icon(
+              isSent ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+              color: isSent ? Colors.deepOrange : Colors.green,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Info
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text(
+                  isSent ? 'Sent' : 'Received',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
-                child: Text(
-                  status[0].toUpperCase() + status.substring(1),
+                Text(
+                  '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
                   style: TextStyle(
-                      color:      statusColor,
-                      fontSize:   10,
-                      fontWeight: FontWeight.bold),
+                      fontWeight: FontWeight.w900,
+                      fontSize:   16,
+                      color:      isSent ? Colors.deepOrange : Colors.green),
                 ),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                isSent
+                    ? (status == 'active' ? 'Unclaimed' : 'To @$other')
+                    : 'From @$other',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
               ),
-              const Spacer(),
-              Text(date,
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
+              if (note.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text('"$note"',
+                      style: TextStyle(
+                          color:     Colors.grey.shade400,
+                          fontStyle: FontStyle.italic,
+                          fontSize:  12)),
+                ),
+              const SizedBox(height: 6),
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color:        statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    status[0].toUpperCase() + status.substring(1),
+                    style: TextStyle(
+                        color:      statusColor,
+                        fontSize:   10,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Spacer(),
+                Text(date,
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
+              ]),
             ]),
-          ]),
-        ),
-          ]),
-        ),
+          ),
+        ]),
+      ),
     );
   }
 }
@@ -1430,7 +1429,11 @@ class _FieldLabel extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PIN SHEET (reused from MoneyDrop)
+// PIN SHEET
+// Collects the 4-digit PIN and returns it as a String. It does NOT validate
+// the PIN itself — there's nothing to validate against on the client. The
+// actual check happens server-side in gdrop_create.php, exactly the way
+// tfmg.php validates PINs for p2p transfers.
 // ══════════════════════════════════════════════════════════════════════════════
 class _PinSheet extends StatefulWidget {
   const _PinSheet();
@@ -1442,7 +1445,6 @@ class _PinSheetState extends State<_PinSheet> {
   final _ctrl  = TextEditingController();
   final _focus = FocusNode();
   final _pins  = List.generate(4, (_) => '');
-  bool _loading = false;
 
   @override
   void initState() {
@@ -1465,12 +1467,9 @@ class _PinSheetState extends State<_PinSheet> {
     final t = v.length > 4 ? v.substring(0, 4) : v;
     for (int i = 0; i < 4; i++) _pins[i] = i < t.length ? t[i] : '';
     setState(() {});
-    if (t.length == 4 && !_loading) {
-      setState(() => _loading = true);
-      // Validate PIN against your backend here if needed;
-      // for now accept any 4-digit entry after 1.5s
-      Future.delayed(const Duration(milliseconds: 1500),
-              () { if (mounted) Navigator.pop(context, true); });
+    if (t.length == 4) {
+      // Hand the raw PIN back to the caller — no client-side approval.
+      Navigator.pop(context, t);
     }
   }
 
@@ -1504,7 +1503,7 @@ class _PinSheetState extends State<_PinSheet> {
                       color: tc, fontSize: 16, fontWeight: FontWeight.w700)),
               IconButton(
                   icon: Icon(Icons.close, color: tc),
-                  onPressed: () => Navigator.pop(context, false)),
+                  onPressed: () => Navigator.pop(context, null)),
             ]),
             const SizedBox(height: 16),
             GestureDetector(
@@ -1514,7 +1513,7 @@ class _PinSheetState extends State<_PinSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(4, (i) {
                   final filled   = _pins[i].isNotEmpty;
-                  final isCursor = _ctrl.text.length == i && !_loading;
+                  final isCursor = _ctrl.text.length == i;
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     width: 58, height: 58,
@@ -1554,11 +1553,6 @@ class _PinSheetState extends State<_PinSheet> {
               style: const TextStyle(
                   fontSize: 0.01, color: Colors.transparent),
             ),
-            if (_loading) ...[
-              const SizedBox(height: 8),
-              const CircularProgressIndicator(
-                  color: Colors.deepOrange, strokeWidth: 2.5),
-            ],
             const SizedBox(height: 8),
           ]),
         ),

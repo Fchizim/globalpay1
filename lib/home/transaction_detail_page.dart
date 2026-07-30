@@ -13,6 +13,16 @@ class TransactionDetailScreen extends StatelessWidget {
   final String ref;
   final double newBalance;
 
+  // ── Real status from the backend (bill_transactions.payment_status) ──────
+  // Expected values: 'success', 'failed', 'pending', 'partial' (case-insensitive).
+  // 'partial' = a finished bulk batch with some successes and some failures —
+  // distinct from 'pending', which means still processing.
+  final String paymentStatus;
+  // Optional — bill_transactions.response_message, shown when not successful
+  // so the user knows *why* (e.g. "Invaild Amount", "Your API request is
+  // yet to be approve").
+  final String? responseMessage;
+
   // ── Optional electricity fields ──────────────────────────
   final String? eleToken;
   final String? eleUnits;
@@ -32,6 +42,8 @@ class TransactionDetailScreen extends StatelessWidget {
     required this.transactionId,
     required this.ref,
     required this.newBalance,
+    required this.paymentStatus,
+    this.responseMessage,
     this.eleToken,
     this.eleUnits,
     this.eleMeter,
@@ -55,6 +67,12 @@ class TransactionDetailScreen extends StatelessWidget {
     }
   }
 
+  bool get _isSuccess => paymentStatus.toLowerCase() == 'success';
+  bool get _isFailed  => paymentStatus.toLowerCase() == 'failed';
+  bool get _isPartial => paymentStatus.toLowerCase() == 'partial';
+  // Anything that's neither success, failed, nor partial (e.g. 'pending',
+  // 'processing') falls into pending.
+
   @override
   Widget build(BuildContext context) {
     final String time         = DateFormat('HH:mm, MMM dd, yyyy').format(DateTime.now());
@@ -71,6 +89,29 @@ class TransactionDetailScreen extends StatelessWidget {
 
     final bool isEle = action.toUpperCase() == 'ELE';
     final bool isExam = action.toUpperCase() == 'EXAM';
+
+    // ── Status presentation (this is the actual fix) ────────────────────────
+    final Color statusColor = _isSuccess
+        ? const Color(0xFF22C55E)
+        : _isFailed
+        ? const Color(0xFFEF4444)
+        : _isPartial
+        ? const Color(0xFFF97316) // finished, mixed results
+        : const Color(0xFF3B82F6); // still processing
+    final IconData statusIcon = _isSuccess
+        ? Icons.check_circle
+        : _isFailed
+        ? Icons.cancel
+        : _isPartial
+        ? Icons.warning_amber_rounded
+        : Icons.access_time_filled;
+    final String statusLabel = _isSuccess
+        ? 'Successful'
+        : _isFailed
+        ? 'Failed'
+        : _isPartial
+        ? 'Partially Successful'
+        : 'Pending';
 
     return Scaffold(
       backgroundColor: background,
@@ -113,17 +154,26 @@ class TransactionDetailScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700,
                         fontSize: 26, color: textPrimary)),
                 const SizedBox(height: 6),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle,
-                        color: Color(0xFF22C55E), size: 18),
-                    SizedBox(width: 5),
-                    Text('Successful',
-                        style: TextStyle(color: Color(0xFF22C55E),
+                    Icon(statusIcon, color: statusColor, size: 18),
+                    const SizedBox(width: 5),
+                    Text(statusLabel,
+                        style: TextStyle(color: statusColor,
                             fontSize: 14, fontWeight: FontWeight.w600)),
                   ],
                 ),
+                // Show the failure reason from the backend when it's not a
+                // success, instead of leaving the user guessing.
+                if (!_isSuccess && (responseMessage?.isNotEmpty ?? false)) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    responseMessage!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: textSecondary, fontSize: 12.5),
+                  ),
+                ],
                 const SizedBox(height: 5),
                 Divider(color: borderColor),
                 const SizedBox(height: 5),
@@ -161,7 +211,9 @@ class TransactionDetailScreen extends StatelessWidget {
                     _buildRow('Serial', examSerial!, isDark),
                 ],
 
-                if (isEle && eleUnits?.isNotEmpty == true)
+                // Electricity token/units only make sense on a successful
+                // transaction — a failed ELE purchase has none.
+                if (isEle && _isSuccess && eleUnits?.isNotEmpty == true)
                   _buildRow('Units', '${eleUnits}kWh', isDark),
                 _buildCopyRow(context, 'Transaction ID', transactionId, isDark),
                 _buildCopyRow(context, 'Reference',      ref,           isDark),
@@ -170,8 +222,8 @@ class TransactionDetailScreen extends StatelessWidget {
               ]),
             ),
 
-            // ── Electricity token box ─────────────────────────────────
-            if (isEle && eleToken?.isNotEmpty == true) ...[
+            // ── Electricity token box (only shown on success) ─────────
+            if (isEle && _isSuccess && eleToken?.isNotEmpty == true) ...[
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
@@ -225,39 +277,40 @@ class TransactionDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // ── View Receipt Button ───────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TransactionReceiptScreen(
-                        amount: amount,
-                        action: action,
-                        network: network,
-                        recipientPhone: phone,
-                        payerPhone: phone,
-                        transactionId: transactionId,
+            // ── View Receipt Button (only meaningful for a real success) ─
+            if (_isSuccess)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TransactionReceiptScreen(
+                          amount: amount,
+                          action: action,
+                          network: network,
+                          recipientPhone: phone,
+                          payerPhone: phone,
+                          transactionId: transactionId,
+                        ),
                       ),
-                    ),
-                  );
-                },
-                icon: Icon(Icons.receipt_long, color: primary),
-                label: Text('View Receipt',
-                    style: TextStyle(
-                        color: primary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(color: primary),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    );
+                  },
+                  icon: Icon(Icons.receipt_long, color: primary),
+                  label: Text('View Receipt',
+                      style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: primary),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 80),
           ]),
         ),

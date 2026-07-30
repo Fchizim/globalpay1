@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/me/transaction_screen.dart';
 import 'package:globalpay/me/wallet_screen.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
@@ -36,7 +37,6 @@ class _MePageState extends State<MePage> {
     );
   }
 
-  double get balance => UserBalance.instance.balance;
 
   String formatFull(double amount) {
     final formatter = NumberFormat("#,##0.00", "en_US");
@@ -79,6 +79,12 @@ class _MePageState extends State<MePage> {
           MaterialPageRoute(builder: (_) => const InviteFriends()),
         );
         break;
+      case 'Transaction History':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TransactionScreen()),
+        );
+        break;
       case 'Wallet':
         Navigator.push(
           context,
@@ -113,6 +119,7 @@ class _MePageState extends State<MePage> {
 
   @override
   Widget build(BuildContext context) {
+    final balance = context.watch<UserBalance>().balance;
     final user = context.watch<UserProvider>().user;
     final theme = Theme.of(context);
     final imageUrl = user?.image ?? '';
@@ -122,7 +129,6 @@ class _MePageState extends State<MePage> {
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    double balance = UserBalance.instance.balance;
     final bool canToggle = balance >= 1000000;
     final String displayedBalance = (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)

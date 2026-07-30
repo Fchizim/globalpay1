@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/provider/balance_provider.dart';
 import 'package:globalpay/provider/kyc_provider.dart';
 import 'package:globalpay/provider/settings_provider.dart';
 import 'package:globalpay/provider/subscription_provider.dart';
@@ -19,6 +20,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => KycProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider.value(value: UserBalance.instance),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()), // ← here
       ],

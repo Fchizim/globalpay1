@@ -6,6 +6,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:globalpay/Market/business_page.dart';
 import 'checkout.dart';
 import 'editors_profile.dart';
+import 'orders_page.dart';
 import 'product_card.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -96,6 +97,65 @@ class MarketProduct {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Product filters (sort / price / rating)
+// ─────────────────────────────────────────────────────────────
+
+enum ProductSort { relevance, priceLowHigh, priceHighLow, ratingHighLow, newest }
+
+class ProductFilters {
+  ProductSort sort;
+  RangeValues priceRange; // 0..maxPrice, maxPrice means "no upper cap"
+  double minRating; // 0 = no minimum
+
+  static const double maxPrice = 500000;
+
+  ProductFilters({
+    this.sort = ProductSort.relevance,
+    this.priceRange = const RangeValues(0, maxPrice),
+    this.minRating = 0,
+  });
+
+  bool get isActive =>
+      sort != ProductSort.relevance ||
+          priceRange.start > 0 ||
+          priceRange.end < maxPrice ||
+          minRating > 0;
+
+  int get activeCount {
+    int c = 0;
+    if (sort != ProductSort.relevance) c++;
+    if (priceRange.start > 0 || priceRange.end < maxPrice) c++;
+    if (minRating > 0) c++;
+    return c;
+  }
+
+  ProductFilters copy() => ProductFilters(
+    sort: sort,
+    priceRange: priceRange,
+    minRating: minRating,
+  );
+
+  String get sortParam {
+    switch (sort) {
+      case ProductSort.priceLowHigh: return 'price_asc';
+      case ProductSort.priceHighLow: return 'price_desc';
+      case ProductSort.ratingHighLow: return 'rating_desc';
+      case ProductSort.newest: return 'newest';
+      case ProductSort.relevance: return '';
+    }
+  }
+
+  Map<String, String> toQueryParams() {
+    final p = <String, String>{};
+    if (sortParam.isNotEmpty) p['sort'] = sortParam;
+    if (priceRange.start > 0) p['min_price'] = priceRange.start.round().toString();
+    if (priceRange.end < maxPrice) p['max_price'] = priceRange.end.round().toString();
+    if (minRating > 0) p['min_rating'] = minRating.toString();
+    return p;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // CardPage
 // ─────────────────────────────────────────────────────────────
 
@@ -128,8 +188,26 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
   final List<bool> _isLoading   = [];
   final List<bool> _hasMore     = [];
 
+  ProductFilters _filters = ProductFilters();
+
   static const String _baseUrl  = 'https://glopa.org/glo/get_all_product.php';
   static const int    _pageSize = 20;
+
+  // Small rotating icon set so each category chip gets a distinct, stable icon.
+  static final List<IconData> _catIconPool = [
+    IconsaxPlusLinear.chart,
+    IconsaxPlusLinear.mobile,
+    IconsaxPlusLinear.home_2,
+    IconsaxPlusLinear.watch,
+    IconsaxPlusLinear.bag_2,
+    IconsaxPlusLinear.game,
+    IconsaxPlusLinear.book,
+    IconsaxPlusLinear.heart,
+    IconsaxPlusLinear.cup,
+    IconsaxPlusLinear.car,
+  ];
+
+  IconData _iconForCategory(int index) => _catIconPool[index % _catIconPool.length];
 
   @override
   void initState() {
@@ -262,6 +340,7 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
         'page':  page.toString(),
         'limit': _pageSize.toString(),
         if (catId.isNotEmpty) 'cat_id': catId,
+        ..._filters.toQueryParams(),
       });
       final res = await http.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) return jsonDecode(res.body);
@@ -315,6 +394,32 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
     }
   }
 
+  // ── Filters ──────────────────────────────────────────────
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<ProductFilters>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ProductFilterSheet(initial: _filters.copy()),
+    );
+    if (result != null) {
+      setState(() {
+        _filters = result;
+        _initTabState(_tabController.length);
+      });
+      await _loadMore(_tabController.index);
+    }
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _filters = ProductFilters();
+      _initTabState(_tabController.length);
+    });
+    _loadMore(_tabController.index);
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -328,11 +433,6 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
   // ── Search results grid ──────────────────────────────────
 
   Widget _buildSearchResults(bool isDarkMode) {
-    final cardColor = isDarkMode
-        ? Colors.white.withOpacity(0.05)
-        : Colors.grey.shade50;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
-
     if (_searchLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.deepOrange),
@@ -401,7 +501,17 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.storefront_outlined, size: 56, color: Colors.grey.shade400),
           const SizedBox(height: 12),
-          Text('No products yet', style: TextStyle(color: Colors.grey.shade500)),
+          Text(
+            _filters.isActive ? 'No products match these filters' : 'No products yet',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
+          if (_filters.isActive) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: _clearFilters,
+              child: const Text('Clear filters', style: TextStyle(color: Colors.deepOrange)),
+            ),
+          ],
         ]),
       );
     }
@@ -487,8 +597,6 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
     final bgColor    = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
     final textColor  = isDarkMode ? Colors.white : Colors.black;
 
-    final tabLabels = ['All', ..._categories.map((c) => c.name)];
-
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -551,6 +659,7 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
           Stack(clipBehavior: Clip.none, children: [
             IconButton(
               icon: Icon(IconsaxPlusLinear.shopping_bag, color: textColor),
+              tooltip: 'Cart',
               onPressed: () => Navigator.push(
                   context, MaterialPageRoute(builder: (_) => const CartScreen()
               )
@@ -579,13 +688,21 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
               ),
             ),
           ]),
+          // IconButton(
+          //   icon: Icon(IconsaxPlusLinear.message, color: textColor),
+          //   tooltip: 'Messages',
+          //   onPressed: () => Navigator.push(
+          //       context, MaterialPageRoute(builder: (_) => MessagesPage())),
+          // ),
           IconButton(
-            icon: Icon(IconsaxPlusLinear.message, color: textColor),
+            icon: Icon(IconsaxPlusLinear.bag_2, color: textColor),
+            tooltip: 'Orders',
             onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => MessagesPage())),
+                context, MaterialPageRoute(builder: (_) => const OrdersPage())),
           ),
           IconButton(
             icon: Icon(IconsaxPlusLinear.shopping_cart, color: textColor),
+            tooltip: 'Vendor Orders',
             onPressed: () => Navigator.push(
                 context, MaterialPageRoute(builder: (_) => VendorOrdersScreen())),
           ),
@@ -658,47 +775,38 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
           ),
         ),
 
-        // ── Category tabs — hidden while searching ─────
+        // ── Category chips + filter button — hidden while searching ─────
         if (!_isSearching)
           AnimatedContainer(
             duration: const Duration(milliseconds: 250),
-            height: _isTabVisible ? s(46, context) : 0,
+            height: _isTabVisible ? s(52, context) : 0,
             curve: Curves.easeInOut,
             child: _isTabVisible
-                ? Container(
-              margin: EdgeInsets.symmetric(
-                  horizontal: s(12, context),
-                  vertical: s(2, context)),
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? Colors.white10
-                    : Colors.deepOrange.shade50.withOpacity(0.5),
-                borderRadius:
-                BorderRadius.circular(s(30, context)),
-              ),
-              child: TabBar(
-                controller:    _tabController,
-                isScrollable:  true,
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor:  Colors.transparent,
-                indicator: BoxDecoration(
-                  color: Colors.deepOrange,
-                  borderRadius:
-                  BorderRadius.circular(s(25, context)),
-                ),
-                labelColor: Colors.white,
-                unselectedLabelColor:
-                isDarkMode ? Colors.white70 : Colors.black54,
-                labelStyle: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: s(13, context)),
-                tabAlignment: TabAlignment.start,
-                tabs: tabLabels
-                    .map((l) => Tab(text: l))
-                    .toList(),
-              ),
-            )
+                ? _buildCategoryBar(isDarkMode, textColor)
                 : const SizedBox.shrink(),
+          ),
+
+        if (!_isSearching && _filters.isActive)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: s(16, context)),
+            child: Row(
+              children: [
+                Icon(IconsaxPlusLinear.filter, size: 13, color: Colors.deepOrange),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${_filters.activeCount} filter${_filters.activeCount > 1 ? 's' : ''} applied',
+                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _clearFilters,
+                  child: const Text('Clear',
+                      style: TextStyle(
+                          color: Colors.deepOrange, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
           ),
 
         // ── Content area ───────────────────────────────
@@ -708,7 +816,7 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
               : TabBarView(
             controller: _tabController,
             children: List.generate(
-                tabLabels.length,
+                _tabController.length,
                     (i) => _buildGrid(i, isDarkMode)),
           ),
         ),
@@ -716,44 +824,289 @@ class _CardPageState extends State<CardPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Search field widget ──────────────────────────────────
+  // ── Category chip bar ────────────────────────────────────
 
-  Widget _buildSearchField(bool isDarkMode, BuildContext context) {
-    return Container(
-      height: s(40, context),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.white.withOpacity(0.08) : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(s(12, context)),
+  Widget _buildCategoryBar(bool isDarkMode, Color textColor) {
+    final labels = ['All', ..._categories.map((c) => c.name)];
+
+    return Builder(
+      builder: (context) => Row(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: s(12, context)),
+              itemCount: labels.length,
+              separatorBuilder: (_, __) => SizedBox(width: s(8, context)),
+              itemBuilder: (ctx, i) {
+                return AnimatedBuilder(
+                  animation: _tabController.animation ?? _tabController,
+                  builder: (context, _) {
+                    final isSelected = _tabController.index == i;
+                    return GestureDetector(
+                      onTap: () => _tabController.animateTo(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: s(14, context), vertical: s(8, context)),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.deepOrange
+                              : (isDarkMode
+                              ? Colors.white.withOpacity(0.08)
+                              : Colors.deepOrange.withOpacity(0.06)),
+                          borderRadius: BorderRadius.circular(s(24, context)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              i == 0 ? Icons.grid_view_rounded : _iconForCategory(i - 1),
+                              size: s(15, context),
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.deepOrange,
+                            ),
+                            SizedBox(width: s(6, context)),
+                            Text(
+                              labels[i],
+                              style: TextStyle(
+                                  fontSize: s(12.5, context),
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDarkMode ? Colors.white70 : Colors.black87)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          GestureDetector(
+            onTap: _openFilterSheet,
+            child: Container(
+              margin: EdgeInsets.only(right: s(12, context)),
+              padding: EdgeInsets.all(s(10, context)),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.white.withOpacity(0.08) : Colors.white,
+                borderRadius: BorderRadius.circular(s(14, context)),
+                boxShadow: isDarkMode ? [] : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(IconsaxPlusLinear.setting_4,
+                      size: s(18, context), color: textColor),
+                  if (_filters.isActive)
+                    Positioned(
+                      right: -2, top: -2,
+                      child: Container(
+                        width: 8, height: 8,
+                        decoration: const BoxDecoration(
+                            color: Colors.deepOrange, shape: BoxShape.circle),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      child: TextField(
-        controller:  _searchController,
-        focusNode:   _searchFocus,
-        style: TextStyle(
-            fontSize: s(14, context),
-            color: isDarkMode ? Colors.white : Colors.black),
-        decoration: InputDecoration(
-          hintText: 'Search products, vendors…',
-          hintStyle: TextStyle(
-              color: isDarkMode ? Colors.white38 : Colors.grey.shade400,
-              fontSize: s(14, context)),
-          prefixIcon: Icon(IconsaxPlusLinear.search_normal,
-              size: s(18, context),
-              color: isDarkMode ? Colors.white38 : Colors.grey.shade400),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-            icon: Icon(Icons.close_rounded,
-                size: s(18, context), color: Colors.grey),
-            onPressed: () {
-              _searchController.clear();
-              _onSearchChanged('');
-            },
-          )
-              : null,
-          border:        InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: s(10, context)),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Filter bottom sheet: sort, price range, minimum rating
+// ─────────────────────────────────────────────────────────────
+
+class _ProductFilterSheet extends StatefulWidget {
+  final ProductFilters initial;
+  const _ProductFilterSheet({required this.initial});
+
+  @override
+  State<_ProductFilterSheet> createState() => _ProductFilterSheetState();
+}
+
+class _ProductFilterSheetState extends State<_ProductFilterSheet> {
+  late ProductFilters _f = widget.initial.copy();
+
+  String _fmtPrice(double v) {
+    if (v >= ProductFilters.maxPrice) return '₦${(v ~/ 1000)}k+';
+    if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(v % 1000 == 0 ? 0 : 1)}k';
+    return '₦${v.round()}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Sort & Filter',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                  GestureDetector(
+                    onTap: () => setState(() => _f = ProductFilters()),
+                    child: const Text('Reset',
+                        style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              Text('Sort by',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: const {
+                  ProductSort.relevance: 'Relevance',
+                  ProductSort.newest: 'Newest',
+                  ProductSort.priceLowHigh: 'Price: Low to High',
+                  ProductSort.priceHighLow: 'Price: High to Low',
+                  ProductSort.ratingHighLow: 'Top Rated',
+                }.entries.map((e) {
+                  final selected = _f.sort == e.key;
+                  return GestureDetector(
+                    onTap: () => setState(() => _f.sort = e.key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: selected ? Colors.deepOrange : Colors.deepOrange.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        e.value,
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: selected ? Colors.white : Colors.deepOrange),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Price Range',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+                  Text(
+                    '${_fmtPrice(_f.priceRange.start)} - ${_fmtPrice(_f.priceRange.end)}',
+                    style: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.deepOrange),
+                  ),
+                ],
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: Colors.deepOrange,
+                  inactiveTrackColor: Colors.deepOrange.withOpacity(0.15),
+                  thumbColor: Colors.deepOrange,
+                  overlayColor: Colors.deepOrange.withOpacity(0.15),
+                  rangeThumbShape: const RoundRangeSliderThumbShape(enabledThumbRadius: 8),
+                ),
+                child: RangeSlider(
+                  values: _f.priceRange,
+                  min: 0,
+                  max: ProductFilters.maxPrice,
+                  divisions: 50,
+                  onChanged: (v) => setState(() => _f.priceRange = v),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              Text('Minimum Rating',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [0.0, 4.0, 3.0, 2.0].map((r) {
+                  final selected = _f.minRating == r;
+                  final label = r == 0 ? 'Any' : '$r ★ & up';
+                  return GestureDetector(
+                    onTap: () => setState(() => _f.minRating = r),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: selected ? Colors.deepOrange : Colors.deepOrange.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: selected ? Colors.white : Colors.deepOrange),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 26),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, _f),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Apply',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ),
+            ],
+          ),
         ),
-        onChanged: _onSearchChanged,
-        textInputAction: TextInputAction.search,
       ),
     );
   }

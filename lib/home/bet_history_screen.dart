@@ -176,6 +176,8 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
                     newBalance: double.tryParse(
                         trx['new_balance']?.toString() ?? '0') ?? 0.0,
                     action: action,
+                    paymentStatus: status,
+                    responseMessage: trx['response_message']?.toString(),
                   ),
                 ),
               );

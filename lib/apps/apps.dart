@@ -9,6 +9,7 @@ import 'package:globalpay/profile_details/profile_details.dart';
 import '../Market/market_page.dart';
 import '../Market/orders_page.dart';
 import '../convert/convert_page.dart';
+import '../home/coming_soon.dart';
 import '../home/home_page.dart';
 import '../me/me_page.dart';
 import '../home/card/card_page.dart';
@@ -47,9 +48,12 @@ class _MyAppsPageState extends State<MyAppsPage> {
 
     final List<Widget> pages = [
       const HomePage(),
-      const FinancePage(),
+      // const FinancePage(),
+      const ComingSoonScreen(),
       const CardPage(),
-      const CardsPage(),
+      const ComingSoonScreen(),
+      // const CardsPage(),
+      const ComingSoonScreen(),
       MePage(onToggleTheme: widget.onToggleTheme),
     ];
 

@@ -25,7 +25,6 @@ class _WalletScreenState extends State<WalletScreen> {
   Timer? _pollTimer;
   static const int _maxPollTicks = 15; // ~60s at 4s intervals
   static const Duration _pollInterval = Duration(seconds: 4);
-
   bool _pollTimedOut = false;
 
 
@@ -317,7 +316,7 @@ class _WalletScreenState extends State<WalletScreen> {
     final bgColor   = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF7F7F7);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final balance   = UserBalance.instance.balance;
+    final balance = context.watch<UserBalance>().balance;
     final formatter = NumberFormat("#,##0.00", "en_US");
 
     return Scaffold(
