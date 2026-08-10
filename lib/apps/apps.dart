@@ -53,7 +53,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
       const CardPage(),
       const ComingSoonScreen(),
       // const CardsPage(),
-      const ComingSoonScreen(),
+      // const ComingSoonScreen(),
       MePage(onToggleTheme: widget.onToggleTheme),
     ];
 

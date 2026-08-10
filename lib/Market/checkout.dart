@@ -466,7 +466,8 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  String _paymentMethod = 'wallet'; // 'wallet' | 'paystack'
+  // 'wallet' | 'paystack' | 'flutterwave'
+  String _paymentMethod = 'wallet';
   final _addressController = TextEditingController();
   final _noteController    = TextEditingController();
   bool _placing = false;
@@ -477,9 +478,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double get _serviceFee => widget.total * _serviceFeeRate;
   double get _grandTotal => widget.total + _deliveryFee + _serviceFee;
 
-  // The prefix our WebView watches for to know Paystack has redirected back.
+  // The prefixes our WebView watches for to know a gateway has redirected back.
   static const String _paystackCallbackPrefix =
       'https://glopa.org/glo/payment_callback.php';
+  static const String _flutterwaveCallbackPrefix =
+      'https://glopa.org/glo/payment_callback_flw.php';
 
   double s(double v) {
     final sw = MediaQuery.of(context).size.width;
@@ -508,7 +511,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  Future<void> _placeOrder({String paystackRef = ''}) async {
+  Future<void> _placeOrder({String paymentRef = ''}) async {
     if (_addressController.text.trim().isEmpty) {
       _snack('Please enter a delivery address.', isError: true);
       return;
@@ -525,7 +528,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         body: jsonEncode({
           'user_id':          user.userId,
           'payment_method':   _paymentMethod,
-          'paystack_ref':     paystackRef,
+          // NOTE: checkout.php currently expects `paystack_ref` — if it uses
+          // that field to look up a `payment_intents` row, you'll want to
+          // either rename it to a gateway-agnostic `payment_ref`, or add a
+          // matching `flutterwave_ref` handling branch there. See note below.
+          'paystack_ref':     paymentRef,
           'delivery_address': _addressController.text.trim(),
           'note':             _noteController.text.trim(),
           'delivery_fee':     _deliveryFee,
@@ -592,6 +599,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           builder: (_) => PaystackWebView(
             checkoutUrl:       initData['authorization_url'],
             callbackUrlPrefix: _paystackCallbackPrefix,
+            title:             'Pay with Paystack',
           ),
         ),
       );
@@ -601,7 +609,63 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       }
 
-      await _placeOrder(paystackRef: reference);
+      await _placeOrder(paymentRef: reference);
+    } catch (_) {
+      _snack('Network error. Please try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => _placing = false);
+    }
+  }
+
+  Future<void> _initiateFlutterwave() async {
+    if (_addressController.text.trim().isEmpty) {
+      _snack('Please enter a delivery address.', isError: true);
+      return;
+    }
+
+    final user = context.read<UserProvider>().user;
+    if (user == null) return;
+
+    setState(() => _placing = true);
+
+    try {
+      final initRes = await http.post(
+        Uri.parse('https://glopa.org/glo/init_payment_flw.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id':          user.userId,
+          'amount':           _grandTotal,
+          'delivery_address': _addressController.text.trim(),
+          'note':             _noteController.text.trim(),
+          'delivery_fee':     _deliveryFee,
+          'service_fee':      _serviceFee,
+        }),
+      );
+      final initData = jsonDecode(initRes.body);
+
+      if (initData['status'] != 'success') {
+        _snack(initData['message'] ?? 'Could not start payment.', isError: true);
+        return;
+      }
+
+      if (!mounted) return;
+      final reference = await Navigator.push<String?>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaystackWebView(
+            checkoutUrl:       initData['authorization_url'],
+            callbackUrlPrefix: _flutterwaveCallbackPrefix,
+            title:             'Pay with Flutterwave',
+          ),
+        ),
+      );
+
+      if (reference == null || reference.isEmpty) {
+        _snack('Payment was not completed.', isError: true);
+        return;
+      }
+
+      await _placeOrder(paymentRef: reference);
     } catch (_) {
       _snack('Network error. Please try again.', isError: true);
     } finally {
@@ -811,6 +875,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   cardColor: cardColor,
                   textColor: textColor,
                 ),
+                SizedBox(height: s(10)),
+                _paymentOption(
+                  value:     'flutterwave',
+                  label:     'Pay with Flutterwave',
+                  subtitle:  'Card, bank transfer, USSD, mobile money',
+                  icon:      IconsaxPlusLinear.card_pos,
+                  cardColor: cardColor,
+                  textColor: textColor,
+                ),
               ],
             ),
           ),
@@ -837,10 +910,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onPressed: _placing
                         ? null
                         : () {
-                      if (_paymentMethod == 'paystack') {
-                        _initiatePaystack();
-                      } else {
-                        _placeOrder();
+                      switch (_paymentMethod) {
+                        case 'paystack':
+                          _initiatePaystack();
+                          break;
+                        case 'flutterwave':
+                          _initiateFlutterwave();
+                          break;
+                        default:
+                          _placeOrder();
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -859,9 +937,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           color: Colors.white, strokeWidth: 2.5),
                     )
                         : Text(
-                      _paymentMethod == 'paystack'
-                          ? 'Pay ₦${_grandTotal.toStringAsFixed(2)} with Paystack'
-                          : 'Place Order  ₦${_grandTotal.toStringAsFixed(2)}',
+                      _paymentMethod == 'wallet'
+                          ? 'Place Order  ₦${_grandTotal.toStringAsFixed(2)}'
+                          : 'Pay ₦${_grandTotal.toStringAsFixed(2)} with '
+                          '${_paymentMethod == 'paystack' ? 'Paystack' : 'Flutterwave'}',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: s(15)),

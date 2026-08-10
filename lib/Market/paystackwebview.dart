@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-/// Opens Paystack's hosted checkout page in a WebView and pops with the
-/// payment reference once the redirect to [callbackUrlPrefix] is detected.
-/// Pops with `null` if the user closes the sheet before paying.
+/// Opens a hosted checkout page (Paystack, Flutterwave, etc.) in a WebView
+/// and pops with the payment reference once the redirect to
+/// [callbackUrlPrefix] is detected. Pops with `null` if the user closes the
+/// sheet before paying.
 class PaystackWebView extends StatefulWidget {
   final String checkoutUrl;
   final String callbackUrlPrefix;
+  final String title;
 
   const PaystackWebView({
     super.key,
     required this.checkoutUrl,
     required this.callbackUrlPrefix,
+    this.title = 'Pay with Paystack',
   });
 
   @override
@@ -38,8 +41,12 @@ class _PaystackWebViewState extends State<PaystackWebView> {
           onNavigationRequest: (request) {
             if (request.url.startsWith(widget.callbackUrlPrefix)) {
               final uri = Uri.parse(request.url);
-              final reference =
-                  uri.queryParameters['reference'] ?? uri.queryParameters['trxref'];
+              // Paystack uses `reference` (or the legacy `trxref`);
+              // Flutterwave uses `tx_ref` for the same purpose — check both
+              // so this WebView works for either provider unmodified.
+              final reference = uri.queryParameters['reference'] ??
+                  uri.queryParameters['trxref'] ??
+                  uri.queryParameters['tx_ref'];
               Navigator.pop(context, reference);
               return NavigationDecision.prevent;
             }
@@ -54,7 +61,7 @@ class _PaystackWebViewState extends State<PaystackWebView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pay with Paystack'),
+        title: Text(widget.title),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context, null),

@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.untitle1</string>
+	<string>com.example.globalpay</string>
 	<key>PROJECT_ID</key>
 	<string>glonest-b697f</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:980200158785:ios:682d3238796c8a582938c0</string>
+	<string>1:980200158785:ios:141c522f678472a72938c0</string>
 </dict>
 </plist>

@@ -305,7 +305,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       InkWell(
-                        onTap: () => Navigator.push(
+                        onTap: () =>
+                            Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => GDropPage()),
                         ),

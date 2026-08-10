@@ -124,12 +124,15 @@ class _AirtimeScreenState extends State<AirtimeScreen>
     final detectedNetwork = prefixMap[prefix];
     if (detectedNetwork == null) return null;
 
-    return _allNetworks.firstWhere(
-          (n) => n.network == detectedNetwork && n.name == 'VTU',
-      orElse: () => _allNetworks.firstWhere(
-            (n) => n.network == detectedNetwork,
-        orElse: () => _allNetworks.first,
-      ),
+    final matches = _allNetworks
+        .where((n) => n.network.toUpperCase() == detectedNetwork)
+        .toList();
+
+    if (matches.isEmpty) return null; // don't silently pick a wrong network
+
+    return matches.firstWhere(
+          (n) => n.name == 'VTU',
+      orElse: () => matches.first,
     );
   }
 
@@ -975,25 +978,15 @@ class _AirtimeScreenState extends State<AirtimeScreen>
                     );
                   }).toList(),
                   onChanged: (val) {
-                    final raw = val ?? '';
-                    setState(() => singlePhoneError = null);
-
-                    // ── Auto-strip spaces/non-digits as user types or pastes ──
-                    final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
-                    if (cleaned != raw) {
-                      phoneController.value = TextEditingValue(
-                        text: cleaned,
-                        selection: TextSelection.collapsed(offset: cleaned.length),
-                      );
-                    }
-
-                    if (cleaned.length >= 4) {
-                      final detected = _detectNetworkFromPhone(cleaned);
-                      if (detected != null &&
-                          detected.planId != _selectedNetwork?.planId) {
-                        setState(() => _selectedNetwork = detected);
-                      }
-                    }
+                    if (val == null) return;
+                    final chosen = _allNetworks.firstWhere(
+                          (n) => n.planId == val,
+                      orElse: () => _allNetworks.first,
+                    );
+                    setState(() {
+                      _selectedNetwork = chosen;
+                      singlePhoneError = null;
+                    });
                   },
                 ),
               ),

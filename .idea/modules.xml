@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/globalpay1.iml" filepath="$PROJECT_DIR$/globalpay1.iml" />
-      <module fileurl="file://$PROJECT_DIR$/android/globalpay1_android.iml" filepath="$PROJECT_DIR$/android/globalpay1_android.iml" />
     </modules>
   </component>
 </project>

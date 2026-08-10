@@ -93,7 +93,9 @@ class _WalletScreenState extends State<WalletScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: s(17), color: textColor)),
                     SizedBox(height: s(6)),
                     Text(
-                      'Paystack requires these details to issue a dedicated account number, as required by CBN regulation. This is used only for verification and is never shared.',
+                      'Flutterwave requires these details to issue a '
+                          'dedicated account number, as required by CBN regulation.'
+                          ' This is used only for verification and is never shared.',
                       style: TextStyle(color: Colors.grey.shade500, fontSize: s(12), height: 1.4),
                     ),
                     SizedBox(height: s(16)),

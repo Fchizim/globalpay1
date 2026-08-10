@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:globalpay/home/home_page.dart';
+
+import '../apps/apps.dart';
 
 /// Generic placeholder screen for features that aren't live yet.
 ///
@@ -39,7 +42,10 @@ class ComingSoonScreen extends StatelessWidget {
         backgroundColor: bgColor,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: textColor),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MyAppsPage(onToggleTheme: () {  },)),
+          ),
         ),
       ),
       body: SafeArea(
@@ -83,7 +89,10 @@ class ComingSoonScreen extends StatelessWidget {
               ),
               const SizedBox(height: 36),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () =>  Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => MyAppsPage(onToggleTheme: () {  },)),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,

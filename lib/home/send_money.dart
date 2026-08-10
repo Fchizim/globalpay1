@@ -206,7 +206,7 @@ class _SendMoneyState extends State<SendMoney> {
     setState(() {
       selectedBank = match;
       _accountController.text = r.accountNumber;
-      // Trust the previously-verified name rather than re-hitting Paystack —
+      // Trust the previously-verified name rather than re-verifying with Flutterwave —
       // details for an existing recipient don't change.
       verifiedAccountName = r.accountName;
       verifyError = null;
@@ -240,12 +240,10 @@ class _SendMoneyState extends State<SendMoney> {
           bank: selectedBank!.name,
           balance: widget.balance,
           onTransaction: widget.onTransaction,
-          // NOTE: AmountSend needs to accept these two additional params
-          // (bankCode + the verified account holder name) and pass them
-          // through to WithdrawalService.withdraw(...) — see chat notes,
-          // since that file wasn't shared here yet.
-          // bankCode: selectedBank!.code,
-          // accountName: verifiedAccountName!,
+          // ── Now actually wired through to AmountSend / WithdrawalService ──
+          userId: widget.userId,
+          bankCode: selectedBank!.code,
+          accountHolderName: verifiedAccountName!,
         ),
       ),
     );

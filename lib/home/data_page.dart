@@ -40,6 +40,7 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _phoneController = TextEditingController();
   final NumberFormat _numFormat = NumberFormat.decimalPattern('en_US');
+  int _fetchToken = 0; // add this as a field in _DataScreenState
 
   // ── Networks ──────────────────────────────────────────────────────────────
   final List<Map<String, String>> networks = [
@@ -71,7 +72,11 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final phone = context.read<UserProvider>().user?.phone ?? '';
-      if (phone.isNotEmpty) _phoneController.text = phone;
+      if (phone.isNotEmpty) {
+        _phoneController.text = phone;
+        final idx = _detectNetworkIndexFromPhone(phone);
+        if (idx != null) setState(() => _selectedNetworkIndex = idx);
+      }
     });
 
     _isLoading = true;
@@ -135,7 +140,11 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
 
 
   // ── Fetch live plans ──────────────────────────────────────────────────────
+
+
   Future<void> _fetchPlans() async {
+    final myToken = ++_fetchToken;
+
     setState(() {
       _isLoading = true;
       _loadError = null;
@@ -156,7 +165,10 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
           body: jsonEncode({'fetch': 'DATA'}),
         ).timeout(const Duration(seconds: 15));
 
+        // A newer fetch has started since this one was kicked off — bail out.
+        if (myToken != _fetchToken) return;
         if (!mounted) return;
+
         if (response.body.isEmpty) {
           setState(() => _loadError = 'Empty response. Please try again.');
           return;
@@ -167,22 +179,37 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
         if (status == 'successful') PlansCache.instance.setData(decoded);
       }
 
+      // Check again right before we apply results — the cache branch has no
+      // await, but this keeps both paths safe if that ever changes.
+      if (myToken != _fetchToken) return;
+      if (!mounted) return;
+
       final status = (decoded['status'] ?? '').toString().toLowerCase();
       if (status == 'successful') {
         final api    = networks[_selectedNetworkIndex]['api']!;
         final parsed = _parsePlans(decoded, api);
-        setState(() => _allPlans = parsed);
+        if (myToken == _fetchToken) {
+          setState(() => _allPlans = parsed);
+        }
       } else {
-        setState(() => _loadError =
-            (decoded['message'] ?? 'Could not load plans.').toString());
+        if (myToken == _fetchToken) {
+          setState(() => _loadError =
+              (decoded['message'] ?? 'Could not load plans.').toString());
+        }
       }
     } on TimeoutException {
-      if (mounted) setState(() => _loadError = 'Request timed out. Please try again.');
+      if (mounted && myToken == _fetchToken) {
+        setState(() => _loadError = 'Request timed out. Please try again.');
+      }
     } catch (e) {
       debugPrint('_fetchPlans error: $e');
-      if (mounted) setState(() => _loadError = 'Network error. Please check your connection.');
+      if (mounted && myToken == _fetchToken) {
+        setState(() => _loadError = 'Network error. Please check your connection.');
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && myToken == _fetchToken) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

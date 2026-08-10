@@ -5,14 +5,20 @@ import 'package:intl/intl.dart';
 import 'package:globalpay/home/sucessful_transfer.dart';
 import '../provider/balance_provider.dart';
 import '../home/currency_con.dart';
+import 'withdrawal_service.dart'; // adjust path if needed
 
 class AmountSend extends StatefulWidget {
   final String image;
-  final String name;
+  final String name; // display label, e.g. "Bank Transfer"
   final String account;
   final String bank;
   final double balance;
   final Function(double) onTransaction;
+
+  // ── Required for the actual backend withdrawal call ──
+  final String userId;
+  final String bankCode;
+  final String accountHolderName; // the flutterwave-verified name, not `name`
 
   const AmountSend({
     super.key,
@@ -22,6 +28,9 @@ class AmountSend extends StatefulWidget {
     required this.bank,
     required this.balance,
     required this.onTransaction,
+    required this.userId,
+    required this.bankCode,
+    required this.accountHolderName,
   });
 
   @override
@@ -35,6 +44,7 @@ class _AmountSendState extends State<AmountSend> {
   final String _paymentMethod = 'Wallet';
   String _unit = "";
   late NumberFormat _currencyFormatter;
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -88,6 +98,10 @@ class _AmountSendState extends State<AmountSend> {
       _toast('Enter a valid amount');
       return;
     }
+    if (amount < 100) {
+      _toast('Minimum withdrawal is ${CurrencyConfig().symbol}100');
+      return;
+    }
     if (amount > widget.balance) {
       _toast('Insufficient balance');
       return;
@@ -137,7 +151,7 @@ class _AmountSendState extends State<AmountSend> {
                       backgroundImage: AssetImage(widget.image),
                       radius: 28,
                     ),
-                    title: Text(widget.name,
+                    title: Text(widget.accountHolderName,
                         style: TextStyle(
                             color: textColor, fontWeight: FontWeight.w700)),
                     subtitle: Text(widget.bank,
@@ -148,42 +162,63 @@ class _AmountSendState extends State<AmountSend> {
                   _infoRow(
                       "Amount", _currencyFormatter.format(amount), textColor),
                   _infoRow("Payment Method", _paymentMethod, textColor),
-                  _infoRow("Fee", "${CurrencyConfig().symbol}1.00", textColor),
                   _infoRow("Available",
                       _currencyFormatter.format(widget.balance), textColor),
                   if (_noteCtrl.text.isNotEmpty)
                     _infoRow("Note", _noteCtrl.text, textColor),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 55),
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      padding: EdgeInsets.all(40),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _openPinSheet(amount, isDark);
-                    },
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF6A00), Color(0xFFFF3D00)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: const Text("Pay",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              // fontWeight: FontWeight.bold
-                            )),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _openPinSheet(amount, isDark);
+                      },
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF6A00), Color(0xFFFF3D00)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF3D00).withOpacity(0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.lock_rounded,
+                                  color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Pay ${_currencyFormatter.format(amount)}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -300,7 +335,8 @@ class _AmountSendState extends State<AmountSend> {
                     if (cleaned.length == 4) {
                       Future.delayed(const Duration(milliseconds: 200), () {
                         Navigator.pop(sheetContext);
-                        _processPayment(amount);
+                        // ── The actual fix: PIN is now passed through ──
+                        _processPayment(amount, cleaned);
                       });
                     }
                   },
@@ -314,21 +350,60 @@ class _AmountSendState extends State<AmountSend> {
     );
   }
 
-  void _processPayment(double amount) {
-    UserBalance.instance.balance -= amount;
-    widget.onTransaction(amount);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SuccessfulTransfer(
-          amount: amount,
-          paymentMethod: _paymentMethod,
-          recipientName: widget.name,
-          bankName: widget.bank,
-          accountNumber: widget.account, isGTag: false,
-        ),
-      ),
+  // ---------- Actual backend call ----------
+  Future<void> _processPayment(double amount, String pin) async {
+    if (_isProcessing) return; // guard against double-submit
+    setState(() => _isProcessing = true);
+
+    // Blocking loader while the withdrawal request is in flight.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final result = await WithdrawalService.withdraw(
+        userId: widget.userId,
+        accountNumber: widget.account.replaceAll(RegExp(r'\D'), ''),
+        bankCode: widget.bankCode,
+        bankName: widget.bank,
+        accountName: widget.accountHolderName,
+        amount: amount,
+        pin: pin,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // close loader
+
+      final status = result['status'] as String?;
+      final message = (result['message'] as String?) ?? 'Withdrawal could not be processed.';
+
+      if (status == 'success') {
+        UserBalance.instance.balance -= amount;
+        widget.onTransaction(amount);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SuccessfulTransfer(
+              amount: amount,
+              paymentMethod: _paymentMethod,
+              recipientName: widget.accountHolderName,
+              bankName: widget.bank,
+              accountNumber: widget.account, isGTag: false,
+            ),
+          ),
+        );
+      } else {
+        _toast(message);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // close loader
+      _toast('Could not process withdrawal. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 
   // ---------- MAIN UI ----------
@@ -343,8 +418,7 @@ class _AmountSendState extends State<AmountSend> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text("Send Money",
-            style: TextStyle()),
+        title: const Text("Send Money"),
         centerTitle: true,
         backgroundColor: bgColor,
         elevation: 0,
@@ -352,14 +426,9 @@ class _AmountSendState extends State<AmountSend> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Recipient Info
           Container(
             decoration: BoxDecoration(
-              // gradient: const LinearGradient(
               color: cardColor,
-              // begin: Alignment.topLeft,
-              // end: Alignment.bottomRight,
-              // ),
               borderRadius: BorderRadius.circular(20),
             ),
             padding: const EdgeInsets.all(16),
@@ -373,7 +442,7 @@ class _AmountSendState extends State<AmountSend> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.name,
+                    Text(widget.accountHolderName,
                         style: TextStyle(
                             color: textColor,
                             fontWeight: FontWeight.w700,
@@ -390,7 +459,6 @@ class _AmountSendState extends State<AmountSend> {
           ),
           const SizedBox(height: 24),
 
-          // Amount Box
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -465,7 +533,6 @@ class _AmountSendState extends State<AmountSend> {
 
           const SizedBox(height: 24),
 
-          // Optional Note
           TextField(
             controller: _noteCtrl,
             maxLength: 50,
@@ -482,11 +549,10 @@ class _AmountSendState extends State<AmountSend> {
           ),
           const SizedBox(height: 24),
 
-          // Send Button
           SizedBox(
             height: 55,
             child: ElevatedButton(
-              onPressed: _send,
+              onPressed: _isProcessing ? null : _send,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -509,7 +575,6 @@ class _AmountSendState extends State<AmountSend> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
-                        // fontWeight: FontWeight.bold
                       )),
                 ),
               ),

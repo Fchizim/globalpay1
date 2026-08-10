@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../Market/cart_provider.dart';
 import '../apps/apps.dart';
 import '../provider/user_provider.dart';
+import '../services/push_notification_service.dart';
 import 'forgot_password.dart';
 import 'signup_page.dart';
 import '../models/user_model.dart';
@@ -56,12 +58,24 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     try {
+      // ── Get the FCM token for this device before logging in ──
+      // If this fails for any reason (permissions denied, etc.), fall back
+      // to null rather than blocking login entirely.
+      String? fcmToken;
+      try {
+        fcmToken = await PushNotificationService.getToken();
+      } catch (e) {
+        debugPrint('Could not get FCM token: $e');
+      }
+
       final res = await http.post(
         Uri.parse("https://glopa.org/glo/userlogin.php"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": email,
           "pin": pin,
+          "fcm_token": fcmToken,
+          "platform": Platform.isIOS ? "ios" : "android",
         }),
       );
 
@@ -89,12 +103,12 @@ class _LoginPageState extends State<LoginPage> {
 
       /// 🚀 Navigate
       Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MyAppsPage(
-              onToggleTheme: widget.onToggleTheme),
-        ),
-            (_) => false
+          context,
+          MaterialPageRoute(
+            builder: (_) => MyAppsPage(
+                onToggleTheme: widget.onToggleTheme),
+          ),
+              (_) => false
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

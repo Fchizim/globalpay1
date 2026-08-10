@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:http/http.dart' as http;
 import 'package:iconsax_plus/iconsax_plus.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:marquee/marquee.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' hide BarcodeFormat;
@@ -177,7 +177,7 @@ class _SendTabState extends State<_SendTab> {
       _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       final image  = await boundary.toImage(pixelRatio: 3.0);
       final bytes  = await image.toByteData(format: ui.ImageByteFormat.png);
-      final result = await ImageGallerySaver.saveImage(
+      final result = await ImageGallerySaverPlus.saveImage(
           bytes!.buffer.asUint8List(),
           name: 'GDrop_$_voucherId');
       if (result['isSuccess'] == true) {

@@ -8,7 +8,7 @@ class BankOption {
   const BankOption({required this.name, required this.code});
 
   @override
-  String toString() => name; // lets DropdownSearch filter/display by name directly
+  String toString() => name;
 }
 
 class RecipientInfo {
@@ -17,12 +17,14 @@ class RecipientInfo {
   final String bankName;
   final String accountName;
 
-  const RecipientInfo({
-    required this.accountNumber,
-    required this.bankCode,
-    required this.bankName,
-    required this.accountName,
-  });
+  const RecipientInfo(
+      {
+        required this.accountNumber,
+        required this.bankCode,
+        required this.bankName,
+        required this.accountName,
+      }
+      );
 
   String get key => '$accountNumber|$bankCode';
 
@@ -142,6 +144,7 @@ class WithdrawalService {
     required String bankName,
     required String accountName,
     required double amount,
+    required String pin,
   }) async {
     final res = await http
         .post(
@@ -154,6 +157,7 @@ class WithdrawalService {
         'bank_name': bankName,
         'account_name': accountName,
         'amount': amount,
+        'pin': pin,
       }),
     )
         .timeout(const Duration(seconds: 40));
