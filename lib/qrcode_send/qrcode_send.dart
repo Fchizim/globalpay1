@@ -22,6 +22,25 @@ import '../provider/user_provider.dart';
 // ─── constants ────────────────────────────────────────────────────────────────
 const _base = 'https://glopa.org/glo';
 
+// A single accent gradient used consistently across the page.
+const _accentGradient = LinearGradient(
+  colors: [Color(0xFFFF7A45), Color(0xFFFF4D8D)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+// Hero card gradient (matches the GDrop QR mockup).
+const _heroGradient = LinearGradient(
+  colors: [Color(0xFFFF6A3D), Color(0xFF7B2FF7)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+// Path to your logo asset. Make sure it's declared under `flutter: assets:`
+// in pubspec.yaml. If the file is missing at runtime, the QR silently falls
+// back to a plain code with no embedded logo — it never breaks the screen.
+const String _kLogoAsset = 'assets/images/png/logooooooooo.jpg';
+
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────────
 class GDropPage extends StatefulWidget {
   const GDropPage({super.key});
@@ -32,6 +51,9 @@ class GDropPage extends StatefulWidget {
 class _GDropPageState extends State<GDropPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
+  // Controls whether the Send/Redeem/History pill is shown. Hidden once a
+  // GDrop QR is on screen so the QR view reads as its own destination.
+  final ValueNotifier<bool> _showTabBar = ValueNotifier(true);
 
   @override
   void initState() {
@@ -42,48 +64,123 @@ class _GDropPageState extends State<GDropPage>
   @override
   void dispose() {
     _tabs.dispose();
+    _showTabBar.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg     = isDark ? const Color(0xFF121212) : Colors.white;
-    final tc     = isDark ? Colors.white : Colors.black;
+    final bg = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
+    final tc = isDark ? Colors.white : Colors.black;
+    final pillBg = isDark ? const Color(0xFF1C1C1C) : Colors.white;
 
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor:      bg,
-        elevation:            0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: tc, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text('GDrop',
-            style: TextStyle(
-                color: tc, fontWeight: FontWeight.bold, fontSize: 20)),
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor:           Colors.deepOrange,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor:       Colors.deepOrange,
-          tabs: const [
-            Tab(text: 'Send'),
-            Tab(text: 'Redeem'),
-            Tab(text: 'History'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabs,
-        children: const [
-          _SendTab(),
-          _RedeemTab(),
-          _HistoryTab(),
-        ],
-      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: _showTabBar,
+      builder: (context, showTabBar, _) {
+        return Scaffold(
+          backgroundColor: bg,
+          appBar: AppBar(
+            backgroundColor: bg,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            centerTitle: false,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new, color: tc, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'GDrop',
+              style: TextStyle(
+                color: tc,
+                fontWeight: FontWeight.w800,
+                fontSize: 21,
+              ),
+            ),
+            bottom: !showTabBar
+                ? null
+                : PreferredSize(
+                    preferredSize: const Size.fromHeight(60),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : Colors.black.withOpacity(0.04),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(
+                                isDark ? 0.2 : 0.04,
+                              ),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: TabBar(
+                          controller: _tabs,
+                          dividerColor:
+                              Colors.transparent, // kills the black underline
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          indicatorPadding: EdgeInsets.zero,
+                          indicator: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: _accentGradient,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.deepOrange.withOpacity(0.35),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          splashFactory: NoSplash.splashFactory,
+                          overlayColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.grey.shade500,
+                          labelStyle: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                          unselectedLabelStyle: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                          tabs: const [
+                            Tab(text: 'Send'),
+                            Tab(text: 'Redeem'),
+                            Tab(text: 'History'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+          body: TabBarView(
+            controller: _tabs,
+            // Lock the swipe gesture too while a QR result is showing, so the
+            // user can't swipe sideways into another tab behind its back.
+            physics: showTabBar ? null : const NeverScrollableScrollPhysics(),
+            children: [
+              _SendTab(
+                onQrVisibilityChanged: (visible) =>
+                    _showTabBar.value = !visible,
+              ),
+              const _RedeemTab(),
+              const _HistoryTab(),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -92,19 +189,22 @@ class _GDropPageState extends State<GDropPage>
 // SEND TAB
 // ══════════════════════════════════════════════════════════════════════════════
 class _SendTab extends StatefulWidget {
-  const _SendTab();
+  // Notifies the parent GDropPage so it can hide its Send/Redeem/History
+  // tab bar while the generated QR is on screen.
+  final ValueChanged<bool>? onQrVisibilityChanged;
+  const _SendTab({this.onQrVisibilityChanged});
   @override
   State<_SendTab> createState() => _SendTabState();
 }
 
 class _SendTabState extends State<_SendTab> {
   final _amountCtrl = TextEditingController();
-  final _noteCtrl   = TextEditingController();
+  final _noteCtrl = TextEditingController();
 
-  int    _design      = 0;
-  bool   _loading     = false;
-  String _voucherId   = '';
-  double _voucherAmt  = 0;
+  int _design = 0;
+  bool _loading = false;
+  String _voucherId = '';
+  double _voucherAmt = 0;
   String _voucherNote = '';
 
   final GlobalKey _qrKey = GlobalKey();
@@ -122,7 +222,8 @@ class _SendTabState extends State<_SendTab> {
 
     final amt = double.tryParse(_amountCtrl.text.trim()) ?? 0;
     if (amt < 100) {
-      _snack('Minimum amount is ₦100', error: true); return;
+      _snack('Minimum amount is ₦100', error: true);
+      return;
     }
 
     // PIN collection — NOT validation. The sheet just returns the 4 digits
@@ -138,27 +239,30 @@ class _SendTabState extends State<_SendTab> {
 
     setState(() => _loading = true);
     try {
-      final res = await http.post(
-        Uri.parse('$_base/gdrop_create.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': user.userId,
-          'amount':  amt,
-          'note':    _noteCtrl.text.trim(),
-          'design':  _design,
-          'pin':     pin,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final res = await http
+          .post(
+            Uri.parse('$_base/gdrop_create.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': user.userId,
+              'amount': amt,
+              'note': _noteCtrl.text.trim(),
+              'design': _design,
+              'pin': pin,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       final data = jsonDecode(res.body);
       if (!mounted) return;
 
       if (data['status'] == 'success') {
         setState(() {
-          _voucherId   = data['voucher_id'];
-          _voucherAmt  = double.parse(data['amount'].toString());
+          _voucherId = data['voucher_id'];
+          _voucherAmt = double.parse(data['amount'].toString());
           _voucherNote = data['note'] ?? '';
         });
+        widget.onQrVisibilityChanged?.call(true);
       } else {
         // Covers both "Incorrect PIN." and any other backend rejection
         _snack(data['message'] ?? 'Failed to create GDrop', error: true);
@@ -170,301 +274,421 @@ class _SendTabState extends State<_SendTab> {
     }
   }
 
-  // ── Save QR to gallery ─────────────────────────────────────────────────────
-  Future<void> _saveQR() async {
+  // ── capture the hero card as a file ─────────────────────────────────────────
+  Future<File?> _captureCard() async {
     try {
       final boundary =
-      _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      final image  = await boundary.toImage(pixelRatio: 3.0);
-      final bytes  = await image.toByteData(format: ui.ImageByteFormat.png);
-      final result = await ImageGallerySaverPlus.saveImage(
-          bytes!.buffer.asUint8List(),
-          name: 'GDrop_$_voucherId');
-      if (result['isSuccess'] == true) {
-        _snack('Saved to gallery!');
-      }
+          _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      final tmp = await getTemporaryDirectory();
+      final file = File('${tmp.path}/gdrop_$_voucherId.png');
+      await file.writeAsBytes(bytes!.buffer.asUint8List());
+      return file;
     } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Save QR to gallery ─────────────────────────────────────────────────────
+  Future<void> _saveQR() async {
+    final file = await _captureCard();
+    if (file == null) {
+      _snack('Could not save image', error: true);
+      return;
+    }
+    final result = await ImageGallerySaverPlus.saveFile(file.path);
+    if (result['isSuccess'] == true) {
+      _snack('Saved to gallery!');
+    } else {
       _snack('Could not save image', error: true);
     }
   }
 
   // ── Share QR ───────────────────────────────────────────────────────────────
   Future<void> _shareQR() async {
-    try {
-      final boundary =
-      _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      final tmp   = await getTemporaryDirectory();
-      final file  = File('${tmp.path}/gdrop_$_voucherId.png');
-      await file.writeAsBytes(bytes!.buffer.asUint8List());
+    final file = await _captureCard();
+    if (file != null) {
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: '🎁 I sent you a GDrop gift of ₦${_voucherAmt.toStringAsFixed(0)}!\n'
+        text:
+            '🎁 I sent you a GDrop gift of ₦${_voucherAmt.toStringAsFixed(0)}!\n'
             'Code: $_voucherId\nRedeem on Glopa app.',
       );
-    } catch (_) {
-      // fallback: share code as text
+    } else {
       Share.share(
         '🎁 GDrop gift of ₦${_voucherAmt.toStringAsFixed(0)}!\n'
-            'Code: $_voucherId\nRedeem on Glopa app.',
+        'Code: $_voucherId\nRedeem on Glopa app.',
       );
     }
   }
 
-  void _reset() => setState(() {
-    _voucherId = '';
-    _amountCtrl.clear();
-    _noteCtrl.clear();
-    _design = 0;
-  });
+  void _copyCode() {
+    Clipboard.setData(ClipboardData(text: _voucherId));
+    _snack('Voucher code copied');
+  }
+
+  void _reset() {
+    setState(() {
+      _voucherId = '';
+      _amountCtrl.clear();
+      _noteCtrl.clear();
+      _design = 0;
+    });
+    widget.onQrVisibilityChanged?.call(false);
+  }
 
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: error ? Colors.red.shade600 : Colors.green.shade600,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? Colors.red.shade600 : Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg     = isDark ? const Color(0xFF1A1A1A) : Colors.white;
-    final card   = isDark ? const Color(0xFF242424) : Colors.grey.shade50;
-    final tc     = isDark ? Colors.white : Colors.black;
+    final card = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final tc = isDark ? Colors.white : Colors.black;
 
-    // ── QR result view ────────────────────────────────────────────────────────
+    // ── QR result view (matches the GDrop mockup) ──────────────────────────────
     if (_voucherId.isNotEmpty) {
+      final qrData = jsonEncode({
+        'voucher_id': _voucherId,
+        'amount': _voucherAmt,
+      });
+
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(children: [
-
-          // QR card (repaint boundary for screenshot)
-          RepaintBoundary(
-            key: _qrKey,
-            child: _GDropQRCard(
-              voucherId:  _voucherId,
-              amount:     _voucherAmt,
-              note:       _voucherNote,
-              design:     _design,
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        child: Column(
+          children: [
+            RepaintBoundary(
+              key: _qrKey,
+              child: _GDropHeroCard(
+                qrData: qrData,
+                voucherId: _voucherId,
+                note: _voucherNote,
+                status: 'Active',
+              ),
             ),
-          ),
 
-          const SizedBox(height: 28),
+            const SizedBox(height: 18),
 
-          // Code chip (tap to copy)
-          GestureDetector(
-            onTap: () {
-              // copy to clipboard via share
-              Share.share(_voucherId);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            // Action squares: Share / Save Image / Copy Code
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionSquare(
+                    icon: Icons.near_me_rounded,
+                    label: 'Share',
+                    onTap: _shareQR,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ActionSquare(
+                    icon: Icons.download_rounded,
+                    label: 'Save Image',
+                    onTap: _saveQR,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ActionSquare(
+                    icon: Icons.copy_all_rounded,
+                    label: 'Copy Code',
+                    onTap: _copyCode,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            // Info card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color:        Colors.deepOrange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(30),
-                border:       Border.all(color: Colors.deepOrange.withOpacity(0.3)),
+                color: card,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.copy, color: Colors.deepOrange, size: 16),
-                const SizedBox(width: 8),
-                Text(_voucherId,
-                    style: const TextStyle(
-                        color:      Colors.deepOrange,
-                        fontWeight: FontWeight.bold,
-                        fontSize:   15,
-                        letterSpacing: 1.2)),
-              ]),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Action buttons
-          Row(children: [
-            Expanded(
-              child: _OutlineBtn(
-                icon:  Icons.download_rounded,
-                label: 'Save',
-                onTap: _saveQR,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: Colors.deepOrange,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Anyone with this QR can redeem',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: tc,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const _InfoBullet('One-time use only'),
+                        const _InfoBullet(
+                          'Never expires — valid until redeemed',
+                        ),
+                        const _InfoBullet('Secure and encrypted'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _OutlineBtn(
-                icon:  Icons.share_rounded,
-                label: 'Share',
-                onTap: _shareQR,
-              ),
-            ),
-          ]),
 
-          const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _reset,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-              child: const Text('Send Another GDrop',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_rounded, size: 13, color: Colors.grey.shade400),
+                const SizedBox(width: 6),
+                Text(
+                  'Secured by Glonest Encryption',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                ),
+              ],
             ),
-          ),
-        ]),
+
+            const SizedBox(height: 24),
+
+            _GradientButton(label: 'Send Another GDrop', onTap: _reset),
+          ],
+        ),
       );
     }
 
     // ── Form view ──────────────────────────────────────────────────────────────
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        // Banner
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.deepOrange.shade600, Colors.purple.shade300],
-              begin: Alignment.topLeft,
-              end:   Alignment.bottomRight,
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: _accentGradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.deepOrange.withOpacity(0.25),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 22,
+                  child: Marquee(
+                    text:
+                        '💸 Surprise your loved ones with GDrop cash gifts!    ',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    blankSpace: 40,
+                    velocity: 40,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'QR-based instant money gift',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
           ),
-          child: Column(children: [
-            SizedBox(
-              height: 24,
-              child: Marquee(
-                text:       '💸 Surprise your loved ones with GDrop cash gifts!    ',
-                style:      const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                blankSpace: 40,
-                velocity:   40,
+
+          const SizedBox(height: 28),
+
+          // Design selector
+          Text(
+            'Choose a Design',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: tc,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _DesignChip(
+                label: 'Plain',
+                selected: _design == 0,
+                color: isDark ? Colors.white : Colors.black,
+                onTap: () => setState(() => _design = 0),
+              ),
+              _DesignChip(
+                label: 'Love ❤️',
+                selected: _design == 1,
+                color: Colors.deepOrange,
+                onTap: () => setState(() => _design = 1),
+              ),
+              _DesignChip(
+                label: 'Gift 🎁',
+                selected: _design == 2,
+                color: Colors.purple,
+                onTap: () => setState(() => _design = 2),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 28),
+
+          // Amount field
+          const _FieldLabel('Amount (₦)'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _amountCtrl,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                color: tc,
+                fontWeight: FontWeight.w800,
+                fontSize: 22,
+              ),
+              decoration: InputDecoration(
+                prefixText: '₦ ',
+                prefixStyle: TextStyle(
+                  color: tc,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                ),
+                hintText: 'Min ₦100',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Colors.deepOrange,
+                    width: 1.5,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-            const Text('QR-based instant money gift',
-                style: TextStyle(color: Colors.white70, fontSize: 12)),
-          ]),
-        ),
+          ),
 
-        const SizedBox(height: 24),
+          const SizedBox(height: 18),
 
-        // Design selector
-        const Text('Choose a Design',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _DesignChip(index: 0, label: 'Plain', selected: _design == 0,
-                color: Colors.black,
-                onTap: () => setState(() => _design = 0)),
-            _DesignChip(index: 1, label: 'Love ❤️', selected: _design == 1,
-                color: Colors.deepOrange,
-                onTap: () => setState(() => _design = 1)),
-            _DesignChip(index: 2, label: 'Gift 🎁', selected: _design == 2,
-                color: Colors.purple,
-                onTap: () => setState(() => _design = 2)),
-          ],
-        ),
-
-        const SizedBox(height: 24),
-
-        // Amount field
-        const _FieldLabel('Amount (₦)'),
-        const SizedBox(height: 8),
-        TextField(
-          controller:   _amountCtrl,
-          keyboardType: TextInputType.number,
-          style: TextStyle(
-              color: tc, fontWeight: FontWeight.bold, fontSize: 22),
-          decoration: InputDecoration(
-            prefixText: '₦ ',
-            prefixStyle: TextStyle(
-                color: tc, fontWeight: FontWeight.bold, fontSize: 22),
-            hintText:  'Min ₦100',
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
-            filled:    true,
-            fillColor: card,
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide:
-              const BorderSide(color: Colors.deepOrange, width: 1.5),
+          // Note field
+          const _FieldLabel('Note (optional)'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _noteCtrl,
+              style: TextStyle(color: tc),
+              decoration: InputDecoration(
+                hintText: 'e.g. Happy Birthday! 🎂',
+                hintStyle: TextStyle(color: Colors.grey.shade400),
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Colors.deepOrange,
+                    width: 1.5,
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
 
-        const SizedBox(height: 16),
+          const SizedBox(height: 30),
 
-        // Note field
-        const _FieldLabel('Note (optional)'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _noteCtrl,
-          style: TextStyle(color: tc),
-          decoration: InputDecoration(
-            hintText:  'e.g. Happy Birthday! 🎂',
-            hintStyle: const TextStyle(color: Colors.grey),
-            filled:    true,
-            fillColor: card,
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide:
-              const BorderSide(color: Colors.deepOrange, width: 1.5),
-            ),
+          _GradientButton(
+            label: 'Generate GDrop',
+            loading: _loading,
+            onTap: _generate,
           ),
-        ),
-
-        const SizedBox(height: 28),
-
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton(
-            onPressed: _loading ? null : _generate,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrange,
-              disabledBackgroundColor: Colors.deepOrange.withOpacity(0.5),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
-            child: _loading
-                ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5))
-                : const Text('Generate GDrop',
-                style: TextStyle(
-                    color:      Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize:   16)),
-          ),
-        ),
-        const SizedBox(height: 30),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -480,7 +704,7 @@ class _RedeemTab extends StatefulWidget {
 
 class _RedeemTabState extends State<_RedeemTab> {
   final _codeCtrl = TextEditingController();
-  bool   _loading = false;
+  bool _loading = false;
   Map<String, dynamic>? _result; // success payload
 
   @override
@@ -492,18 +716,23 @@ class _RedeemTabState extends State<_RedeemTab> {
   // ── Call backend ──────────────────────────────────────────────────────────
   Future<void> _redeem(String code) async {
     final clean = code.trim().toUpperCase();
-    if (clean.isEmpty) { _snack('Enter a voucher code', error: true); return; }
+    if (clean.isEmpty) {
+      _snack('Enter a voucher code', error: true);
+      return;
+    }
 
     final user = context.read<UserProvider>().user;
     if (user == null) return;
 
     setState(() => _loading = true);
     try {
-      final res = await http.post(
-        Uri.parse('$_base/gdrop_redeem.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': user.userId, 'voucher_id': clean}),
-      ).timeout(const Duration(seconds: 20));
+      final res = await http
+          .post(
+            Uri.parse('$_base/gdrop_redeem.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': user.userId, 'voucher_id': clean}),
+          )
+          .timeout(const Duration(seconds: 20));
 
       debugPrint('GDrop redeem status code: ${res.statusCode}');
       debugPrint('GDrop redeem raw body: ${res.body}');
@@ -540,14 +769,14 @@ class _RedeemTabState extends State<_RedeemTab> {
   // ── Gallery pick ──────────────────────────────────────────────────────────
   Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
-    final xFile  = await picker.pickImage(source: ImageSource.gallery);
+    final xFile = await picker.pickImage(source: ImageSource.gallery);
     if (xFile == null || !mounted) return;
 
     _snack('Reading QR from image...');
     final scanner = BarcodeScanner(formats: [BarcodeFormat.qrCode]);
     try {
       final inputImage = InputImage.fromFilePath(xFile.path);
-      final barcodes   = await scanner.processImage(inputImage);
+      final barcodes = await scanner.processImage(inputImage);
       if (barcodes.isEmpty) {
         _snack('No QR code found in image. Enter code manually.', error: true);
         return;
@@ -565,217 +794,253 @@ class _RedeemTabState extends State<_RedeemTab> {
     // Try to parse JSON (from our own QR)
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
-      final id   = json['voucher_id']?.toString() ?? json['id']?.toString() ?? '';
-      if (id.startsWith('GDRP-')) { _redeem(id); return; }
+      final id = json['voucher_id']?.toString() ?? json['id']?.toString() ?? '';
+      if (id.startsWith('GDRP-')) {
+        _redeem(id);
+        return;
+      }
     } catch (_) {}
     // Plain string
-    if (raw.startsWith('GDRP-')) { _redeem(raw); return; }
+    if (raw.startsWith('GDRP-')) {
+      _redeem(raw);
+      return;
+    }
     _snack('QR does not contain a valid GDrop code.', error: true);
   }
 
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: error ? Colors.red.shade600 : Colors.green.shade600,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? Colors.red.shade600 : Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final card   = isDark ? const Color(0xFF242424) : Colors.grey.shade50;
-    final tc     = isDark ? Colors.white : Colors.black;
+    final card = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final tc = isDark ? Colors.white : Colors.black;
 
     // ── Success view ────────────────────────────────────────────────────────
     if (_result != null) {
-      final amt    = double.parse(_result!['amount'].toString());
+      final amt = double.parse(_result!['amount'].toString());
       final sender = _result!['sender_username'] ?? '';
-      final note   = _result!['note'] ?? '';
+      final note = _result!['note'] ?? '';
 
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            // Confetti-style icon
-            Container(
-              width: 120, height: 120,
-              decoration: BoxDecoration(
-                color:  Colors.deepOrange.withOpacity(0.1),
-                shape:  BoxShape.circle,
-              ),
-              child: const Icon(Icons.celebration_rounded,
-                  size: 64, color: Colors.deepOrange),
-            ),
-            const SizedBox(height: 24),
-            Text('🎉 You received',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade500)),
-            const SizedBox(height: 8),
-            Text(
-              '₦${amt.toStringAsFixed(0)}',
-              style: const TextStyle(
-                  fontSize:   46,
-                  fontWeight: FontWeight.w900,
-                  color:      Colors.deepOrange),
-            ),
-            if (sender.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text('from @$sender',
-                  style: TextStyle(fontSize: 15, color: Colors.grey.shade500)),
-            ],
-            if (note.isNotEmpty) ...[
-              const SizedBox(height: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Celebration icon
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
-                  color:        card,
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: _accentGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepOrange.withOpacity(0.3),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                child: Text('"$note"',
+                child: const Icon(
+                  Icons.celebration_rounded,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 26),
+              Text(
+                '🎉 You received',
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
+              ),
+              const SizedBox(height: 6),
+              ShaderMask(
+                shaderCallback: (r) => _accentGradient.createShader(r),
+                child: Text(
+                  '₦${amt.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 46,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (sender.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'from @$sender',
+                  style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
+                ),
+              ],
+              if (note.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: card,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '"$note"',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color:     tc.withOpacity(0.75))),
-              ),
-            ],
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () => setState(() {
+                      fontStyle: FontStyle.italic,
+                      color: tc.withOpacity(0.75),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 34),
+              _GradientButton(
+                label: 'Redeem Another',
+                onTap: () => setState(() {
                   _result = null;
                   _codeCtrl.clear();
                 }),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                child: const Text('Redeem Another',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       );
     }
 
     // ── Redeem form ─────────────────────────────────────────────────────────
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(children: [
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+      child: Column(
+        children: [
+          const SizedBox(height: 4),
 
-        const SizedBox(height: 8),
-
-        // Scan / Gallery quick actions
-        Row(children: [
-          Expanded(
-            child: _ActionTile(
-              icon:  Icons.qr_code_scanner_rounded,
-              label: 'Scan QR',
-              sub:   'Use camera',
-              onTap: _scanCamera,
-            ),
+          // Scan / Gallery quick actions
+          Row(
+            children: [
+              Expanded(
+                child: _ActionTile(
+                  icon: Icons.qr_code_scanner_rounded,
+                  label: 'Scan QR',
+                  sub: 'Use camera',
+                  onTap: _scanCamera,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _ActionTile(
+                  icon: Icons.image_rounded,
+                  label: 'From Gallery',
+                  sub: 'Pick QR image',
+                  onTap: _pickFromGallery,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: _ActionTile(
-              icon:  Icons.image_rounded,
-              label: 'From Gallery',
-              sub:   'Pick QR image',
-              onTap: _pickFromGallery,
-            ),
-          ),
-        ]),
 
-        const SizedBox(height: 28),
+          const SizedBox(height: 30),
 
-        // Divider with "OR"
-        Row(children: [
-          const Expanded(child: Divider()),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('OR ENTER CODE',
-                style: TextStyle(
+          // Divider with "OR"
+          Row(
+            children: [
+              Expanded(child: Divider(color: Colors.grey.withOpacity(0.2))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'OR ENTER CODE',
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade400)),
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider(color: Colors.grey.withOpacity(0.2))),
+            ],
           ),
-          const Expanded(child: Divider()),
-        ]),
 
-        const SizedBox(height: 24),
+          const SizedBox(height: 26),
 
-        // Manual code entry
-        const _FieldLabel('Voucher Code'),
-        const SizedBox(height: 8),
-        TextField(
-          controller:     _codeCtrl,
-          textCapitalization: TextCapitalization.characters,
-          style: const TextStyle(
-              fontFamily:    'monospace',
-              fontSize:      18,
-              fontWeight:    FontWeight.bold,
-              letterSpacing: 2),
-          decoration: InputDecoration(
-            hintText:  'GDRP-XXXXXXXX-XXXX-XXXX',
-            hintStyle: TextStyle(
-                color:         Colors.grey.shade400,
-                fontSize:      14,
-                fontWeight:    FontWeight.normal,
-                letterSpacing: 1),
-            filled:    true,
-            fillColor: card,
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide:
-              const BorderSide(color: Colors.deepOrange, width: 1.5),
+          // Manual code entry
+          const _FieldLabel('Voucher Code'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.clear, color: Colors.grey),
-              onPressed: () => _codeCtrl.clear(),
+            child: TextField(
+              controller: _codeCtrl,
+              textCapitalization: TextCapitalization.characters,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.8,
+              ),
+              decoration: InputDecoration(
+                hintText: 'GDRP-XXXXXXXX-XXXX-XXXX',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 13,
+                  fontWeight: FontWeight.normal,
+                  letterSpacing: 1,
+                ),
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Colors.deepOrange,
+                    width: 1.5,
+                  ),
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.clear_rounded, color: Colors.grey.shade400),
+                  onPressed: () => _codeCtrl.clear(),
+                ),
+              ),
             ),
           ),
-        ),
 
-        const SizedBox(height: 24),
+          const SizedBox(height: 26),
 
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton(
-            onPressed: _loading ? null : () => _redeem(_codeCtrl.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrange,
-              disabledBackgroundColor: Colors.deepOrange.withOpacity(0.5),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
-            child: _loading
-                ? const SizedBox(
-                width: 22, height: 22,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5))
-                : const Text('Redeem GDrop',
-                style: TextStyle(
-                    color:      Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize:   16)),
+          _GradientButton(
+            label: 'Redeem GDrop',
+            loading: _loading,
+            onTap: () => _redeem(_codeCtrl.text),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -788,6 +1053,7 @@ class _HistoryTab extends StatefulWidget {
   @override
   State<_HistoryTab> createState() => _HistoryTabState();
 }
+
 // ══════════════════════════════════════════════════════════════════════════════
 // HISTORY DETAIL PAGE
 // ══════════════════════════════════════════════════════════════════════════════
@@ -798,9 +1064,22 @@ class _GDropDetailPage extends StatelessWidget {
   String _formatDate(String raw) {
     try {
       final dt = DateTime.parse(raw);
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-      final ampm   = dt.hour >= 12 ? 'PM' : 'AM';
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}, '
           '$hour12:${dt.minute.toString().padLeft(2, '0')} $ampm';
     } catch (_) {
@@ -808,41 +1087,66 @@ class _GDropDetailPage extends StatelessWidget {
     }
   }
 
-  Widget _divider() => const Divider(height: 1, indent: 16, endIndent: 16);
+  Widget _divider() => Divider(
+    height: 1,
+    indent: 16,
+    endIndent: 16,
+    color: Colors.grey.withOpacity(0.12),
+  );
 
-  Widget _row(BuildContext context, String label, String value, Color textColor,
-      {bool copyable = false}) {
+  Widget _row(
+    BuildContext context,
+    String label,
+    String value,
+    Color textColor, {
+    bool copyable = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 2,
-            child: Text(label,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            ),
           ),
           Expanded(
             flex: 3,
-            child: Text(value,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                    color: textColor, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           if (copyable) ...[
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: value));
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: const Text('Copied to clipboard'),
-                  duration: const Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                  backgroundColor: Colors.green.shade600,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Copied to clipboard'),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Colors.green.shade600,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
               },
-              child: Icon(Icons.copy, size: 15, color: Colors.grey.shade400),
+              child: Icon(
+                Icons.copy_rounded,
+                size: 15,
+                color: Colors.grey.shade400,
+              ),
             ),
           ],
         ],
@@ -853,24 +1157,25 @@ class _GDropDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg     = isDark ? const Color(0xFF121212) : Colors.white;
-    final card   = isDark ? const Color(0xFF242424) : Colors.grey.shade50;
-    final tc     = isDark ? Colors.white : Colors.black;
+    final bg = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
+    final card = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final tc = isDark ? Colors.white : Colors.black;
 
-    final isSent    = item['direction'] == 'sent';
-    final status    = item['status'] as String;
-    final amount    = double.parse(item['amount'].toString());
-    final note      = item['note'] ?? '';
+    final isSent = item['direction'] == 'sent';
+    final status = item['status'] as String;
+    final amount = double.parse(item['amount'].toString());
+    final note = item['note'] ?? '';
     final voucherId = item['voucher_id'] ?? '';
-    final design    = int.tryParse(item['design']?.toString() ?? '0') ?? 0;
-    final other     = isSent
+    final other = isSent
         ? (item['claimed_by'] ?? 'Unclaimed')
         : (item['sender_username'] ?? '');
-    final createdAt  = item['created_at']?.toString() ?? '';
+    final createdAt = item['created_at']?.toString() ?? '';
     final redeemedAt = item['redeemed_at']?.toString();
 
-    final statusColor = status == 'active'   ? Colors.green
-        : status == 'redeemed' ? Colors.blue
+    final statusColor = status == 'active'
+        ? Colors.green
+        : status == 'redeemed'
+        ? Colors.blue
         : Colors.red;
 
     return Scaffold(
@@ -879,129 +1184,172 @@ class _GDropDetailPage extends StatelessWidget {
         backgroundColor: bg,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text('GDrop Details',
-            style: TextStyle(color: tc, fontWeight: FontWeight.bold, fontSize: 18)),
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          'GDrop Details',
+          style: TextStyle(
+            color: tc,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(children: [
-
-          // ── Hero amount ──
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28),
-            decoration: BoxDecoration(
-              color: card,
-              borderRadius: BorderRadius.circular(20),
+        child: Column(
+          children: [
+            // ── Hero amount ──
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 30),
+              decoration: BoxDecoration(
+                color: card,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: (isSent ? Colors.deepOrange : Colors.green)
+                          .withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isSent
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
+                      color: isSent ? Colors.deepOrange : Colors.green,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isSent ? 'You sent' : 'You received',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      color: isSent ? Colors.deepOrange : Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      status[0].toUpperCase() + status.substring(1),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Column(children: [
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(
-                  color: (isSent ? Colors.deepOrange : Colors.green).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isSent ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                  color: isSent ? Colors.deepOrange : Colors.green,
-                  size: 30,
+
+            const SizedBox(height: 20),
+
+            // ── Detail rows ──
+            Container(
+              decoration: BoxDecoration(
+                color: card,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _row(context, 'Voucher Code', voucherId, tc, copyable: true),
+                  _divider(),
+                  _row(
+                    context,
+                    isSent ? 'Sent To' : 'Received From',
+                    other.isNotEmpty ? '@$other' : '—',
+                    tc,
+                  ),
+                  _divider(),
+                  _row(context, 'Date Created', _formatDate(createdAt), tc),
+                  if (redeemedAt != null && redeemedAt.isNotEmpty) ...[
+                    _divider(),
+                    _row(context, 'Date Redeemed', _formatDate(redeemedAt), tc),
+                  ],
+                  if (note.isNotEmpty) ...[
+                    _divider(),
+                    _row(context, 'Note', '"$note"', tc),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── Re-share QR for unclaimed sent vouchers ──
+            if (isSent && status == 'active') ...[
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Still unclaimed — share again',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: tc,
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
-              Text(isSent ? 'You sent' : 'You received',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
-              const SizedBox(height: 4),
-              Text(
-                '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
-                style: TextStyle(
-                    fontSize: 38,
-                    fontWeight: FontWeight.w900,
-                    color: isSent ? Colors.deepOrange : Colors.green),
+              _GDropHeroCard(
+                qrData: jsonEncode({'voucher_id': voucherId, 'amount': amount}),
+                voucherId: voucherId,
+                note: note,
+                status: 'Active',
               ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  status[0].toUpperCase() + status.substring(1),
-                  style: TextStyle(
-                      color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ),
-            ]),
-          ),
-
-          const SizedBox(height: 20),
-
-          // ── Detail rows ──
-          Container(
-            decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(16)),
-            child: Column(children: [
-              _row(context, 'Voucher Code', voucherId, tc, copyable: true),
-              _divider(),
-              _row(context, isSent ? 'Sent To' : 'Received From',
-                  other.isNotEmpty ? '@$other' : '—', tc),
-              _divider(),
-              _row(context, 'Date Created', _formatDate(createdAt), tc),
-              if (redeemedAt != null && redeemedAt.isNotEmpty) ...[
-                _divider(),
-                _row(context, 'Date Redeemed', _formatDate(redeemedAt), tc),
-              ],
-              if (note.isNotEmpty) ...[
-                _divider(),
-                _row(context, 'Note', '"$note"', tc),
-              ],
-            ]),
-          ),
-
-          // ── Re-share QR for unclaimed sent vouchers ──
-          if (isSent && status == 'active') ...[
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Still unclaimed — share again',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: tc)),
-            ),
-            const SizedBox(height: 14),
-            _GDropQRCard(
-              voucherId: voucherId,
-              amount: amount,
-              note: note,
-              design: design,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () => Share.share(
+              const SizedBox(height: 16),
+              _OutlineBtn(
+                icon: Icons.ios_share_rounded,
+                label: 'Share Code',
+                onTap: () => Share.share(
                   '🎁 GDrop gift of ₦${amount.toStringAsFixed(0)}!\nCode: $voucherId\nRedeem on Glopa app.',
                 ),
-                icon: const Icon(Icons.share_rounded, color: Colors.deepOrange),
-                label: const Text('Share Code',
-                    style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.deepOrange),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
               ),
-            ),
-          ],
+            ],
 
-          const SizedBox(height: 24),
-        ]),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _HistoryTabState extends State<_HistoryTab> {
-  List<Map<String, dynamic>> _items   = [];
-  bool                       _loading = true;
-  String                     _filter  = 'all';
+  List<Map<String, dynamic>> _items = [];
+  bool _loading = true;
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -1014,14 +1362,18 @@ class _HistoryTabState extends State<_HistoryTab> {
     if (user == null) return;
     setState(() => _loading = true);
     try {
-      final res = await http.get(
-        Uri.parse('$_base/gdrop_history.php?user_id=${user.userId}&filter=$_filter'),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 15));
+      final res = await http
+          .get(
+            Uri.parse(
+              '$_base/gdrop_history.php?user_id=${user.userId}&filter=$_filter',
+            ),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 15));
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         setState(() {
-          _items   = List<Map<String, dynamic>>.from(data['history']);
+          _items = List<Map<String, dynamic>>.from(data['history']);
           _loading = false;
         });
       } else {
@@ -1035,157 +1387,343 @@ class _HistoryTabState extends State<_HistoryTab> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tc     = isDark ? Colors.white : Colors.black;
 
-    return Column(children: [
-
-      // Filter chips
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: Row(children: [
-          _FilterChip(label: 'All',      value: 'all',      current: _filter,
-              onTap: () { _filter = 'all';      _load(); setState((){}); }),
-          const SizedBox(width: 8),
-          _FilterChip(label: 'Sent',     value: 'sent',     current: _filter,
-              onTap: () { _filter = 'sent';     _load(); setState((){}); }),
-          const SizedBox(width: 8),
-          _FilterChip(label: 'Received', value: 'received', current: _filter,
-              onTap: () { _filter = 'received'; _load(); setState((){}); }),
-        ]),
-      ),
-
-      const SizedBox(height: 8),
-
-      Expanded(
-        child: _loading
-            ? const Center(
-            child: CircularProgressIndicator(color: Colors.deepOrange))
-            : _items.isEmpty
-            ? Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(IconsaxPlusLinear.gift,
-                size: 52, color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text('No GDrop history yet',
-                style: TextStyle(color: Colors.grey.shade400)),
-          ]),
-        )
-            : RefreshIndicator(
-          onRefresh: _load,
-          color: Colors.deepOrange,
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: _items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, i) =>
-                _HistoryCard(item: _items[i], isDark: isDark),
+    return Column(
+      children: [
+        // Filter chips
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+          child: Row(
+            children: [
+              _FilterChip(
+                label: 'All',
+                value: 'all',
+                current: _filter,
+                onTap: () {
+                  _filter = 'all';
+                  _load();
+                  setState(() {});
+                },
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: 'Sent',
+                value: 'sent',
+                current: _filter,
+                onTap: () {
+                  _filter = 'sent';
+                  _load();
+                  setState(() {});
+                },
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: 'Received',
+                value: 'received',
+                current: _filter,
+                onTap: () {
+                  _filter = 'received';
+                  _load();
+                  setState(() {});
+                },
+              ),
+            ],
           ),
         ),
-      ),
-    ]);
+
+        const SizedBox(height: 10),
+
+        Expanded(
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.deepOrange),
+                )
+              : _items.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        IconsaxPlusLinear.gift,
+                        size: 52,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No GDrop history yet',
+                        style: TextStyle(color: Colors.grey.shade400),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  color: Colors.deepOrange,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                    itemCount: _items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) =>
+                        _HistoryCard(item: _items[i], isDark: isDark),
+                  ),
+                ),
+        ),
+      ],
+    );
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// QR CARD WIDGET (used for display + screenshot)
+// HERO QR CARD (matches the GDrop mockup: logo, title, tagline, logo-embedded
+// QR, tap-to-enlarge, and a Voucher ID / Expires-in / Status stat row)
 // ══════════════════════════════════════════════════════════════════════════════
-class _GDropQRCard extends StatelessWidget {
+class _GDropHeroCard extends StatefulWidget {
+  final String qrData;
   final String voucherId;
-  final double amount;
   final String note;
-  final int    design;
+  final String status;
 
-  const _GDropQRCard({
+  const _GDropHeroCard({
+    required this.qrData,
     required this.voucherId,
-    required this.amount,
     required this.note,
-    required this.design,
+    this.status = 'Active',
   });
 
-  Color get _fgColor {
-    switch (design) {
-      case 1: return Colors.deepOrange;
-      case 2: return Colors.purple;
-      default: return Colors.black;
+  @override
+  State<_GDropHeroCard> createState() => _GDropHeroCardState();
+}
+
+class _GDropHeroCardState extends State<_GDropHeroCard> {
+  bool _logoAvailable = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLogo();
+  }
+
+  // Confirms the asset actually resolves before we try to draw it in the
+  // center of the QR — if it's missing/corrupt we fall back to a clean QR,
+  // never a crash.
+  Future<void> _checkLogo() async {
+    try {
+      await rootBundle.load(_kLogoAsset);
+    } catch (_) {
+      if (mounted) setState(() => _logoAvailable = false);
     }
   }
 
-  LinearGradient get _gradient {
-    switch (design) {
-      case 1: return LinearGradient(
-          colors: [Colors.deepOrange.shade400, Colors.pink.shade300],
-          begin: Alignment.topLeft, end: Alignment.bottomRight);
-      case 2: return LinearGradient(
-          colors: [Colors.purple.shade400, Colors.indigo.shade300],
-          begin: Alignment.topLeft, end: Alignment.bottomRight);
-      default: return const LinearGradient(
-          colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)]);
+  Color get _statusColor {
+    switch (widget.status.toLowerCase()) {
+      case 'redeemed':
+        return Colors.blueAccent;
+      case 'expired':
+        return Colors.redAccent;
+      default:
+        return Colors.greenAccent;
     }
+  }
+
+  // Plain QR — no center logo, just a clean, maximally-scannable code.
+  Widget _buildQr({double size = 200}) {
+    return QrImageView(
+      data: widget.qrData,
+      version: QrVersions.auto,
+      size: size,
+      backgroundColor: Colors.white,
+      errorCorrectionLevel: QrErrorCorrectLevel.H,
+    );
+  }
+
+  void _enlarge() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(28),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildQr(size: 260),
+              const SizedBox(height: 16),
+              Text(
+                widget.voucherId,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final qrData = jsonEncode({
-      'voucher_id': voucherId,
-      'amount':     amount,
-    });
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
       decoration: BoxDecoration(
-        gradient:     _gradient,
-        borderRadius: BorderRadius.circular(24),
+        gradient: _heroGradient,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withOpacity(0.18),
-            blurRadius: 20,
-            offset:     const Offset(0, 8),
+            color: Colors.deepPurple.withOpacity(0.25),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Column(children: [
-        // Header
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      child: Column(
+        children: [
+          // logo badge
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: _logoAvailable
+                ? Image.asset(
+                    _kLogoAsset,
+                    height: 56,
+                    width: 56,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    height: 56,
+                    width: 56,
+                    color: Colors.white.withOpacity(0.15),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'G',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 28,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'GDrop',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 30,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
-            design == 1 ? '❤️ GDrop' : design == 2 ? '🎁 GDrop' : '💸 GDrop',
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            'Share. Redeem. Delight.',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.85),
+              fontSize: 14,
+            ),
           ),
-        ]),
-        const SizedBox(height: 20),
 
-        // QR
-        Container(
-          padding:     const EdgeInsets.all(16),
-          decoration:  BoxDecoration(
-            color:        Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: QrImageView(
-            data:            qrData,
-            version:         QrVersions.auto,
-            size:            200,
-            foregroundColor: _fgColor,
-            backgroundColor: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 26),
 
-        // Note
-        if (note.isNotEmpty)
-          Text('"$note"',
+          // white QR card
+          GestureDetector(
+            onTap: _enlarge,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: _buildQr(size: 200),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          GestureDetector(
+            onTap: _enlarge,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.open_in_full_rounded,
+                  size: 14,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Tap to enlarge',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (widget.note.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              '"${widget.note}"',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  color:     Colors.white70,
-                  fontStyle: FontStyle.italic,
-                  fontSize:  14)),
+                color: Colors.white70,
+                fontStyle: FontStyle.italic,
+                fontSize: 13,
+              ),
+            ),
+          ],
 
-        const SizedBox(height: 8),
-        Text('Scan to claim · Glopa GDrop',
-            style: TextStyle(
-                color: Colors.white.withOpacity(0.5), fontSize: 11)),
-      ]),
+          const SizedBox(height: 22),
+          Divider(color: Colors.white.withOpacity(0.2), height: 1),
+          const SizedBox(height: 20),
+
+          // stat row
+          Row(
+            children: [
+              Expanded(
+                child: _HeroStat(
+                  icon: Icons.tag_rounded,
+                  label: 'Voucher ID',
+                  value: widget.voucherId,
+                ),
+              ),
+              Expanded(
+                child: _HeroStat(
+                  icon: Icons.all_inclusive_rounded,
+                  label: 'Validity',
+                  value: 'No Expiry',
+                ),
+              ),
+              Expanded(
+                child: _HeroStat(
+                  icon: Icons.verified_rounded,
+                  label: 'Status',
+                  value: widget.status,
+                  valueColor: _statusColor,
+                  showDot: true,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1194,94 +1732,353 @@ class _GDropQRCard extends StatelessWidget {
 // SMALL WIDGETS
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _DesignChip extends StatelessWidget {
-  final int index; final String label; final bool selected;
-  final Color color; final VoidCallback onTap;
-  const _DesignChip({required this.index, required this.label,
-    required this.selected, required this.color, required this.onTap});
+class _HeroStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool showDot;
+  const _HeroStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.showDot = false,
+  });
+
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color:        selected ? color.withOpacity(0.12) : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(14),
-        border:       Border.all(
-            color: selected ? color : Colors.grey.shade300, width: 1.5),
-      ),
-      child: Column(children: [
-        QrImageView(
-          data:            'preview',
-          version:         QrVersions.auto,
-          size:            60,
-          foregroundColor: color,
-          backgroundColor: Colors.white,
+  Widget build(BuildContext context) => Column(
+    children: [
+      Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          shape: BoxShape.circle,
         ),
-        const SizedBox(height: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize:   12,
-                fontWeight: FontWeight.w600,
-                color:      selected ? color : Colors.grey.shade600)),
-      ]),
+        child: Icon(icon, color: Colors.white, size: 16),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        label,
+        style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+      ),
+      const SizedBox(height: 3),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showDot) ...[
+            Container(
+              width: 7,
+              height: 7,
+              margin: const EdgeInsets.only(right: 5),
+              decoration: BoxDecoration(
+                color: valueColor ?? Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+          Flexible(
+            child: Text(
+              value,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: valueColor ?? Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+class _ActionSquare extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _ActionSquare({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: Colors.deepOrange, size: 22),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoBullet extends StatelessWidget {
+  final String text;
+  const _InfoBullet(this.text);
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.check_circle_rounded,
+          size: 15,
+          color: Colors.deepOrange,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+        ),
+      ],
     ),
   );
 }
 
+/// Primary call-to-action button with the shared accent gradient.
+class _GradientButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool loading;
+  const _GradientButton({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    height: 54,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: loading ? null : _accentGradient,
+        color: loading ? Colors.deepOrange.withOpacity(0.4) : null,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: loading
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.deepOrange.withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: loading ? null : onTap,
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _DesignChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+  const _DesignChip({
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected
+              ? color.withOpacity(0.12)
+              : (isDark ? const Color(0xFF1A1A1A) : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? color : Colors.transparent,
+            width: 1.6,
+          ),
+        ),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: QrImageView(
+                data: 'preview',
+                version: QrVersions.auto,
+                size: 56,
+                foregroundColor: color,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? color : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ActionTile extends StatelessWidget {
-  final IconData icon; final String label, sub; final VoidCallback onTap;
-  const _ActionTile({required this.icon, required this.label,
-    required this.sub, required this.onTap});
+  final IconData icon;
+  final String label, sub;
+  final VoidCallback onTap;
+  const _ActionTile({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.onTap,
+  });
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 22),
         decoration: BoxDecoration(
-          color:        isDark ? const Color(0xFF242424) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border:       Border.all(color: Colors.deepOrange.withOpacity(0.25)),
+          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        child: Column(children: [
-          Icon(icon, color: Colors.deepOrange, size: 32),
-          const SizedBox(height: 8),
-          Text(label,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13)),
-          Text(sub,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
-        ]),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.deepOrange, size: 26),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            Text(
+              sub,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _OutlineBtn extends StatelessWidget {
-  final IconData icon; final String label; final VoidCallback onTap;
-  const _OutlineBtn({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _OutlineBtn({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: onTap,
-    icon:  Icon(icon, color: Colors.deepOrange, size: 18),
-    label: Text(label,
+  Widget build(BuildContext context) => SizedBox(
+    height: 52,
+    child: OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, color: Colors.deepOrange, size: 18),
+      label: Text(
+        label,
         style: const TextStyle(
-            color: Colors.deepOrange, fontWeight: FontWeight.bold)),
-    style: OutlinedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      side:    const BorderSide(color: Colors.deepOrange),
-      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: Colors.deepOrange,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Colors.deepOrange, width: 1.4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
     ),
   );
 }
 
 class _FilterChip extends StatelessWidget {
-  final String label, value, current; final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.value,
-    required this.current, required this.onTap});
+  final String label, value, current;
+  final VoidCallback onTap;
+  const _FilterChip({
+    required this.label,
+    required this.value,
+    required this.current,
+    required this.onTap,
+  });
   @override
   Widget build(BuildContext context) {
     final active = value == current;
@@ -1289,18 +2086,23 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
         decoration: BoxDecoration(
-          color:        active ? Colors.deepOrange : Colors.transparent,
+          gradient: active ? _accentGradient : null,
+          color: active ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(30),
-          border:       Border.all(
-              color: active ? Colors.deepOrange : Colors.grey.shade300),
+          border: Border.all(
+            color: active ? Colors.transparent : Colors.grey.shade300,
+          ),
         ),
-        child: Text(label,
-            style: TextStyle(
-                color:      active ? Colors.white : Colors.grey,
-                fontWeight: FontWeight.w600,
-                fontSize:   13)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.grey,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
@@ -1313,21 +2115,23 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSent   = item['direction'] == 'sent';
-    final status   = item['status'] as String;
-    final amount   = double.parse(item['amount'].toString());
-    final note     = item['note'] ?? '';
-    final other    = isSent
+    final isSent = item['direction'] == 'sent';
+    final status = item['status'] as String;
+    final amount = double.parse(item['amount'].toString());
+    final note = item['note'] ?? '';
+    final other = isSent
         ? (item['claimed_by'] ?? 'Unclaimed')
         : (item['sender_username'] ?? '');
-    final date     = item['created_at']?.toString().substring(0, 16) ?? '';
+    final date = item['created_at']?.toString().substring(0, 16) ?? '';
 
-    Color statusColor = status == 'active'   ? Colors.green
-        : status == 'redeemed' ? Colors.blue
+    Color statusColor = status == 'active'
+        ? Colors.green
+        : status == 'redeemed'
+        ? Colors.blue
         : Colors.red;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => _GDropDetailPage(item: item)),
@@ -1335,81 +2139,118 @@ class _HistoryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color:        isDark ? const Color(0xFF242424) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border:       Border.all(color: Colors.grey.withOpacity(0.1)),
+          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        child: Row(children: [
-          // Direction icon
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color:  (isSent ? Colors.deepOrange : Colors.green).withOpacity(0.1),
-              shape:  BoxShape.circle,
-            ),
-            child: Icon(
-              isSent ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-              color: isSent ? Colors.deepOrange : Colors.green,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Info
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(
-                  isSent ? 'Sent' : 'Received',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        child: Row(
+          children: [
+            // Direction icon
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: (isSent ? Colors.deepOrange : Colors.green).withOpacity(
+                  0.1,
                 ),
-                Text(
-                  '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize:   16,
-                      color:      isSent ? Colors.deepOrange : Colors.green),
-                ),
-              ]),
-              const SizedBox(height: 4),
-              Text(
-                isSent
-                    ? (status == 'active' ? 'Unclaimed' : 'To @$other')
-                    : 'From @$other',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                shape: BoxShape.circle,
               ),
-              if (note.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Text('"$note"',
-                      style: TextStyle(
-                          color:     Colors.grey.shade400,
+              child: Icon(
+                isSent
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                color: isSent ? Colors.deepOrange : Colors.green,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isSent ? 'Sent' : 'Received',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          color: isSent ? Colors.deepOrange : Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isSent
+                        ? (status == 'active' ? 'Unclaimed' : 'To @$other')
+                        : 'From @$other',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                  if (note.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        '"$note"',
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
                           fontStyle: FontStyle.italic,
-                          fontSize:  12)),
-                ),
-              const SizedBox(height: 6),
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color:        statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          status[0].toUpperCase() + status.substring(1),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        date,
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    status[0].toUpperCase() + status.substring(1),
-                    style: TextStyle(
-                        color:      statusColor,
-                        fontSize:   10,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const Spacer(),
-                Text(date,
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
-              ]),
-            ]),
-          ),
-        ]),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1422,9 +2263,10 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     '  $text',
     style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: Colors.grey.shade500),
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: Colors.grey.shade500,
+    ),
   );
 }
 
@@ -1442,16 +2284,17 @@ class _PinSheet extends StatefulWidget {
 }
 
 class _PinSheetState extends State<_PinSheet> {
-  final _ctrl  = TextEditingController();
+  final _ctrl = TextEditingController();
   final _focus = FocusNode();
-  final _pins  = List.generate(4, (_) => '');
+  final _pins = List.generate(4, (_) => '');
 
   @override
   void initState() {
     super.initState();
     _ctrl.addListener(_onChange);
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => FocusScope.of(context).requestFocus(_focus));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => FocusScope.of(context).requestFocus(_focus),
+    );
   }
 
   @override
@@ -1476,85 +2319,113 @@ class _PinSheetState extends State<_PinSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final card   = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final tc     = isDark ? Colors.white : Colors.black87;
+    final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final tc = isDark ? Colors.white : Colors.black87;
 
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom),
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
-          margin:  const EdgeInsets.all(12),
+          margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           decoration: BoxDecoration(
-              color: card, borderRadius: BorderRadius.circular(18)),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
+            color: card,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4)),
-            ),
-            const SizedBox(height: 14),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const SizedBox(width: 40),
-              Text('Enter Payment PIN',
-                  style: TextStyle(
-                      color: tc, fontSize: 16, fontWeight: FontWeight.w700)),
-              IconButton(
-                  icon: Icon(Icons.close, color: tc),
-                  onPressed: () => Navigator.pop(context, null)),
-            ]),
-            const SizedBox(height: 16),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => FocusScope.of(context).requestFocus(_focus),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(4, (i) {
-                  final filled   = _pins[i].isNotEmpty;
-                  final isCursor = _ctrl.text.length == i;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 58, height: 58,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: filled
-                          ? Colors.deepOrange.withOpacity(0.06)
-                          : null,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 40),
+                  Text(
+                    'Enter Payment PIN',
+                    style: TextStyle(
+                      color: tc,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: tc),
+                    onPressed: () => Navigator.pop(context, null),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => FocusScope.of(context).requestFocus(_focus),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(4, (i) {
+                    final filled = _pins[i].isNotEmpty;
+                    final isCursor = _ctrl.text.length == i;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 58,
+                      height: 58,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: filled
+                            ? Colors.deepOrange.withOpacity(0.06)
+                            : null,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
                           color: filled || isCursor
                               ? Colors.deepOrange
                               : Colors.grey.shade400,
-                          width: filled ? 1.6 : 1.0),
-                    ),
-                    child: filled
-                        ? const Icon(Icons.circle,
-                        size: 14, color: Colors.deepOrange)
-                        : isCursor
-                        ? Container(
-                        width: 2, height: 18,
-                        color: Colors.deepOrange)
-                        : null,
-                  );
-                }),
+                          width: filled ? 1.6 : 1.0,
+                        ),
+                      ),
+                      child: filled
+                          ? const Icon(
+                              Icons.circle,
+                              size: 14,
+                              color: Colors.deepOrange,
+                            )
+                          : isCursor
+                          ? Container(
+                              width: 2,
+                              height: 18,
+                              color: Colors.deepOrange,
+                            )
+                          : null,
+                    );
+                  }),
+                ),
               ),
-            ),
-            // hidden input
-            TextField(
-              controller: _ctrl,
-              focusNode:  _focus,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              maxLength: 4,
-              decoration: const InputDecoration(
-                  border: InputBorder.none, counterText: ''),
-              style: const TextStyle(
-                  fontSize: 0.01, color: Colors.transparent),
-            ),
-            const SizedBox(height: 8),
-          ]),
+              // hidden input
+              TextField(
+                controller: _ctrl,
+                focusNode: _focus,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 4,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  counterText: '',
+                ),
+                style: const TextStyle(
+                  fontSize: 0.01,
+                  color: Colors.transparent,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
