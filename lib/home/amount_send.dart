@@ -38,6 +38,10 @@ class AmountSend extends StatefulWidget {
 }
 
 class _AmountSendState extends State<AmountSend> {
+  static const _accent = Colors.deepOrange;
+  static const _gradientStart = Color(0xFFFF6A00);
+  static const _gradientEnd = Color(0xFFFF3D00);
+
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   final _formatter = NumberFormat("#,##0");
@@ -75,10 +79,15 @@ class _AmountSendState extends State<AmountSend> {
 
       if (value < 100) {
         _unit = "Tens";
-      } else if (value < 1000) _unit = "Hundreds";
-      else if (value < 1000000) _unit = "Thousands";
-      else if (value < 1000000000) _unit = "Millions";
-      else _unit = "Billions";
+      } else if (value < 1000) {
+        _unit = "Hundreds";
+      } else if (value < 1000000) {
+        _unit = "Thousands";
+      } else if (value < 1000000000) {
+        _unit = "Millions";
+      } else {
+        _unit = "Billions";
+      }
 
       if (mounted) setState(() {});
     });
@@ -111,15 +120,80 @@ class _AmountSendState extends State<AmountSend> {
   }
 
   void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(14),
+      ),
+    );
+  }
+
+  Widget _payButton({required VoidCallback? onPressed, required String label}) {
+    final disabled = onPressed == null;
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Opacity(
+          opacity: disabled ? 0.6 : 1,
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_gradientStart, _gradientEnd],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: _gradientEnd.withOpacity(0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Container(
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ---------- Confirm Sheet ----------
   void _openConfirmSheet(double amount, bool isDark) {
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final blurColor =
-    isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.8);
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
 
     showModalBottomSheet(
       context: context,
@@ -127,100 +201,119 @@ class _AmountSendState extends State<AmountSend> {
       isScrollControlled: true,
       builder: (_) {
         return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              color: blurColor,
-              padding: const EdgeInsets.all(20),
-              child: Wrap(
-                runSpacing: 18,
+              decoration: BoxDecoration(
+                color: cardColor.withOpacity(0.97),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 50,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                  Container(
+                    width: 42,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: AssetImage(widget.image),
-                      radius: 28,
+                  Text(
+                    'Confirm Transfer',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
-                    title: Text(widget.accountHolderName,
-                        style: TextStyle(
-                            color: textColor, fontWeight: FontWeight.w700)),
-                    subtitle: Text(widget.bank,
-                        style: TextStyle(color: textColor.withOpacity(0.6))),
-                    trailing: Text(widget.account,
-                        style: TextStyle(color: textColor.withOpacity(0.6))),
                   ),
-                  _infoRow(
-                      "Amount", _currencyFormatter.format(amount), textColor),
-                  _infoRow("Payment Method", _paymentMethod, textColor),
-                  _infoRow("Available",
-                      _currencyFormatter.format(widget.balance), textColor),
-                  if (_noteCtrl.text.isNotEmpty)
-                    _infoRow("Note", _noteCtrl.text, textColor),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _openPinSheet(amount, isDark);
-                      },
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFF6A00), Color(0xFFFF3D00)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFF3D00).withOpacity(0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: subTextColor.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: AssetImage(widget.image),
+                          radius: 24,
                         ),
-                        child: Container(
-                          alignment: Alignment.center,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.lock_rounded,
-                                  color: Colors.white, size: 18),
-                              const SizedBox(width: 8),
                               Text(
-                                "Pay ${_currencyFormatter.format(amount)}",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
+                                widget.accountHolderName,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: textColor,
                                   fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.2,
+                                  fontSize: 14.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.bank,
+                                style: TextStyle(
+                                  color: subTextColor,
+                                  fontSize: 12.5,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
+                        Text(
+                          widget.account,
+                          style: TextStyle(
+                            color: subTextColor,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 18),
+                  _infoRow(
+                    "Amount",
+                    _currencyFormatter.format(amount),
+                    textColor,
+                    subTextColor,
+                    emphasize: true,
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    "Payment method",
+                    _paymentMethod,
+                    textColor,
+                    subTextColor,
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    "Available balance",
+                    _currencyFormatter.format(widget.balance),
+                    textColor,
+                    subTextColor,
+                  ),
+                  if (_noteCtrl.text.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _infoRow("Note", _noteCtrl.text, textColor, subTextColor),
+                  ],
+                  const SizedBox(height: 22),
+                  _payButton(
+                    label: "Pay ${_currencyFormatter.format(amount)}",
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _openPinSheet(amount, isDark);
+                    },
                   ),
                 ],
               ),
@@ -231,22 +324,34 @@ class _AmountSendState extends State<AmountSend> {
     );
   }
 
-  Widget _infoRow(String label, String value, Color color) {
+  Widget _infoRow(
+    String label,
+    String value,
+    Color textColor,
+    Color subTextColor, {
+    bool emphasize = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: color.withOpacity(0.7))),
-        Text(value,
-            style: TextStyle(
-                color: color, fontWeight: FontWeight.w600, fontSize: 16)),
+        Text(label, style: TextStyle(color: subTextColor, fontSize: 13.5)),
+        Text(
+          value,
+          style: TextStyle(
+            color: emphasize ? _accent : textColor,
+            fontWeight: FontWeight.w700,
+            fontSize: emphasize ? 17 : 14,
+          ),
+        ),
       ],
     );
   }
 
   // ---------- PIN Entry ----------
   void _openPinSheet(double amount, bool isDark) {
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final cardColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
     final hiddenCtrl = TextEditingController();
     final hiddenFocus = FocusNode();
     final pins = List<String>.filled(4, '');
@@ -256,7 +361,8 @@ class _AmountSendState extends State<AmountSend> {
       backgroundColor: cardColor,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetContext) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (sheetContext.mounted) {
@@ -266,19 +372,47 @@ class _AmountSendState extends State<AmountSend> {
 
         return Padding(
           padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 24,
-              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20),
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 28,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Enter Transaction Pin",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: textColor)),
-              const SizedBox(height: 20),
+              Container(
+                width: 42,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 22),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_rounded, color: _accent, size: 22),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                "Enter Transaction PIN",
+                style: TextStyle(
+                  fontSize: 17.5,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Confirm ${_currencyFormatter.format(amount)} to ${widget.accountHolderName}",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12.5, color: subTextColor),
+              ),
+              const SizedBox(height: 28),
               GestureDetector(
                 onTap: () =>
                     FocusScope.of(sheetContext).requestFocus(hiddenFocus),
@@ -286,33 +420,40 @@ class _AmountSendState extends State<AmountSend> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: List.generate(4, (i) {
                     final filled = pins[i].isNotEmpty;
-                    final currentLen =
-                        hiddenCtrl.text.replaceAll(RegExp(r'\s+'), '').length;
+                    final currentLen = hiddenCtrl.text
+                        .replaceAll(RegExp(r'\s+'), '')
+                        .length;
                     final isCursorBox = currentLen == i;
                     return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 55,
-                      height: 55,
+                      duration: const Duration(milliseconds: 180),
+                      width: 56,
+                      height: 56,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: filled
-                                ? Colors.deepOrange
-                                : isCursorBox
-                                ? Colors.deepOrange
-                                : Colors.grey.shade500,
-                            width: isCursorBox ? 2 : 1.2),
+                          color: filled || isCursorBox
+                              ? _accent
+                              : (isDark
+                                    ? Colors.white24
+                                    : Colors.grey.shade300),
+                          width: isCursorBox ? 2 : 1.2,
+                        ),
                         color: filled
-                            ? Colors.deepOrange.withOpacity(0.1)
-                            : Colors.transparent,
+                            ? _accent.withOpacity(0.1)
+                            : (isDark
+                                  ? Colors.white.withOpacity(0.03)
+                                  : Colors.grey.shade50),
                       ),
                       child: filled
-                          ? Text('•',
-                          style: TextStyle(
-                              fontSize: 28,
-                              color: textColor,
-                              fontWeight: FontWeight.bold))
+                          ? Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: _accent,
+                                shape: BoxShape.circle,
+                              ),
+                            )
                           : const SizedBox.shrink(),
                     );
                   }),
@@ -320,27 +461,30 @@ class _AmountSendState extends State<AmountSend> {
               ),
               Opacity(
                 opacity: 0,
-                child: TextField(
-                  controller: hiddenCtrl,
-                  focusNode: hiddenFocus,
-                  maxLength: 4,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) {
-                    final cleaned = v.replaceAll(RegExp(r'\s+'), '');
-                    for (int i = 0; i < 4; i++) {
-                      pins[i] = i < cleaned.length ? cleaned[i] : '';
-                    }
-                    setState(() {});
-                    if (cleaned.length == 4) {
-                      Future.delayed(const Duration(milliseconds: 200), () {
-                        Navigator.pop(sheetContext);
-                        // ── The actual fix: PIN is now passed through ──
-                        _processPayment(amount, cleaned);
-                      });
-                    }
-                  },
-                  decoration: const InputDecoration(counterText: ''),
+                child: SizedBox(
+                  height: 1,
+                  child: TextField(
+                    controller: hiddenCtrl,
+                    focusNode: hiddenFocus,
+                    maxLength: 4,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) {
+                      final cleaned = v.replaceAll(RegExp(r'\s+'), '');
+                      for (int i = 0; i < 4; i++) {
+                        pins[i] = i < cleaned.length ? cleaned[i] : '';
+                      }
+                      setState(() {});
+                      if (cleaned.length == 4) {
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          Navigator.pop(sheetContext);
+                          // ── The actual fix: PIN is now passed through ──
+                          _processPayment(amount, cleaned);
+                        });
+                      }
+                    },
+                    decoration: const InputDecoration(counterText: ''),
+                  ),
                 ),
               ),
             ],
@@ -359,7 +503,8 @@ class _AmountSendState extends State<AmountSend> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      builder: (_) =>
+          const Center(child: CircularProgressIndicator(color: _accent)),
     );
 
     try {
@@ -377,7 +522,9 @@ class _AmountSendState extends State<AmountSend> {
       Navigator.pop(context); // close loader
 
       final status = result['status'] as String?;
-      final message = (result['message'] as String?) ?? 'Withdrawal could not be processed.';
+      final message =
+          (result['message'] as String?) ??
+          'Withdrawal could not be processed.';
 
       if (status == 'success') {
         UserBalance.instance.balance -= amount;
@@ -390,7 +537,8 @@ class _AmountSendState extends State<AmountSend> {
               paymentMethod: _paymentMethod,
               recipientName: widget.accountHolderName,
               bankName: widget.bank,
-              accountNumber: widget.account, isGTag: false,
+              accountNumber: widget.account,
+              isGTag: false,
             ),
           ),
         );
@@ -410,175 +558,259 @@ class _AmountSendState extends State<AmountSend> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF0E0E0E) : const Color(0xFFF8F9FB);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final bgColor = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFFAFAFA);
+    final cardColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
+    final fieldFill = isDark
+        ? const Color(0xFF232323)
+        : const Color(0xFFF5F5F5);
     final masked = _maskAccount(widget.account);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text("Send Money"),
+        title: const Text(
+          "Send Money",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
         centerTitle: true,
         backgroundColor: bgColor,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
+          // ── Recipient card ──
           Container(
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withOpacity(0.4)
+                      : Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 CircleAvatar(
                   backgroundImage: AssetImage(widget.image),
-                  radius: 30,
+                  radius: 28,
                 ),
                 const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.accountHolderName,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.accountHolderName,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: textColor,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18)),
-                    Text(widget.bank,
+                          color: textColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16.5,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        widget.bank,
                         style: TextStyle(
-                            color: textColor, fontSize: 13)),
-                    Text(masked,
-                        style: TextStyle(color: textColor)),
-                  ],
+                          color: subTextColor,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        masked,
+                        style: TextStyle(color: subTextColor, fontSize: 12.5),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22C55E).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.verified_rounded,
+                    color: Color(0xFF22C55E),
+                    size: 16,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
+          // ── Amount card ──
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4))
+                  color: isDark
+                      ? Colors.black.withOpacity(0.4)
+                      : Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
               ],
             ),
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'AMOUNT',
+                      style: TextStyle(
+                        color: subTextColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     TextField(
                       controller: _amountCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
-                          decimal: false),
+                        decimal: false,
+                      ),
                       style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: textColor),
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                      ),
                       decoration: InputDecoration(
                         prefixText: '${CurrencyConfig().symbol} ',
-                        prefixStyle:
-                        TextStyle(fontSize: 22, color: textColor),
-                        labelText: 'Enter amount',
-                        labelStyle:
-                        TextStyle(color: textColor.withOpacity(0.6)),
+                        prefixStyle: TextStyle(
+                          fontSize: 24,
+                          color: textColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        hintText: '0',
+                        hintStyle: TextStyle(
+                          color: subTextColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
                         border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
-                    const Divider(),
+                    const SizedBox(height: 12),
+                    Divider(color: subTextColor.withOpacity(0.15), height: 1),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(IconsaxPlusBold.wallet,
-                            color: Colors.deepOrange),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: _accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            IconsaxPlusBold.wallet,
+                            color: _accent,
+                            size: 15,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                            "Balance: ${_currencyFormatter.format(widget.balance)}",
-                            style: TextStyle(
-                                color: textColor.withOpacity(0.7),
-                                fontWeight: FontWeight.w600)),
+                          "Balance: ${_currencyFormatter.format(widget.balance)}",
+                          style: TextStyle(
+                            color: subTextColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
                 if (_unit.isNotEmpty)
                   Positioned(
-                    top: -10,
-                    right: 10,
-                    child: Chip(
-                      label: Text(
-                        _unit,
-                        style: TextStyle(
-                            color: textColor,
-                            fontWeight: FontWeight.w600),
+                    top: -8,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                      avatar: const Icon(IconsaxPlusBold.activity,
-                          size: 18, color: Colors.deepOrange),
-                      backgroundColor: Colors.deepOrange.withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(
+                        color: _accent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            IconsaxPlusBold.activity,
+                            size: 13,
+                            color: _accent,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _unit,
+                            style: const TextStyle(
+                              color: _accent,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           TextField(
             controller: _noteCtrl,
             maxLength: 50,
-            style: TextStyle(color: textColor),
+            style: TextStyle(color: textColor, fontSize: 14),
             decoration: InputDecoration(
               labelText: "Add a note (optional)",
-              labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
+              labelStyle: TextStyle(color: subTextColor, fontSize: 13.5),
               filled: true,
-              fillColor: cardColor,
+              fillColor: fieldFill,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _accent, width: 1.5),
+              ),
+              counterStyle: TextStyle(color: subTextColor, fontSize: 11),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
 
-          SizedBox(
-            height: 55,
-            child: ElevatedButton(
-              onPressed: _isProcessing ? null : _send,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Ink(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6A00), Color(0xFFFF3D00)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Container(
-                  alignment: Alignment.center,
-                  child: const Text("Confirm to Pay",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      )),
-                ),
-              ),
-            ),
+          _payButton(
+            label: "Confirm to Pay",
+            onPressed: _isProcessing ? null : _send,
           ),
         ],
       ),

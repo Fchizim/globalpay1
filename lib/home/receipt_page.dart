@@ -31,13 +31,16 @@ class ReceiptPage extends StatefulWidget {
 }
 
 class _ReceiptPageState extends State<ReceiptPage> {
+  static const _accent = Colors.deepOrange;
+  static const _success = Color(0xFF22C55E);
+
   final GlobalKey _receiptKey = GlobalKey();
 
   Future<void> _saveReceiptAsImage() async {
     try {
       final boundary =
-      _receiptKey.currentContext!.findRenderObject()
-      as RenderRepaintBoundary;
+          _receiptKey.currentContext!.findRenderObject()
+              as RenderRepaintBoundary;
 
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final ByteData? byteData = await image.toByteData(
@@ -74,14 +77,30 @@ class _ReceiptPageState extends State<ReceiptPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Receipt saved to gallery!")),
+          SnackBar(
+            content: const Text("Receipt saved to gallery"),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(14),
+            backgroundColor: _success,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("❌ Error saving receipt: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error saving receipt: $e"),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(14),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
@@ -91,17 +110,24 @@ class _ReceiptPageState extends State<ReceiptPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
     final formattedDate =
         "${widget.date.day}-${widget.date.month}-${widget.date.year}";
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: isDark
+          ? const Color(0xFF0D0D0D)
+          : const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text("Transaction Receipt"),
+        title: const Text(
+          "Transaction Receipt",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
         centerTitle: true,
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       body: Center(
         child: Scrollbar(
@@ -115,14 +141,15 @@ class _ReceiptPageState extends State<ReceiptPage> {
                 margin: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    if (!isDark)
-                      const BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 12,
-                        offset: Offset(0, 6),
-                      ),
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withOpacity(0.4)
+                          : Colors.black.withOpacity(0.06),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -132,7 +159,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
                       child: Container(height: 24),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -142,75 +169,120 @@ class _ReceiptPageState extends State<ReceiptPage> {
                             ),
                           ),
                           Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               const SizedBox(height: 8),
-                              Text(
-                                "GlobalPay",
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.onSurface,
+                              Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/png/logooooooooo.jpg',
+                                      fit: BoxFit.contain,
+                                      height: 50,
+                                    ),
+                                    Text(
+                                      "Glonest",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: colorScheme.onSurface,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                "${CurrencyConfig().symbol}${widget.amount.toStringAsFixed(2)}",
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.deepOrange,
+
+                              const SizedBox(height: 12),
+                              // ── Overflow fix: long amounts shrink to fit instead of wrapping/clipping ──
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  "${CurrencyConfig().symbol}${widget.amount.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w800,
+                                    color: _accent,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 "Successful Transaction",
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  color: colorScheme.onSurface,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: subTextColor,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 28,
+                              const SizedBox(height: 22),
+                              Divider(
+                                color: subTextColor.withOpacity(0.15),
+                                height: 1,
                               ),
-                              const Divider(),
-                              const SizedBox(height: 16),
-                              _buildInfoRow("Recipient", widget.recipientName),
-                              _buildInfoRow("Account", widget.accountNumber),
-                              _buildInfoRow("Bank", widget.bankName),
+                              const SizedBox(height: 18),
+                              _buildInfoRow(
+                                "Recipient",
+                                widget.recipientName,
+                                colorScheme,
+                                subTextColor,
+                              ),
+                              _buildInfoRow(
+                                "Account",
+                                widget.accountNumber,
+                                colorScheme,
+                                subTextColor,
+                              ),
+                              _buildInfoRow(
+                                "Bank",
+                                widget.bankName,
+                                colorScheme,
+                                subTextColor,
+                              ),
                               _buildInfoRow(
                                 "Payment Method",
                                 widget.paymentMethod,
+                                colorScheme,
+                                subTextColor,
                               ),
-                              _buildInfoRow("Date", formattedDate),
+                              _buildInfoRow(
+                                "Date",
+                                formattedDate,
+                                colorScheme,
+                                subTextColor,
+                              ),
                               _buildInfoRow(
                                 "Reference",
                                 "#TXN${DateTime.now().millisecondsSinceEpoch}",
+                                colorScheme,
+                                subTextColor,
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 22),
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: isDark
-                                      ? Colors.orange.withOpacity(0.2)
+                                      ? _accent.withOpacity(0.12)
                                       : Colors.orange.shade50,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: Colors.deepOrange,
+                                    color: _accent.withOpacity(0.3),
                                     width: 1,
                                   ),
                                 ),
-                                child: const Text(
-                                  "Enjoy Seamless and Unlimited Free Transfers to All Banks.\n"
-                                      "Get cashbacks in Airtime & data top-up!\n"
-                                      "Up to 150k Naira credit lines & 16 days interest free!\n"
-                                      "Enjoy all at PalmPay!",
+                                child: Text(
+                                  "Enjoy seamless, unlimited free transfers to all banks. Get cashback on airtime & data top-ups. Enjoy it all with Glonest.",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                    height: 1.4,
                                   ),
                                 ),
                               ),
@@ -228,47 +300,96 @@ class _ReceiptPageState extends State<ReceiptPage> {
         ),
       ),
       bottomNavigationBar: Container(
-        height: 80,
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(color: colorScheme.outlineVariant, width: 1),
-          ),
-          color: colorScheme.surface,
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _bottomAction(
-              Icons.image_outlined,
-              "Save as Image",
-              _saveReceiptAsImage,
+        // decoration: BoxDecoration(
+        //   border: Border(
+        //     top: BorderSide(
+        //       color: colorScheme.outlineVariant.withOpacity(0.5),
+        //       width: 1,
+        //     ),
+        //   ),
+        //   color: colorScheme.surface,
+        // ),
+        // ── Overflow fix: SafeArea + no fixed height, so content isn't clipped
+        // by notches/gesture bars on smaller devices ──
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Flexible(
+                  child: _bottomAction(
+                    Icons.download_rounded,
+                    "Save as Image",
+                    _saveReceiptAsImage,
+                  ),
+                ),
+                Flexible(
+                  child: _bottomAction(
+                    Icons.picture_as_pdf_outlined,
+                    "Share as PDF",
+                    () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("Share as PDF coming soon"),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          margin: const EdgeInsets.all(14),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            _bottomAction(Icons.picture_as_pdf_outlined, "Share as PDF", () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("📄 Share as PDF coming soon")),
-              );
-            }),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String title, String value) {
-    final color = Theme.of(context).colorScheme.onSurface;
+  Widget _buildInfoRow(
+    String title,
+    String value,
+    ColorScheme colorScheme,
+    Color subTextColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: TextStyle(fontWeight: FontWeight.w500, color: color),
+          // ── Overflow fix: give the title room to wrap instead of being
+          // squeezed by a long value ──
+          Expanded(
+            flex: 4,
+            child: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 13.5,
+                color: subTextColor,
+              ),
+            ),
           ),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+                color: colorScheme.onSurface,
+              ),
+            ),
           ),
         ],
       ),
@@ -278,21 +399,34 @@ class _ReceiptPageState extends State<ReceiptPage> {
   Widget _bottomAction(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.deepOrange, size: 22),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Colors.deepOrange,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: _accent, size: 20),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: _accent,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -345,7 +479,7 @@ class WatermarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    const watermarkText = "GlobalPay";
+    const watermarkText = "Glonest";
     final textStyle = TextStyle(
       color: isDark
           ? Colors.grey.shade900.withOpacity(0.1)

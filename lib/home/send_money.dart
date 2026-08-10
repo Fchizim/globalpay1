@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:dropdown_search/dropdown_search.dart';
@@ -46,8 +45,6 @@ class _SendMoneyState extends State<SendMoney> {
   bool favoritesLoading = true;
   String? favoritesError;
 
-  // Keys ("accountNumber|bankCode") currently favorited, so both the
-  // Recent and Favorites tiles can show the correct heart state.
   Set<String> favoriteKeys = {};
 
   @override
@@ -121,7 +118,6 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Future<void> _toggleFavorite(RecipientInfo r) async {
-    // Optimistic update so the heart responds instantly.
     final wasFavorite = favoriteKeys.contains(r.key);
     setState(() {
       if (wasFavorite) {
@@ -137,7 +133,6 @@ class _SendMoneyState extends State<SendMoney> {
         recipient: r,
       );
       if (!mounted) return;
-      // Re-sync the actual favorites list with the backend's truth.
       if (isFavoriteNow) {
         if (!favoriteRecipients.any((f) => f.key == r.key)) {
           setState(() => favoriteRecipients = [...favoriteRecipients, r]);
@@ -147,7 +142,6 @@ class _SendMoneyState extends State<SendMoney> {
         favoriteRecipients = favoriteRecipients.where((f) => f.key != r.key).toList());
       }
     } catch (e) {
-      // Roll back the optimistic update on failure.
       if (!mounted) return;
       setState(() {
         if (wasFavorite) {
@@ -162,7 +156,6 @@ class _SendMoneyState extends State<SendMoney> {
     }
   }
 
-  // ── Re-verify whenever a full 10-digit account number + bank are present ──
   void _onAccountChanged() {
     setState(() {
       verifiedAccountName = null;
@@ -196,7 +189,6 @@ class _SendMoneyState extends State<SendMoney> {
     }
   }
 
-  // ── Prefill the form from a tapped Recent/Favorite tile ───────────────
   void _selectRecipient(RecipientInfo r) {
     FocusManager.instance.primaryFocus?.unfocus();
     final match = banks.firstWhere(
@@ -206,8 +198,6 @@ class _SendMoneyState extends State<SendMoney> {
     setState(() {
       selectedBank = match;
       _accountController.text = r.accountNumber;
-      // Trust the previously-verified name rather than re-verifying with Flutterwave —
-      // details for an existing recipient don't change.
       verifiedAccountName = r.accountName;
       verifyError = null;
       verifying = false;
@@ -240,7 +230,6 @@ class _SendMoneyState extends State<SendMoney> {
           bank: selectedBank!.name,
           balance: widget.balance,
           onTransaction: widget.onTransaction,
-          // ── Now actually wired through to AmountSend / WithdrawalService ──
           userId: widget.userId,
           bankCode: selectedBank!.code,
           accountHolderName: verifiedAccountName!,
@@ -249,254 +238,361 @@ class _SendMoneyState extends State<SendMoney> {
     );
   }
 
+  // ── Theme tokens ───────────────────────────────────────────────────────
+  static const _accent = Colors.deepOrange;
+  static const _success = Color(0xFF22C55E);
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final backgroundColor =
-    isDark ? const Color(0xFF121212) : const Color(0xFFFFFBFA);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final backgroundColor = isDark ? const Color(0xFF0D0D0D) : const Color(0xFFFAFAFA);
+    final cardColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
     final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
-    final accentColor = Colors.deepOrange;
+    final fieldFill = isDark ? const Color(0xFF232323) : const Color(0xFFF5F5F5);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text("Send to Bank"),
+        title: const Text(
+          "Send to Bank",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
         backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
+        surfaceTintColor: Colors.transparent,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             /// ================= RECIPIENT =================
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: cardColor.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(18),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.4)
+                        : Colors.black.withOpacity(0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text("Recipient Details",
-                          style: TextStyle(
-                              color: textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 12),
-
-                      /// ACCOUNT NUMBER
-                      TextField(
-                        controller: _accountController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 10,
-                        style: TextStyle(color: textColor),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          prefixIcon: Icon(IconsaxPlusBold.user_tag,
-                              color: accentColor),
-                          hintText: 'Account number',
-                          hintStyle: TextStyle(color: subTextColor),
-                          filled: true,
-                          fillColor: isDark
-                              ? const Color(0xFF202020)
-                              : Colors.grey.shade100,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        child: const Icon(IconsaxPlusBold.bank, color: _accent, size: 18),
                       ),
-                      const SizedBox(height: 8),
-
-                      // ── Verification status ──
-                      if (verifying)
-                        Row(children: [
-                          const SizedBox(
-                            width: 14, height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('Verifying account...',
-                              style: TextStyle(color: subTextColor, fontSize: 12)),
-                        ])
-                      else if (verifiedAccountName != null)
-                        Row(children: [
-                          const Icon(Icons.check_circle,
-                              color: Color(0xFF22C55E), size: 15),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(verifiedAccountName!,
-                                style: const TextStyle(
-                                    color: Color(0xFF22C55E),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13)),
-                          ),
-                        ])
-                      else if (verifyError != null)
-                          Text(verifyError!,
-                              style: const TextStyle(color: Colors.red, fontSize: 12)),
-
-                      const SizedBox(height: 12),
-
-                      /// BANK DROPDOWN
-                      if (bankListError != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(children: [
-                            Expanded(
-                                child: Text(bankListError!,
-                                    style: const TextStyle(color: Colors.red, fontSize: 12))),
-                            TextButton(onPressed: _loadBanks, child: const Text('Retry')),
-                          ]),
-                        )
-                      else
-                        DropdownSearch<BankOption>(
-                          enabled: !bankListLoading,
-                          items: banks,
-                          selectedItem: selectedBank,
-                          itemAsString: (b) => b.name,
-                          compareFn: (a, b) => a.code == b.code,
-
-                          popupProps: PopupProps.menu(
-                            showSearchBox: true,
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                hintText: 'Search bank...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          dropdownDecoratorProps: DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
-                              prefixIcon: bankListLoading
-                                  ? const Padding(
-                                padding: EdgeInsets.all(14),
-                                child: SizedBox(
-                                  width: 16, height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              )
-                                  : Icon(IconsaxPlusBold.bank, color: accentColor),
-                              hintText: bankListLoading ? 'Loading banks...' : 'Select bank',
-                              filled: true,
-                              fillColor: isDark ? const Color(0xFF202020) : Colors.grey.shade100,
-                              contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(color: accentColor, width: 1.5),
-                              ),
-                            ),
-                          ),
-
-                          onChanged: (value) {
-                            setState(() {
-                              selectedBank = value;
-                              verifiedAccountName = null;
-                              verifyError = null;
-                            });
-                            if (_accountController.text.trim().length == 10) {
-                              _verifyAccount();
-                            }
-                          },
-                        ),
-
-                      const SizedBox(height: 18),
-
-                      /// NEXT
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          onPressed: _goNext,
-                          child: const Text(
-                            "Next",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600),
-                          ),
+                      const SizedBox(width: 10),
+                      Text(
+                        "Recipient Details",
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 16),
+
+                  /// ACCOUNT NUMBER
+                  Text(
+                    'ACCOUNT NUMBER',
+                    style: TextStyle(
+                      color: subTextColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _accountController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 10,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      prefixIcon: Icon(IconsaxPlusBold.user_tag, color: _accent, size: 20),
+                      hintText: '0123456789',
+                      hintStyle: TextStyle(color: subTextColor, fontWeight: FontWeight.w400),
+                      filled: true,
+                      fillColor: fieldFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: _accent, width: 1.5),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // ── Verification status ──
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: verifying
+                        ? Row(
+                            key: const ValueKey('verifying'),
+                            children: [
+                              const SizedBox(
+                                width: 13,
+                                height: 13,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: _accent,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text('Verifying account…',
+                                  style: TextStyle(color: subTextColor, fontSize: 12.5)),
+                            ],
+                          )
+                        : verifiedAccountName != null
+                            ? Container(
+                                key: const ValueKey('verified'),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _success.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded,
+                                        color: _success, size: 16),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        verifiedAccountName!,
+                                        style: const TextStyle(
+                                          color: _success,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : verifyError != null
+                                ? Row(
+                                    key: const ValueKey('error'),
+                                    children: [
+                                      const Icon(Icons.error_outline_rounded,
+                                          color: Colors.redAccent, size: 15),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(verifyError!,
+                                            style: const TextStyle(
+                                                color: Colors.redAccent, fontSize: 12.5)),
+                                      ),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(key: ValueKey('empty')),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// BANK DROPDOWN
+                  Text(
+                    'BANK',
+                    style: TextStyle(
+                      color: subTextColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  if (bankListError != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(children: [
+                        Expanded(
+                            child: Text(bankListError!,
+                                style: const TextStyle(color: Colors.red, fontSize: 12.5))),
+                        TextButton(
+                          onPressed: _loadBanks,
+                          child: const Text('Retry',
+                              style: TextStyle(color: _accent, fontWeight: FontWeight.w700)),
+                        ),
+                      ]),
+                    )
+                  else
+                    DropdownSearch<BankOption>(
+                      enabled: !bankListLoading,
+                      items: banks,
+                      selectedItem: selectedBank,
+                      itemAsString: (b) => b.name,
+                      compareFn: (a, b) => a.code == b.code,
+                      popupProps: PopupProps.menu(
+                        showSearchBox: true,
+                        menuProps: MenuProps(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        searchFieldProps: TextFieldProps(
+                          decoration: InputDecoration(
+                            hintText: 'Search bank…',
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            filled: true,
+                            fillColor: fieldFill,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      dropdownDecoratorProps: DropDownDecoratorProps(
+                        dropdownSearchDecoration: InputDecoration(
+                          prefixIcon: bankListLoading
+                              ? const Padding(
+                                  padding: EdgeInsets.all(14),
+                                  child: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: _accent),
+                                  ),
+                                )
+                              : const Icon(IconsaxPlusBold.bank, color: _accent, size: 20),
+                          hintText: bankListLoading ? 'Loading banks…' : 'Select bank',
+                          hintStyle: TextStyle(color: subTextColor),
+                          filled: true,
+                          fillColor: fieldFill,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: _accent, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedBank = value;
+                          verifiedAccountName = null;
+                          verifyError = null;
+                        });
+                        if (_accountController.text.trim().length == 10) {
+                          _verifyAccount();
+                        }
+                      },
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  /// NEXT
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _goNext,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Continue",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 28),
 
             /// ================= RECENT =================
             _sectionHeader("Recent", textColor, subTextColor, () {}),
-            _buildRecentSection(cardColor, textColor, subTextColor, accentColor),
+            const SizedBox(height: 10),
+            _buildRecentSection(cardColor, textColor, subTextColor),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             /// ================= FAVORITES =================
             _sectionHeader("Favorites", textColor, subTextColor, () {}),
-            _buildFavoritesSection(cardColor, textColor, subTextColor, accentColor),
+            const SizedBox(height: 10),
+            _buildFavoritesSection(cardColor, textColor, subTextColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRecentSection(
-      Color cardColor, Color textColor, Color subTextColor, Color accent) {
+  Widget _buildRecentSection(Color cardColor, Color textColor, Color subTextColor) {
     if (recentLoading) {
       return const SizedBox(
-        height: 110,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        height: 100,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _accent)),
       );
     }
     if (recentError != null) {
-      return SizedBox(
-        height: 60,
-        child: Row(children: [
-          Expanded(
-              child: Text(recentError!,
-                  style: TextStyle(color: subTextColor, fontSize: 13))),
-          TextButton(onPressed: _loadRecent, child: const Text('Retry')),
-        ]),
-      );
+      return Row(children: [
+        Expanded(
+            child:
+                Text(recentError!, style: TextStyle(color: subTextColor, fontSize: 13))),
+        TextButton(
+          onPressed: _loadRecent,
+          child: const Text('Retry',
+              style: TextStyle(color: _accent, fontWeight: FontWeight.w700)),
+        ),
+      ]);
     }
     if (recentRecipients.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text('No recent transfers yet.',
-            style: TextStyle(color: subTextColor, fontSize: 13)),
-      );
+      return _emptyState('No recent transfers yet.', Icons.history_rounded, subTextColor);
     }
     return SizedBox(
-      height: 110,
+      height: 104,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: recentRecipients.length,
@@ -509,30 +605,30 @@ class _SendMoneyState extends State<SendMoney> {
     );
   }
 
-  Widget _buildFavoritesSection(
-      Color cardColor, Color textColor, Color subTextColor, Color accent) {
+  Widget _buildFavoritesSection(Color cardColor, Color textColor, Color subTextColor) {
     if (favoritesLoading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _accent)),
       );
     }
     if (favoritesError != null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(children: [
-          Expanded(
-              child: Text(favoritesError!,
-                  style: TextStyle(color: subTextColor, fontSize: 13))),
-          TextButton(onPressed: _loadFavorites, child: const Text('Retry')),
-        ]),
-      );
+      return Row(children: [
+        Expanded(
+            child: Text(favoritesError!,
+                style: TextStyle(color: subTextColor, fontSize: 13))),
+        TextButton(
+          onPressed: _loadFavorites,
+          child: const Text('Retry',
+              style: TextStyle(color: _accent, fontWeight: FontWeight.w700)),
+        ),
+      ]);
     }
     if (favoriteRecipients.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text('No favorites yet — tap the heart on any recipient to save it.',
-            style: TextStyle(color: subTextColor, fontSize: 13)),
+      return _emptyState(
+        'No favorites yet — tap the heart on a recipient to save it.',
+        Icons.favorite_border_rounded,
+        subTextColor,
       );
     }
     return ListView.builder(
@@ -541,21 +637,41 @@ class _SendMoneyState extends State<SendMoney> {
       itemCount: favoriteRecipients.length,
       itemBuilder: (_, i) {
         final r = favoriteRecipients[i];
-        return _favoriteTile(r, cardColor, textColor, subTextColor, accent);
+        return _favoriteTile(r, cardColor, textColor, subTextColor);
       },
     );
   }
 
-  Widget _initialsAvatar(String label, {double radius = 22}) {
+  Widget _emptyState(String message, IconData icon, Color subTextColor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+      decoration: BoxDecoration(
+        color: subTextColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: subTextColor, size: 22),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: subTextColor, fontSize: 12.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _initialsAvatar(String label, {double radius = 20}) {
     final initial = label.isNotEmpty ? label[0].toUpperCase() : '?';
     return CircleAvatar(
       radius: radius,
-      backgroundColor: Colors.deepOrange.withOpacity(0.12),
+      backgroundColor: _accent.withOpacity(0.12),
       child: Text(initial,
           style: TextStyle(
-              color: Colors.deepOrange,
-              fontWeight: FontWeight.bold,
-              fontSize: radius * 0.7)),
+              color: _accent, fontWeight: FontWeight.w800, fontSize: radius * 0.7)),
     );
   }
 
@@ -564,10 +680,19 @@ class _SendMoneyState extends State<SendMoney> {
     return GestureDetector(
       onTap: () => _selectRecipient(r),
       child: Container(
-        width: 190,
-        padding: const EdgeInsets.all(10),
-        decoration:
-        BoxDecoration(color: card, borderRadius: BorderRadius.circular(14)),
+        width: 188,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
         child: Row(
           children: [
             _initialsAvatar(r.bankName),
@@ -579,8 +704,11 @@ class _SendMoneyState extends State<SendMoney> {
                 children: [
                   Text(r.accountName,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: text, fontWeight: FontWeight.w600)),
-                  Text(r.accountNumber, style: TextStyle(color: sub, fontSize: 12)),
+                      style: TextStyle(
+                          color: text, fontWeight: FontWeight.w700, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text(r.accountNumber,
+                      style: TextStyle(color: sub, fontSize: 11.5)),
                   Text(r.bankName,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: sub, fontSize: 11)),
@@ -590,9 +718,9 @@ class _SendMoneyState extends State<SendMoney> {
             GestureDetector(
               onTap: () => _toggleFavorite(r),
               child: Icon(
-                isFav ? Icons.favorite : Icons.favorite_border,
-                size: 18,
-                color: isFav ? Colors.deepOrange : Colors.grey,
+                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                size: 17,
+                color: isFav ? _accent : Colors.grey,
               ),
             ),
           ],
@@ -601,43 +729,49 @@ class _SendMoneyState extends State<SendMoney> {
     );
   }
 
-  Widget _favoriteTile(
-      RecipientInfo r, Color card, Color text, Color sub, Color accent) {
+  Widget _favoriteTile(RecipientInfo r, Color card, Color text, Color sub) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      decoration:
-      BoxDecoration(color: card, borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onTap: () => _selectRecipient(r),
-        leading: _initialsAvatar(r.bankName, radius: 23),
+        leading: _initialsAvatar(r.bankName, radius: 22),
         title: Text(r.accountName,
-            style: TextStyle(color: text, fontWeight: FontWeight.w600)),
+            style: TextStyle(color: text, fontWeight: FontWeight.w700, fontSize: 13.5)),
         subtitle: Text('${r.accountNumber} · ${r.bankName}',
-            style: TextStyle(color: sub)),
+            style: TextStyle(color: sub, fontSize: 12)),
         trailing: IconButton(
-          icon: const Icon(Icons.favorite, color: Colors.deepOrange),
+          icon: const Icon(Icons.favorite_rounded, color: _accent, size: 20),
           onPressed: () => _toggleFavorite(r),
         ),
       ),
     );
   }
 
-  Widget _sectionHeader(
-      String title, Color text, Color sub, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 5, 12, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style:
-              TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.w600)),
-          GestureDetector(
-            onTap: onTap,
-            child: Text("View All", style: TextStyle(color: sub)),
-          ),
-        ],
-      ),
+  Widget _sectionHeader(String title, Color text, Color sub, VoidCallback onTap) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title,
+            style: TextStyle(color: text, fontSize: 17, fontWeight: FontWeight.w700)),
+        GestureDetector(
+          onTap: onTap,
+          child: Text("View All",
+              style: TextStyle(color: sub, fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
+      ],
     );
   }
 }
@@ -652,8 +786,7 @@ class AllItemsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor:
-        isDark ? const Color(0xFF121212) : Colors.grey.shade100,
+        backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade100,
         title: Text(title),
       ),
       body: const Center(child: Text("List of all items goes here")),

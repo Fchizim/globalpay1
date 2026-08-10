@@ -22,7 +22,8 @@ class SuccessfulTransfer extends StatefulWidget {
     required this.recipientName,
     required this.bankName,
     required this.accountNumber,
-    this.hideBankDetails = false, required bool isGTag, // ✅ fixed constructor
+    this.hideBankDetails = false,
+    required bool isGTag, // ✅ fixed constructor
   });
 
   @override
@@ -31,6 +32,9 @@ class SuccessfulTransfer extends StatefulWidget {
 
 class _SuccessfulTransferState extends State<SuccessfulTransfer>
     with TickerProviderStateMixin {
+  static const _success = Color(0xFF22C55E);
+  static const _accent = Colors.deepOrange;
+
   late NumberFormat _formatter;
   late AnimationController _tickController;
   late AnimationController _cardSlideController;
@@ -44,7 +48,11 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
   void initState() {
     super.initState();
 
-    _formatter = NumberFormat.currency(locale: 'en_US', symbol: '', decimalDigits: 2);
+    _formatter = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: '',
+      decimalDigits: 2,
+    );
 
     _tickController = AnimationController(
       vsync: this,
@@ -55,23 +63,27 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
       CurvedAnimation(parent: _tickController, curve: Curves.elasticOut),
     );
 
-    _tickOpacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _tickController, curve: Curves.easeIn),
-    );
+    _tickOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _tickController, curve: Curves.easeIn));
 
-    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
 
     _cardSlideController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
 
-    _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _cardSlideController, curve: Curves.easeOutCubic),
-    );
+    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _cardSlideController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
@@ -99,6 +111,8 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
     final date = DateFormat("MMM d, yyyy • hh:mm a").format(DateTime.now());
     final ref = "#${Random().nextInt(99999999).toString().padLeft(8, '0')}";
 
@@ -116,162 +130,254 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
             gravity: 0.3,
           ),
           SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FadeTransition(
-                    opacity: _tickOpacity,
-                    child: ScaleTransition(
-                      scale: _tickScale,
-                      child: Container(
-                        height: 150,
-                        width: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00C853), Color(0xFF4CAF50)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.shade200,
-                              blurRadius: 30,
-                              spreadRadius: 6,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FadeTransition(
+                      opacity: _tickOpacity,
+                      child: ScaleTransition(
+                        scale: _tickScale,
+                        child: Container(
+                          height: 128,
+                          width: 128,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [_success, Color(0xFF16A34A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          IconsaxPlusBold.tick_circle,
-                          size: 95,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  Text(
-                    "Payment Successful 🎉",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  Screenshot(
-                    controller: _screenshotController,
-                    child: SlideTransition(
-                      position: _cardSlide,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 28),
-                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-                        decoration: BoxDecoration(
-                          color: theme.cardColor,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 15,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              "${CurrencyConfig().symbol}${_formatter.format(widget.amount)}",
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                            boxShadow: [
+                              BoxShadow(
+                                color: _success.withOpacity(0.35),
+                                blurRadius: 32,
+                                spreadRadius: 4,
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "Paid via ${widget.paymentMethod}",
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            const Divider(height: 28, thickness: 0.7),
-
-                            // ✅ Conditionally show info
-                            _infoRow(
-                              widget.hideBankDetails ? "GTag ID" : "Recipient",
-                              widget.recipientName,
-                              theme,
-                            ),
-
-                            if (!widget.hideBankDetails) ...[
-                              _infoRow("Bank", widget.bankName, theme),
-                              _infoRow("Account No.", _maskAccount(widget.accountNumber), theme),
                             ],
-
-                            _infoRow("Date", date, theme),
-
-                            if (!widget.hideBankDetails)
-                              _infoRow("Ref No", ref, theme),
-                          ],
+                          ),
+                          child: const Icon(
+                            IconsaxPlusBold.tick_circle,
+                            size: 78,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 45),
-
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepOrange,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                    const SizedBox(height: 22),
+                    Text(
+                      "Payment Successful",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: theme.colorScheme.onSurface,
+                        letterSpacing: -0.3,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 14),
                     ),
-                    onPressed: () {
-                      if (mounted) Navigator.pop(context);
-                    },
-                    child: const Text(
-                      "Done",
-                      style: TextStyle(fontSize: 17, color: Colors.white),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Your money is on its way",
+                      style: TextStyle(fontSize: 13.5, color: subTextColor),
                     ),
-                  ),
+                    const SizedBox(height: 28),
 
-                  // ✅ Hide receipt for GTag
-                  if (!widget.hideBankDetails) ...[
-                    const SizedBox(height: 14),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black87,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                    Screenshot(
+                      controller: _screenshotController,
+                      child: SlideTransition(
+                        position: _cardSlide,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 22,
+                            vertical: 24,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor,
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDark
+                                    ? Colors.black.withOpacity(0.4)
+                                    : Colors.black.withOpacity(0.06),
+                                blurRadius: 24,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'AMOUNT',
+                                style: TextStyle(
+                                  color: subTextColor,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "${CurrencyConfig().symbol}${_formatter.format(widget.amount)}",
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: _success,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: subTextColor.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  "Paid via ${widget.paymentMethod}",
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: subTextColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: subTextColor.withOpacity(0.12),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // ✅ Conditionally show info
+                              _infoRow(
+                                widget.hideBankDetails
+                                    ? "GTag ID"
+                                    : "Recipient",
+                                widget.recipientName,
+                                theme,
+                                subTextColor,
+                              ),
+
+                              if (!widget.hideBankDetails) ...[
+                                _infoRow(
+                                  "Bank",
+                                  widget.bankName,
+                                  theme,
+                                  subTextColor,
+                                ),
+                                _infoRow(
+                                  "Account No.",
+                                  _maskAccount(widget.accountNumber),
+                                  theme,
+                                  subTextColor,
+                                ),
+                              ],
+
+                              _infoRow("Date", date, theme, subTextColor),
+
+                              if (!widget.hideBankDetails)
+                                _infoRow("Ref No", ref, theme, subTextColor),
+                            ],
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                       ),
-                      onPressed: () {
-                        if (!mounted) return;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ReceiptPage(
-                              amount: widget.amount,
-                              paymentMethod: widget.paymentMethod,
-                              recipientName: widget.recipientName,
-                              bankName: widget.bankName,
-                              accountNumber: widget.accountNumber,
-                              date: DateTime.now(),
+                    ),
+                    const SizedBox(height: 36),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                        );
-                      },
-                      child: const Text(
-                        "View Receipt",
-                        style: TextStyle(fontSize: 17, color: Colors.white),
+                          onPressed: () {
+                            if (mounted) Navigator.pop(context);
+                          },
+                          child: const Text(
+                            "Done",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
+
+                    // ✅ Hide receipt for GTag
+                    if (!widget.hideBankDetails) ...[
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: isDark ? Colors.white24 : Colors.black12,
+                                width: 1.2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () {
+                              if (!mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReceiptPage(
+                                    amount: widget.amount,
+                                    paymentMethod: widget.paymentMethod,
+                                    recipientName: widget.recipientName,
+                                    bankName: widget.bankName,
+                                    accountNumber: widget.accountNumber,
+                                    date: DateTime.now(),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  IconsaxPlusBold.receipt_1,
+                                  size: 17,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "View Receipt",
+                                  style: TextStyle(
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -280,20 +386,26 @@ class _SuccessfulTransferState extends State<SuccessfulTransfer>
     );
   }
 
-  Widget _infoRow(String title, String value, ThemeData theme) {
+  Widget _infoRow(
+    String title,
+    String value,
+    ThemeData theme,
+    Color subTextColor,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 15)),
+          Text(title, style: TextStyle(color: subTextColor, fontSize: 13.5)),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
                 color: theme.colorScheme.onSurface,
               ),
             ),
