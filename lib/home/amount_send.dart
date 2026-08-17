@@ -20,6 +20,10 @@ class AmountSend extends StatefulWidget {
   final String bankCode;
   final String accountHolderName; // the flutterwave-verified name, not `name`
 
+  // Real bank logo (from WithdrawalService.getBanks()), when one is
+  // available. Null falls back to the generic `image` asset below.
+  final String? logoUrl;
+
   const AmountSend({
     super.key,
     required this.image,
@@ -31,6 +35,7 @@ class AmountSend extends StatefulWidget {
     required this.userId,
     required this.bankCode,
     required this.accountHolderName,
+    this.logoUrl,
   });
 
   @override
@@ -126,6 +131,38 @@ class _AmountSendState extends State<AmountSend> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(14),
+      ),
+    );
+  }
+
+  /// Shows the real bank logo when one is available; otherwise falls back
+  /// to the generic `widget.image` asset. Network failures also fall back
+  /// to the asset rather than showing a broken-image icon.
+  Widget _bankAvatar({double radius = 24}) {
+    final logoUrl = widget.logoUrl;
+    if (logoUrl == null || logoUrl.isEmpty) {
+      return CircleAvatar(
+        backgroundImage: AssetImage(widget.image),
+        radius: radius,
+      );
+    }
+    return ClipOval(
+      child: Image.network(
+        logoUrl,
+        width: radius * 2,
+        height: radius * 2,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => CircleAvatar(
+          backgroundImage: AssetImage(widget.image),
+          radius: radius,
+        ),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return CircleAvatar(
+            backgroundImage: AssetImage(widget.image),
+            radius: radius,
+          );
+        },
       ),
     );
   }
@@ -241,10 +278,7 @@ class _AmountSendState extends State<AmountSend> {
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          backgroundImage: AssetImage(widget.image),
-                          radius: 24,
-                        ),
+                        _bankAvatar(radius: 24),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -600,10 +634,7 @@ class _AmountSendState extends State<AmountSend> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: AssetImage(widget.image),
-                  radius: 28,
-                ),
+                _bankAvatar(radius: 28),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
