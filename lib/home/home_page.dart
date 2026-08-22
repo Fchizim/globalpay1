@@ -13,11 +13,13 @@ import 'package:globalpay/home/fund_wallet/fund_wallet.dart';
 import 'package:globalpay/home/send_money.dart';
 import 'package:intl/intl.dart';
 import 'package:globalpay/home/user_page.dart';
+// import '../login/login_page.dart'; // adjust path to your actual LoginPage location
 import '../me/wallet_screen.dart';
 import '../profile_details/invite.dart';
 import '../provider/balance_provider.dart';
 import '../provider/user_provider.dart';
 import '../qrcode_send/qrcode_send.dart' hide UserBalance;
+import '../registration_page/login_page.dart';
 import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
 import 'airtime_page.dart';
@@ -72,6 +74,8 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
+    // Guests have no localUser to refresh against — nothing to do, and
+    // that's fine; this just becomes a no-op rather than something to guard.
   }
 
   Future<void> _refresh() async {
@@ -90,6 +94,25 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(builder: (context) => LoaderWrapper(child: page)),
     );
     await _refreshUserData();
+  }
+
+  // ── Gate for actions that genuinely need a real, logged-in user
+  // (moving money, viewing wallet details). Guests get sent to login
+  // instead of the feature; logged-in users proceed as normal. ──
+  void _requireAuth(bool isGuest, VoidCallback action) {
+    if (isGuest) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LoginPage(
+            onToggleTheme: () {},
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
+      return;
+    }
+    action();
   }
 
   String formatFull(double amount) {
@@ -112,16 +135,15 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
     final user = userProvider.user;
+    final bool isGuest = user == null;
 
-    if (user == null) {
-      return const Scaffold(
-        body: Center(
-          child: SpinKitFadingCube(color: Colors.deepOrange, size: 55),
-        ),
-      );
-    }
-
-    if (_lastSyncedUserId != user.userId) {
+    // A null user here means "browsing as guest", not "still loading" —
+    // this previously showed an infinite spinner for guests, since nothing
+    // was ever going to make `user` non-null for them. Everything below
+    // treats a guest as balance 0 / no userId, and the specific actions
+    // that genuinely need a real account (send money, open wallet) prompt
+    // login instead of crashing on a null user.
+    if (!isGuest && _lastSyncedUserId != user.userId) {
       _lastSyncedUserId = user.userId;
       final walletValue = user.wallet ?? 0;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -132,7 +154,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     final balanceNotifier = context.watch<UserBalance>();
-    double balance = balanceNotifier.balance;
+    double balance = isGuest ? 0 : balanceNotifier.balance;
     final bool canToggle = balance >= 1000000;
     final String displayedBalance = (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)
@@ -158,6 +180,36 @@ class _HomePageState extends State<HomePage> {
             children: [
               const SizedBox(height: 20),
 
+              if (isGuest)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded, size: 16, color: Colors.deepOrange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "You're browsing as a guest. Sign in to send money or fund your wallet.",
+                            style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.8)),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => _requireAuth(true, () {}),
+                          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
+                          child: const Text('Sign in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
               // ── Balance card ───────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -172,10 +224,10 @@ class _HomePageState extends State<HomePage> {
                       gradient: LinearGradient(
                         colors: isDark
                             ? [
-                                Colors.deepOrange.shade500,
-                                Colors.white12,
-                                Colors.deepOrange.shade400,
-                              ]
+                          Colors.deepOrange.shade500,
+                          Colors.white12,
+                          Colors.deepOrange.shade400,
+                        ]
                             : [Colors.deepOrange.shade200, Colors.white],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -210,7 +262,7 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: () => setState(
-                                  () => _showFullFormat = !_showFullFormat,
+                                      () => _showFullFormat = !_showFullFormat,
                                 ),
                                 child: Icon(
                                   _showFullFormat
@@ -227,7 +279,10 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 10),
                         GestureDetector(
-                          onTap: () => _navigateWithLoader( WalletScreen() ),
+                          onTap: () => _requireAuth(
+                            isGuest,
+                                () => _navigateWithLoader(WalletScreen()),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -270,12 +325,15 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       InkWell(
-                        onTap: () => _navigateWithLoader(
-                          SendMoney(
-                            balance: balance,
-                            userId: context.read<UserProvider>().user?.userId ?? '',
-                            onTransaction: (double amount) => setState(
-                                  () => UserBalance.instance.balance -= amount,
+                        onTap: () => _requireAuth(
+                          isGuest,
+                              () => _navigateWithLoader(
+                            SendMoney(
+                              balance: balance,
+                              userId: context.read<UserProvider>().user?.userId ?? '',
+                              onTransaction: (double amount) => setState(
+                                    () => UserBalance.instance.balance -= amount,
+                              ),
                             ),
                           ),
                         ),
@@ -288,11 +346,14 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       InkWell(
-                        onTap: () => _navigateWithLoader(
-                          UserPage(
-                            balance: balance,
-                            onTransaction: (double amount) => setState(
-                              () => UserBalance.instance.balance -= amount,
+                        onTap: () => _requireAuth(
+                          isGuest,
+                              () => _navigateWithLoader(
+                            UserPage(
+                              balance: balance,
+                              onTransaction: (double amount) => setState(
+                                    () => UserBalance.instance.balance -= amount,
+                              ),
                             ),
                           ),
                         ),
@@ -307,9 +368,9 @@ class _HomePageState extends State<HomePage> {
                       InkWell(
                         onTap: () =>
                             Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => GDropPage()),
-                        ),
+                              context,
+                              MaterialPageRoute(builder: (_) => GDropPage()),
+                            ),
                         child: _buildCard(
                           context,
                           icon: IconsaxPlusBold.coin_1,
@@ -319,10 +380,13 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => GTagPaymentPage(balance: balance),
+                        onTap: () => _requireAuth(
+                          isGuest,
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GTagPaymentPage(balance: balance),
+                            ),
                           ),
                         ),
                         child: _buildCard(
@@ -359,8 +423,8 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             Column(
                               children: [
-                                _buildPageViewRow(cardColor, textColor),
-                                _buildPageViewRow2(cardColor, textColor),
+                                _buildPageViewRow(cardColor, textColor, isGuest),
+                                _buildPageViewRow2(cardColor, textColor, isGuest),
                               ],
                             ),
                           ],
@@ -384,13 +448,36 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 15),
 
-              // ── Transactions (dynamic) ─────────────────────
-              TransactionListWidget(
-                cardColor: cardColor,
-                textColor: textColor,
-                hintColor: hintColor,
-                isDark: isDark,
-              ),
+              // ── Transactions (dynamic) — empty for guests, no user to
+              // fetch transactions for. TransactionListWidget itself isn't
+              // shown here so I'm not guessing at its null-handling; if it
+              // also assumes a non-null user internally, it'll need the
+              // same treatment as this screen got. ──
+              if (!isGuest)
+                TransactionListWidget(
+                  cardColor: cardColor,
+                  textColor: textColor,
+                  hintColor: hintColor,
+                  isDark: isDark,
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Sign in to see your transactions',
+                        style: TextStyle(fontSize: 13, color: hintColor),
+                      ),
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 70),
             ],
@@ -403,12 +490,12 @@ class _HomePageState extends State<HomePage> {
   // ── Helpers ───────────────────────────────────────────────
 
   Widget _buildCard(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color cardColor,
-    required Color textColor,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        required Color cardColor,
+        required Color textColor,
+      }) {
     return Container(
       height: 100,
       decoration: BoxDecoration(
@@ -441,7 +528,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPageViewRow(Color cardColor, Color textColor) {
+  Widget _buildPageViewRow(Color cardColor, Color textColor, bool isGuest) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -502,14 +589,17 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPageViewRow2(Color cardColor, Color textColor) {
+  Widget _buildPageViewRow2(Color cardColor, Color textColor, bool isGuest) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => InviteFriends()),
+          onTap: () => _requireAuth(
+            isGuest,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => InviteFriends()),
+            ),
           ),
           child: _buildSmallCard(
             LucideIcons.gem,
@@ -534,9 +624,9 @@ class _HomePageState extends State<HomePage> {
         ),
         InkWell(
           onTap: () => Navigator.push(
-            context,
-            // MaterialPageRoute(builder: (_) => CreateTargetPage()),
-             MaterialPageRoute(builder: (_) => ComingSoonScreen())
+              context,
+              // MaterialPageRoute(builder: (_) => CreateTargetPage()),
+              MaterialPageRoute(builder: (_) => ComingSoonScreen())
           ),
           child: _buildSmallCard(
             Icons.savings_outlined,
@@ -564,12 +654,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSmallCard(
-    IconData icon,
-    String label,
-    Color color,
-    Color cardColor,
-    Color textColor,
-  ) {
+      IconData icon,
+      String label,
+      Color color,
+      Color cardColor,
+      Color textColor,
+      ) {
     return Container(
       height: 65,
       width: 75,

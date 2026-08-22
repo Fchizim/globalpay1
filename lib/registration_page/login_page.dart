@@ -264,6 +264,38 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 8),
+
+                // ── Guest entry point — intentionally does NOT touch
+                // AuthProvider / UserProvider / CartProvider, since none of
+                // them have a real user to work with here. Screens that
+                // assume a logged-in user (cart, wallet, anything reading
+                // UserProvider's user as non-null) will need their own
+                // guest handling wherever that assumption lives. ──
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                    widget.onLoginSuccess();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MyAppsPage(
+                          onToggleTheme: widget.onToggleTheme,
+                        ),
+                      ),
+                          (_) => false,
+                    );
+                  },
+                  child: Text(
+                    "Continue as Guest",
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
