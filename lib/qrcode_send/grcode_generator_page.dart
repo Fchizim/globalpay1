@@ -141,7 +141,20 @@ class _QrCodeGeneratorState extends State<QrCodeGenerator> {
     );
   }
 
+  // Clamp sizing so it scales down on small phones and doesn't look
+  // tiny/cramped on tablets, same baseline used across the app.
+  double _scale(BuildContext context, double base) {
+    final width = MediaQuery.of(context).size.width;
+    final factor = (width / 375).clamp(0.85, 1.3);
+    return base * factor;
+  }
+
   void _enlarge() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Size the enlarged QR off the actual screen instead of a fixed 260,
+    // so it never overflows the dialog on small phones.
+    final qrSize = (screenWidth - 120).clamp(180.0, 320.0);
+
     showDialog(
       context: context,
       barrierColor: Colors.black87,
@@ -157,7 +170,7 @@ class _QrCodeGeneratorState extends State<QrCodeGenerator> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildQr(size: 260),
+              _buildQr(size: qrSize),
               const SizedBox(height: 16),
               Text(
                 _voucherId,
@@ -187,287 +200,320 @@ class _QrCodeGeneratorState extends State<QrCodeGenerator> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Cap the usable content width so the card doesn't stretch edge-to-edge
+    // on tablets/foldables.
+    final maxContentWidth = screenWidth > 600 ? 480.0 : screenWidth;
+    // QR should be a fraction of the card width, not a fixed 200px, so it
+    // never overflows a narrow phone or looks tiny on a wide card.
+    final cardWidth = maxContentWidth - 40; // minus horizontal page padding
+    final qrSize = (cardWidth - 88).clamp(150.0, 260.0);
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-          child: Column(
-            children: [
-              // ── top bar ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text(
-                    'GDrop',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.help_outline_rounded, size: 22),
-                    onPressed: () {},
-                  ),
-                ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                _scale(context, 20),
+                8,
+                _scale(context, 20),
+                32,
               ),
-
-              const SizedBox(height: 12),
-
-              // ── hero gradient card (captured for share/save) ──
-              RepaintBoundary(
-                key: _captureKey,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                  decoration: BoxDecoration(
-                    gradient: _heroGradient,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.deepOrange.withOpacity(0.25),
-                        blurRadius: 26,
-                        offset: const Offset(0, 14),
+              child: Column(
+                children: [
+                  // ── top bar ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Text(
+                        'GDrop',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: _scale(context, 20),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.help_outline_rounded, size: 22),
+                        onPressed: () {},
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      // logo badge
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: _logoAvailable
-                            ? Image.asset(
-                                _kLogoAsset,
-                                height: 56,
-                                width: 56,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                height: 56,
-                                width: 56,
-                                color: Colors.white.withOpacity(0.15),
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  'G',
+
+                  const SizedBox(height: 12),
+
+                  // ── hero gradient card (captured for share/save) ──
+                  RepaintBoundary(
+                    key: _captureKey,
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.fromLTRB(
+                        _scale(context, 24),
+                        _scale(context, 32),
+                        _scale(context, 24),
+                        _scale(context, 24),
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: _heroGradient,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.25),
+                            blurRadius: 26,
+                            offset: const Offset(0, 14),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // logo badge
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: _logoAvailable
+                                ? Image.asset(
+                                    _kLogoAsset,
+                                    height: _scale(context, 56),
+                                    width: _scale(context, 56),
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    height: _scale(context, 56),
+                                    width: _scale(context, 56),
+                                    color: Colors.white.withOpacity(0.15),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'G',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: _scale(context, 28),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          SizedBox(height: _scale(context, 14)),
+                          Text(
+                            'GDrop',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: _scale(context, 30),
+                            ),
+                          ),
+                          SizedBox(height: _scale(context, 4)),
+                          Text(
+                            'Share. Redeem. Delight.',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: _scale(context, 14),
+                            ),
+                          ),
+
+                          SizedBox(height: _scale(context, 26)),
+
+                          // white QR card
+                          GestureDetector(
+                            onTap: _enlarge,
+                            child: Container(
+                              padding: EdgeInsets.all(_scale(context, 20)),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(22),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.12),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: _buildQr(size: qrSize),
+                            ),
+                          ),
+
+                          SizedBox(height: _scale(context, 14)),
+
+                          GestureDetector(
+                            onTap: _enlarge,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.open_in_full_rounded,
+                                  size: 14,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Tap to enlarge',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 28,
+                                    color: Colors.white.withOpacity(0.85),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: _scale(context, 26)),
+                          Divider(
+                            color: Colors.white.withOpacity(0.2),
+                            height: 1,
+                          ),
+                          SizedBox(height: _scale(context, 20)),
+
+                          // stat row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _HeroStat(
+                                  icon: Icons.tag_rounded,
+                                  label: 'Voucher ID',
+                                  value: _voucherId,
+                                ),
                               ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'GDrop',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 30,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Share. Redeem. Delight.',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      const SizedBox(height: 26),
-
-                      // white QR card
-                      GestureDetector(
-                        onTap: _enlarge,
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.12),
-                                blurRadius: 18,
-                                offset: const Offset(0, 8),
+                              Expanded(
+                                child: _HeroStat(
+                                  icon: Icons.all_inclusive_rounded,
+                                  label: 'Validity',
+                                  value: 'No Expiry',
+                                ),
+                              ),
+                              Expanded(
+                                child: _HeroStat(
+                                  icon: Icons.verified_rounded,
+                                  label: 'Status',
+                                  value: widget.status,
+                                  valueColor: _statusColor,
+                                  showDot: true,
+                                ),
                               ),
                             ],
                           ),
-                          child: _buildQr(size: 200),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      GestureDetector(
-                        onTap: _enlarge,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.open_in_full_rounded,
-                              size: 14,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Tap to enlarge',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.85),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 26),
-                      Divider(color: Colors.white.withOpacity(0.2), height: 1),
-                      const SizedBox(height: 20),
-
-                      // stat row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _HeroStat(
-                              icon: Icons.tag_rounded,
-                              label: 'Voucher ID',
-                              value: _voucherId,
-                            ),
-                          ),
-                          Expanded(
-                            child: _HeroStat(
-                              icon: Icons.all_inclusive_rounded,
-                              label: 'Validity',
-                              value: 'No Expiry',
-                            ),
-                          ),
-                          Expanded(
-                            child: _HeroStat(
-                              icon: Icons.verified_rounded,
-                              label: 'Status',
-                              value: widget.status,
-                              valueColor: _statusColor,
-                              showDot: true,
-                            ),
-                          ),
                         ],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: _scale(context, 18)),
+
+                  // ── action row ──
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ActionSquare(
+                          icon: Icons.near_me_rounded,
+                          label: 'Share',
+                          onTap: _share,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _ActionSquare(
+                          icon: Icons.download_rounded,
+                          label: 'Save Image',
+                          onTap: _saveImage,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _ActionSquare(
+                          icon: Icons.copy_all_rounded,
+                          label: 'Copy Code',
+                          onTap: _copyCode,
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 18),
+                  SizedBox(height: _scale(context, 18)),
 
-              // ── action row ──
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionSquare(
-                      icon: Icons.near_me_rounded,
-                      label: 'Share',
-                      onTap: _share,
+                  // ── info card ──
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(_scale(context, 18)),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: _scale(context, 44),
+                          height: _scale(context, 44),
+                          decoration: BoxDecoration(
+                            color: Colors.deepOrange.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.shield_rounded,
+                            color: Colors.deepOrange,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Anyone with this QR can redeem',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              const _InfoBullet('One-time use only'),
+                              const _InfoBullet(
+                                'Never expires — valid until redeemed',
+                              ),
+                              const _InfoBullet('Secure and encrypted'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ActionSquare(
-                      icon: Icons.download_rounded,
-                      label: 'Save Image',
-                      onTap: _saveImage,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ActionSquare(
-                      icon: Icons.copy_all_rounded,
-                      label: 'Copy Code',
-                      onTap: _copyCode,
-                    ),
+
+                  SizedBox(height: _scale(context, 20)),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.lock_rounded,
+                        size: 13,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Secured by GlobalPay Encryption',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-
-              const SizedBox(height: 18),
-
-              // ── info card ──
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.deepOrange.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.shield_rounded,
-                        color: Colors.deepOrange,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Anyone with this QR can redeem',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          const _InfoBullet('One-time use only'),
-                          const _InfoBullet(
-                            'Never expires — valid until redeemed',
-                          ),
-                          const _InfoBullet('Secure and encrypted'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.lock_rounded,
-                    size: 13,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Secured by GlobalPay Encryption',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

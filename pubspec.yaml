@@ -1,7 +1,7 @@
 name: globalpay
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -67,6 +67,7 @@ dependencies:
   #  gallery_saver: ^2.3.2
   mailer: ^6.6.0
   device_info_plus: ^12.2.0
+  crypto: ^3.0.7
 
 
 

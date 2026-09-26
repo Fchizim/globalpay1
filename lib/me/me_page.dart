@@ -37,7 +37,6 @@ class _MePageState extends State<MePage> {
     );
   }
 
-
   String formatFull(double amount) {
     final formatter = NumberFormat("#,##0.00", "en_US");
     return "${CurrencyConfig().symbol}${formatter.format(amount)}";
@@ -119,7 +118,8 @@ class _MePageState extends State<MePage> {
 
   @override
   Widget build(BuildContext context) {
-    final balance = context.watch<UserBalance>().balance;
+    final balanceNotifier = context.watch<UserBalance>();
+    final balance = balanceNotifier.balance;
     final user = context.watch<UserProvider>().user;
     final theme = Theme.of(context);
     final imageUrl = user?.image ?? '';
@@ -130,298 +130,313 @@ class _MePageState extends State<MePage> {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     final bool canToggle = balance >= 1000000;
-    final String displayedBalance = (balance < 1000000 || _showFullFormat)
+    final String displayedBalance = balanceNotifier.isHidden
+        ? "* * * *"
+        : (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)
         : formatBalance(balance);
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        color: Colors.deepOrange,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              scrolledUnderElevation: 0,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: bgColor,
-              title: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProfileDetails(onToggleTheme: () {}),
-                    ),
-                  );
-                },
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: s(24),
-                      backgroundColor: isDark
-                          ? Colors.deepOrange.shade900
-                          : Colors.deepOrange.shade100,
-                      backgroundImage: imageUrl.isNotEmpty
-                          ? NetworkImage(imageUrl)
-                          : const AssetImage('assets/images/png/gold.jpg')
-                                as ImageProvider,
-                    ),
-                    SizedBox(width: s(12)),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              "Hi, ${user?.name ?? 'Guest'}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: s(16),
-                                color: textColor,
+      body: Theme(
+        data: Theme.of(context).copyWith(platform: TargetPlatform.iOS),
+        child: RefreshIndicator.adaptive(
+          onRefresh: _refresh,
+          color: Colors.deepOrange,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                scrolledUnderElevation: 0,
+                pinned: true,
+                elevation: 0,
+                backgroundColor: bgColor,
+                title: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileDetails(onToggleTheme: () {}),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: s(24),
+                        backgroundColor: isDark
+                            ? Colors.deepOrange.shade900
+                            : Colors.deepOrange.shade100,
+                        backgroundImage: imageUrl.isNotEmpty
+                            ? NetworkImage(imageUrl)
+                            : const AssetImage('assets/images/png/gold.jpg')
+                                  as ImageProvider,
+                      ),
+                      SizedBox(width: s(12)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                "Hi, ${user?.name ?? 'Guest'}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: s(16),
+                                  color: textColor,
+                                ),
                               ),
+                              SizedBox(width: s(4)),
+                              Icon(
+                                IconsaxPlusBold.verify,
+                                color: Colors.deepOrange,
+                                size: s(17),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            user?.kycLevel ?? 'none',
+                            style: TextStyle(
+                              fontSize: s(12),
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey,
                             ),
-                            SizedBox(width: s(4)),
-                            Icon(
-                              IconsaxPlusBold.verify,
-                              color: Colors.deepOrange,
-                              size: s(17),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      IconsaxPlusLinear.setting_2,
+                      color: Colors.deepOrange,
+                      size: s(24),
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AppSettingsPage(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: s(10)),
+                ],
+              ),
+
+              // 🟧 BALANCE CARD
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: s(20),
+                    vertical: s(15),
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(s(16)),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(s(20)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black26
+                              : Colors.grey.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        Text(
-                          user?.kycLevel ?? 'none',
-                          style: TextStyle(
-                            fontSize: s(12),
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(s(12)),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.black
+                                : Colors.deepOrange.shade50,
+                            borderRadius: BorderRadius.circular(s(14)),
+                          ),
+                          child: Icon(
+                            IconsaxPlusBold.wallet_1,
+                            size: s(32),
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                        SizedBox(width: s(16)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Total Balance",
+                                        style: TextStyle(
+                                          fontSize: s(14),
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      SizedBox(width: s(6)),
+                                      GestureDetector(
+                                        onTap: () =>
+                                            balanceNotifier.toggleHidden(),
+                                        child: Icon(
+                                          balanceNotifier.isHidden
+                                              ? IconsaxPlusLinear.eye_slash
+                                              : IconsaxPlusLinear.eye,
+                                          size: s(14),
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        _navigateWithLoader(const AllAsset()),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: s(10),
+                                        vertical: s(4),
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.deepOrange,
+                                        borderRadius: BorderRadius.circular(
+                                          s(20),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            "Assets ",
+                                            style: TextStyle(
+                                              fontSize: s(10),
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.wallet,
+                                            size: s(10),
+                                            color: Colors.white,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: s(6)),
+                              Row(
+                                children: [
+                                  Text(
+                                    displayedBalance,
+                                    style: TextStyle(
+                                      fontSize: s(22),
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  if (canToggle) ...[
+                                    SizedBox(width: s(8)),
+                                    GestureDetector(
+                                      onTap: () => setState(
+                                        () =>
+                                            _showFullFormat = !_showFullFormat,
+                                      ),
+                                      child: Icon(
+                                        _showFullFormat
+                                            ? Icons.toggle_on
+                                            : Icons.toggle_off,
+                                        size: s(24),
+                                        color: _showFullFormat
+                                            ? Colors.deepOrange
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    IconsaxPlusLinear.setting_2,
-                    color: Colors.deepOrange,
-                    size: s(24),
-                  ),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AppSettingsPage()),
-                  ),
-                ),
-                SizedBox(width: s(10)),
-              ],
-            ),
 
-            // 🟧 BALANCE CARD
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: s(20),
-                  vertical: s(15),
-                ),
-                child: Container(
-                  padding: EdgeInsets.all(s(16)),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(s(20)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.black26
-                            : Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
+              // 🟧 SETTINGS LIST
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: s(20)),
+                  child: Column(
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(s(12)),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.black
-                              : Colors.deepOrange.shade50,
-                          borderRadius: BorderRadius.circular(s(14)),
-                        ),
-                        child: Icon(
-                          IconsaxPlusBold.wallet_1,
-                          size: s(32),
-                          color: Colors.deepOrange,
-                        ),
+                      _buildSectionHeader("General"),
+                      _buildSetting(
+                        "Transaction History",
+                        IconsaxPlusLinear.activity,
+                        cardColor,
+                        textColor,
                       ),
-                      SizedBox(width: s(16)),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Total Balance",
-                                      style: TextStyle(
-                                        fontSize: s(14),
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    SizedBox(width: s(6)),
-                                    Icon(
-                                      IconsaxPlusLinear.eye,
-                                      size: s(14),
-                                      color: Colors.grey,
-                                    ),
-                                  ],
-                                ),
-                                GestureDetector(
-                                  onTap: () =>
-                                      _navigateWithLoader(const AllAsset()),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: s(10),
-                                      vertical: s(4),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.deepOrange,
-                                      borderRadius: BorderRadius.circular(
-                                        s(20),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Text(
-                                          "Assets ",
-                                          style: TextStyle(
-                                            fontSize: s(10),
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.wallet,
-                                          size: s(10),
-                                          color: Colors.white,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: s(6)),
-                            Row(
-                              children: [
-                                Text(
-                                  displayedBalance,
-                                  style: TextStyle(
-                                    fontSize: s(22),
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                ),
-                                if (canToggle) ...[
-                                  SizedBox(width: s(8)),
-                                  GestureDetector(
-                                    onTap: () => setState(
-                                      () => _showFullFormat = !_showFullFormat,
-                                    ),
-                                    child: Icon(
-                                      _showFullFormat
-                                          ? Icons.toggle_on
-                                          : Icons.toggle_off,
-                                      size: s(24),
-                                      color: _showFullFormat
-                                          ? Colors.deepOrange
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
+
+                      _buildSetting(
+                        "Wallet",
+                        IconsaxPlusLinear.wallet_money,
+                        cardColor,
+                        textColor,
                       ),
+
+                      SizedBox(height: s(15)),
+                      _buildSectionHeader("Account"),
+                      _buildSetting(
+                        "Profile Upgrade",
+                        IconsaxPlusLinear.user_add,
+                        cardColor,
+                        textColor,
+                      ),
+                      _buildSetting(
+                        "Linked Accounts",
+                        IconsaxPlusLinear.wallet_2,
+                        cardColor,
+                        textColor,
+                      ),
+
+                      SizedBox(height: s(15)),
+                      _buildSectionHeader("More"),
+                      _buildSetting(
+                        "Refer & Earn",
+                        IconsaxPlusLinear.money_recive,
+                        cardColor,
+                        textColor,
+                      ),
+                      _buildSetting(
+                        "Help & Support",
+                        IconsaxPlusLinear.message_question,
+                        cardColor,
+                        textColor,
+                      ),
+                      _buildSetting(
+                        "Feedback",
+                        IconsaxPlusLinear.message_tick,
+                        cardColor,
+                        textColor,
+                      ),
+
+                      SizedBox(height: s(15)),
+                      _buildDarkModeSwitch(isDark, cardColor, textColor),
+                      SizedBox(height: s(30)),
                     ],
                   ),
                 ),
               ),
-            ),
-
-            // 🟧 SETTINGS LIST
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: s(20)),
-                child: Column(
-                  children: [
-                    _buildSectionHeader("General"),
-                    _buildSetting(
-                      "Transaction History",
-                      IconsaxPlusLinear.activity,
-                      cardColor,
-                      textColor,
-                    ),
-
-                    _buildSetting(
-                      "Wallet",
-                      IconsaxPlusLinear.wallet_money,
-                      cardColor,
-                      textColor,
-                    ),
-
-                    SizedBox(height: s(15)),
-                    _buildSectionHeader("Account"),
-                    _buildSetting(
-                      "Profile Upgrade",
-                      IconsaxPlusLinear.user_add,
-                      cardColor,
-                      textColor,
-                    ),
-                    _buildSetting(
-                      "Linked Accounts",
-                      IconsaxPlusLinear.wallet_2,
-                      cardColor,
-                      textColor,
-                    ),
-
-                    SizedBox(height: s(15)),
-                    _buildSectionHeader("More"),
-                    _buildSetting(
-                      "Refer & Earn",
-                      IconsaxPlusLinear.money_recive,
-                      cardColor,
-                      textColor,
-                    ),
-                    _buildSetting(
-                      "Help & Support",
-                      IconsaxPlusLinear.message_question,
-                      cardColor,
-                      textColor,
-                    ),
-                    _buildSetting(
-                      "Feedback",
-                      IconsaxPlusLinear.message_tick,
-                      cardColor,
-                      textColor,
-                    ),
-
-                    SizedBox(height: s(15)),
-                    _buildDarkModeSwitch(isDark, cardColor, textColor),
-                    SizedBox(height: s(30)),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

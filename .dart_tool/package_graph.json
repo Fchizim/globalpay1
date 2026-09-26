@@ -5,13 +5,14 @@
   "packages": [
     {
       "name": "globalpay",
-      "version": "1.0.0+1",
+      "version": "1.0.1+2",
       "dependencies": [
         "blur",
         "carousel_slider",
         "confetti",
         "country_flags",
         "country_pickers",
+        "crypto",
         "cupertino_icons",
         "device_info_plus",
         "dio",
@@ -103,6 +104,13 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "crypto",
+      "version": "3.0.7",
+      "dependencies": [
+        "typed_data"
       ]
     },
     {
@@ -695,6 +703,11 @@
       ]
     },
     {
+      "name": "meta",
+      "version": "1.17.0",
+      "dependencies": []
+    },
+    {
       "name": "collection",
       "version": "1.19.1",
       "dependencies": []
@@ -709,6 +722,11 @@
         "matcher",
         "meta"
       ]
+    },
+    {
+      "name": "vector_math",
+      "version": "2.2.0",
+      "dependencies": []
     },
     {
       "name": "stack_trace",
@@ -732,7 +750,7 @@
     },
     {
       "name": "matcher",
-      "version": "0.12.20",
+      "version": "0.12.19",
       "dependencies": [
         "async",
         "meta",
@@ -743,7 +761,7 @@
     },
     {
       "name": "test_api",
-      "version": "0.7.12",
+      "version": "0.7.10",
       "dependencies": [
         "async",
         "boolean_selector",
@@ -754,6 +772,13 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "typed_data",
+      "version": "1.4.0",
+      "dependencies": [
+        "collection"
       ]
     },
     {
@@ -815,13 +840,6 @@
       "name": "logging",
       "version": "1.3.0",
       "dependencies": []
-    },
-    {
-      "name": "crypto",
-      "version": "3.0.7",
-      "dependencies": [
-        "typed_data"
-      ]
     },
     {
       "name": "async",
@@ -1519,13 +1537,6 @@
       ]
     },
     {
-      "name": "typed_data",
-      "version": "1.4.0",
-      "dependencies": [
-        "collection"
-      ]
-    },
-    {
       "name": "petitparser",
       "version": "7.0.1",
       "dependencies": [
@@ -1751,16 +1762,6 @@
       "dependencies": [
         "meta"
       ]
-    },
-    {
-      "name": "meta",
-      "version": "1.19.0",
-      "dependencies": []
-    },
-    {
-      "name": "vector_math",
-      "version": "2.4.2",
-      "dependencies": []
     }
   ],
   "configVersion": 1

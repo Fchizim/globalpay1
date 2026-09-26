@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'amount_send.dart';
@@ -478,6 +479,11 @@ class _SendMoneyState extends State<SendMoney> {
         : const Color(0xFFF5F5F5);
     final borderColor = isDark ? Colors.white10 : Colors.grey.shade200;
 
+    // ── Responsive helpers ─────────────────────────────────
+    final textScale = MediaQuery.of(
+      context,
+    ).textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.2);
+
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -490,435 +496,441 @@ class _SendMoneyState extends State<SendMoney> {
         centerTitle: true,
         surfaceTintColor: Colors.transparent,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// ================= RECIPIENT =================
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: borderColor, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? Colors.black.withOpacity(0.35)
-                        : Colors.black.withOpacity(0.035),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
+      // ── Tablet fix: cap and center the scrollable content so it
+      // doesn't stretch edge-to-edge on large screens ──
+      body: MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScale),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
+                  /// ================= RECIPIENT =================
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: borderColor, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withOpacity(0.35)
+                              : Colors.black.withOpacity(0.035),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
                         ),
-                        child: const Icon(
-                          IconsaxPlusBold.bank,
-                          color: _accent,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        "Recipient Details",
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  /// ACCOUNT NUMBER
-                  Text(
-                    'ACCOUNT NUMBER',
-                    style: TextStyle(
-                      color: subTextColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.4,
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _accountController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 10,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                    decoration: InputDecoration(
-                      counterText: '',
-                      prefixIcon: Icon(
-                        IconsaxPlusBold.user_tag,
-                        color: _accent,
-                        size: 20,
-                      ),
-                      hintText: '0123456789',
-                      hintStyle: TextStyle(
-                        color: subTextColor,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      filled: true,
-                      fillColor: fieldFill,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: _accent, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // ── Verification status ──
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: detectingBank
-                        ? Row(
-                            key: const ValueKey('detecting'),
-                            children: [
-                              const SizedBox(
-                                width: 13,
-                                height: 13,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: _accent,
-                                ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _accent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Finding your bank…',
-                                style: TextStyle(
-                                  color: subTextColor,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
-                          )
-                        : verifying
-                        ? Row(
-                            key: const ValueKey('verifying'),
-                            children: [
-                              const SizedBox(
-                                width: 13,
-                                height: 13,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: _accent,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Verifying account…',
-                                style: TextStyle(
-                                  color: subTextColor,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
-                          )
-                        : verifiedAccountName != null
-                        ? Container(
-                            key: const ValueKey('verified'),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _success.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: _success,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    verifiedAccountName!,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: _success,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : detectFailed
-                        ? GestureDetector(
-                            key: const ValueKey('detect_failed'),
-                            onTap: _showBankPicker,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline_rounded,
-                                  color: subTextColor,
-                                  size: 15,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    "Couldn't find your bank automatically — tap to select it",
-                                    style: TextStyle(
-                                      color: subTextColor,
-                                      fontSize: 12.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : verifyError != null
-                        ? GestureDetector(
-                            key: const ValueKey('error'),
-                            onTap: _verifyAccount,
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.error_outline_rounded,
-                                  color: Colors.redAccent,
-                                  size: 15,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    verifyError!,
-                                    style: const TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 12.5,
-                                    ),
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.refresh_rounded,
-                                  color: Colors.redAccent,
-                                  size: 15,
-                                ),
-                              ],
-                            ),
-                          )
-                        : const SizedBox.shrink(key: ValueKey('empty')),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  /// BANK PICKER
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'BANK',
-                        style: TextStyle(
-                          color: subTextColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      if (bankWasAutoDetected)
-                        GestureDetector(
-                          onTap: _showBankPicker,
-                          child: Text(
-                            'Not right? Change',
-                            style: TextStyle(
-                              color: _accent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  if (bankListError != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              bankListError!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 12.5,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: _loadBanks,
-                            child: const Text(
-                              'Retry',
-                              style: TextStyle(
+                              child: const Icon(
+                                IconsaxPlusBold.bank,
                                 color: _accent,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "Recipient Details",
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    GestureDetector(
-                      onTap: bankListLoading ? null : _showBankPicker,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: fieldFill,
-                          borderRadius: BorderRadius.circular(14),
-                          border: detectFailed
-                              ? Border.all(color: _accent.withOpacity(0.4))
-                              : null,
-                        ),
-                        child: Row(
-                          children: [
-                            if (bankListLoading || detectingBank)
-                              const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: _accent,
-                                ),
-                              )
-                            else if (selectedBank != null)
-                              _bankLogo(selectedBank!, size: 26)
-                            else
-                              const Icon(
-                                IconsaxPlusBold.bank,
-                                color: _accent,
-                                size: 20,
-                              ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                bankListLoading
-                                    ? 'Loading banks…'
-                                    : detectingBank
-                                    ? 'Finding your bank…'
-                                    : (selectedBank?.name ??
-                                          'Select bank, or enter account number above'),
-                                style: TextStyle(
-                                  color: selectedBank != null
-                                      ? textColor
-                                      : subTextColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: subTextColor,
-                            ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 16),
+
+                        /// ACCOUNT NUMBER
+                        Text(
+                          'ACCOUNT NUMBER',
+                          style: TextStyle(
+                            color: subTextColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _accountController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 10,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            prefixIcon: Icon(
+                              IconsaxPlusBold.user_tag,
+                              color: _accent,
+                              size: 20,
+                            ),
+                            hintText: '0123456789',
+                            hintStyle: TextStyle(
+                              color: subTextColor,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            filled: true,
+                            fillColor: fieldFill,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: _accent,
+                                width: 1.5,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // ── Verification status ──
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: detectingBank
+                              ? Row(
+                                  key: const ValueKey('detecting'),
+                                  children: [
+                                    const _ActivitySpinner(
+                                      size: 15,
+                                      color: _accent,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Matching banks…',
+                                      style: TextStyle(
+                                        color: subTextColor,
+                                        fontSize: 12.5,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : verifying
+                              ? Row(
+                                  key: const ValueKey('verifying'),
+                                  children: [
+                                    const _ActivitySpinner(
+                                      size: 15,
+                                      color: _accent,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Verifying account…',
+                                      style: TextStyle(
+                                        color: subTextColor,
+                                        fontSize: 12.5,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : verifiedAccountName != null
+                              ? Container(
+                                  key: const ValueKey('verified'),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _success.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        color: _success,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          verifiedAccountName!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: _success,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : detectFailed
+                              ? GestureDetector(
+                                  key: const ValueKey('detect_failed'),
+                                  onTap: _showBankPicker,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline_rounded,
+                                        color: subTextColor,
+                                        size: 15,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          "Couldn't find your bank automatically — tap to select it",
+                                          style: TextStyle(
+                                            color: subTextColor,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : verifyError != null
+                              ? GestureDetector(
+                                  key: const ValueKey('error'),
+                                  onTap: _verifyAccount,
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Colors.redAccent,
+                                        size: 15,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          verifyError!,
+                                          style: const TextStyle(
+                                            color: Colors.redAccent,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.refresh_rounded,
+                                        color: Colors.redAccent,
+                                        size: 15,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox.shrink(key: ValueKey('empty')),
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        /// BANK PICKER
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'BANK',
+                              style: TextStyle(
+                                color: subTextColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                            // if (bankWasAutoDetected)
+                            //   GestureDetector(
+                            //     onTap: _showBankPicker,
+                            //     child: Text(xs
+                            //       'Not right? Change',
+                            //       style: TextStyle(
+                            //         color: _accent,
+                            //         fontSize: 11,
+                            //         fontWeight: FontWeight.w600,
+                            //       ),
+                            //     ),
+                            //   ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        if (bankListError != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    bankListError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _loadBanks,
+                                  child: const Text(
+                                    'Retry',
+                                    style: TextStyle(
+                                      color: _accent,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: bankListLoading ? null : _showBankPicker,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: fieldFill,
+                                borderRadius: BorderRadius.circular(14),
+                                border: detectFailed
+                                    ? Border.all(
+                                        color: _accent.withOpacity(0.4),
+                                      )
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  if (bankListLoading || detectingBank)
+                                    const _ActivitySpinner(
+                                      size: 20,
+                                      color: _accent,
+                                    )
+                                  else if (selectedBank != null)
+                                    _bankLogo(selectedBank!, size: 26)
+                                  else
+                                    const Icon(
+                                      IconsaxPlusBold.bank,
+                                      color: _accent,
+                                      size: 20,
+                                    ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      bankListLoading
+                                          ? 'Loading banks…'
+                                          : detectingBank
+                                          ? 'Matching banks…'
+                                          : (selectedBank?.name ??
+                                                'Select Bank'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: selectedBank != null
+                                            ? textColor
+                                            : subTextColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: subTextColor,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 20),
+
+                        /// NEXT
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _accent,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: _goNext,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Continue",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                SizedBox(width: 6),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  /// ================= RECENT =================
+                  _sectionHeader("Recent", textColor, subTextColor, () {}),
+                  const SizedBox(height: 8),
+                  _buildRecentSection(
+                    cardColor,
+                    textColor,
+                    subTextColor,
+                    borderColor,
+                  ),
 
                   const SizedBox(height: 20),
 
-                  /// NEXT
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _goNext,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Continue",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
+                  /// ================= FAVORITES =================
+                  _sectionHeader("Favorites", textColor, subTextColor, () {}),
+                  const SizedBox(height: 8),
+                  _buildFavoritesSection(
+                    cardColor,
+                    textColor,
+                    subTextColor,
+                    borderColor,
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            /// ================= RECENT =================
-            _sectionHeader("Recent", textColor, subTextColor, () {}),
-            const SizedBox(height: 8),
-            _buildRecentSection(
-              cardColor,
-              textColor,
-              subTextColor,
-              borderColor,
-            ),
-
-            const SizedBox(height: 20),
-
-            /// ================= FAVORITES =================
-            _sectionHeader("Favorites", textColor, subTextColor, () {}),
-            const SizedBox(height: 8),
-            _buildFavoritesSection(
-              cardColor,
-              textColor,
-              subTextColor,
-              borderColor,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -933,9 +945,7 @@ class _SendMoneyState extends State<SendMoney> {
     if (recentLoading) {
       return const SizedBox(
         height: 80,
-        child: Center(
-          child: CircularProgressIndicator(strokeWidth: 2, color: _accent),
-        ),
+        child: Center(child: _ActivitySpinner(size: 22, color: _accent)),
       );
     }
     if (recentError != null) {
@@ -987,9 +997,7 @@ class _SendMoneyState extends State<SendMoney> {
     if (favoritesLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
-        child: Center(
-          child: CircularProgressIndicator(strokeWidth: 2, color: _accent),
-        ),
+        child: Center(child: _ActivitySpinner(size: 22, color: _accent)),
       );
     }
     if (favoritesError != null) {
@@ -1342,78 +1350,184 @@ class _BankMatchSheet extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 10),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: dividerColor,
-                  borderRadius: BorderRadius.circular(2),
+        child: Center(
+          // ── Tablet fix: cap sheet content width so it doesn't
+          // stretch full-width on large screens ──
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'This account number matches ${matches.length} banks',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Choose which one you want to send to.',
-                    style: TextStyle(color: subTextColor, fontSize: 12.5),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: matches.length,
-                separatorBuilder: (_, __) =>
-                    Divider(height: 1, color: dividerColor, indent: 76),
-                itemBuilder: (context, i) {
-                  final m = matches[i];
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    onTap: () => Navigator.pop(context, m),
-                    leading: _avatar(m.bank),
-                    title: Text(
-                      m.bank.name,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'This account number matches ${matches.length} banks',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    subtitle: Text(
-                      m.accountName,
-                      style: TextStyle(color: subTextColor, fontSize: 12.5),
-                    ),
-                  );
-                },
-              ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose which one you want to send to.',
+                        style: TextStyle(color: subTextColor, fontSize: 12.5),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: matches.length,
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: dividerColor, indent: 76),
+                    itemBuilder: (context, i) {
+                      final m = matches[i];
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        onTap: () => Navigator.pop(context, m),
+                        leading: _avatar(m.bank),
+                        title: Text(
+                          m.bank.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          m.accountName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: subTextColor, fontSize: 12.5),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
             ),
-            const SizedBox(height: 12),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// A modern "iOS activity indicator" style spinner — 12 tapered dashes
+/// arranged in a circle with a fading trail, continuously rotating.
+/// Used in place of the plain [CircularProgressIndicator] ring throughout
+/// this screen for a more current, native-feeling loading state (matches
+/// the dashed spinner style used in e.g. bank verification flows).
+class _ActivitySpinner extends StatefulWidget {
+  final double size;
+  final Color color;
+
+  const _ActivitySpinner({required this.size, required this.color});
+
+  @override
+  State<_ActivitySpinner> createState() => _ActivitySpinnerState();
+}
+
+class _ActivitySpinnerState extends State<_ActivitySpinner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Transform.rotate(
+            angle: _controller.value * 2 * math.pi,
+            child: CustomPaint(
+              size: Size(widget.size, widget.size),
+              painter: _ActivitySpinnerPainter(color: widget.color),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ActivitySpinnerPainter extends CustomPainter {
+  final Color color;
+  static const int _dashCount = 12;
+
+  const _ActivitySpinnerPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final dashLength = radius * 0.42;
+    final dashWidth = (radius * 0.22).clamp(1.4, 3.0);
+
+    for (int i = 0; i < _dashCount; i++) {
+      final angle = (2 * math.pi / _dashCount) * i;
+      // Fades from fully opaque (the "head") around to nearly transparent
+      // (the "tail"), so the rotation reads as a smooth trailing sweep.
+      final opacity = 0.12 + 0.88 * (i / (_dashCount - 1));
+      final paint = Paint()
+        ..color = color.withOpacity(opacity)
+        ..strokeWidth = dashWidth
+        ..strokeCap = StrokeCap.round;
+
+      final outer = Offset(
+        center.dx + radius * math.cos(angle),
+        center.dy + radius * math.sin(angle),
+      );
+      final inner = Offset(
+        center.dx + (radius - dashLength) * math.cos(angle),
+        center.dy + (radius - dashLength) * math.sin(angle),
+      );
+      canvas.drawLine(inner, outer, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ActivitySpinnerPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

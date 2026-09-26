@@ -43,9 +43,10 @@ class _GTagSuccessfulPaymentState extends State<GTagSuccessfulPayment>
       CurvedAnimation(parent: _tickController, curve: Curves.elasticOut),
     );
 
-    _tickOpacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _tickController, curve: Curves.easeIn),
-    );
+    _tickOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _tickController, curve: Curves.easeIn));
 
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
@@ -56,12 +57,13 @@ class _GTagSuccessfulPaymentState extends State<GTagSuccessfulPayment>
       duration: const Duration(milliseconds: 900),
     );
 
-    _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _cardSlideController, curve: Curves.easeOutCubic),
-    );
+    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _cardSlideController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     Future.delayed(const Duration(milliseconds: 250), () {
       _tickController.forward();
@@ -105,125 +107,156 @@ class _GTagSuccessfulPaymentState extends State<GTagSuccessfulPayment>
           ),
           SafeArea(
             child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FadeTransition(
-                      opacity: _tickOpacity,
-                      child: ScaleTransition(
-                        scale: _tickScale,
-                        child: Container(
-                          height: 130,
-                          width: 130,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.deepOrange.shade400,
-                                Colors.orange.shade700
+              child: SingleChildScrollView(
+                // Ensures small/short screens (or larger system font
+                // scaling) scroll instead of vertically overflowing.
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 24,
+                ),
+                child: ConstrainedBox(
+                  // Keeps the success card a tidy, readable width on
+                  // tablets instead of floating with huge side gaps.
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FadeTransition(
+                        opacity: _tickOpacity,
+                        child: ScaleTransition(
+                          scale: _tickScale,
+                          child: Container(
+                            height: 130,
+                            width: 130,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.deepOrange.shade400,
+                                  Colors.orange.shade700,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepOrange.withOpacity(0.3),
+                                  blurRadius: 25,
+                                  spreadRadius: 4,
+                                ),
                               ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
                             ),
+                            child: const Icon(
+                              IconsaxPlusBold.tick_circle,
+                              size: 85,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 25),
+                      Text(
+                        "Payment Successful ✔️",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Transaction completed securely",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+
+                      // Animated transaction card
+                      SlideTransition(
+                        position: _cardSlide,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 24,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cardColor.withOpacity(0.95),
+                            borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.deepOrange.withOpacity(0.3),
-                                blurRadius: 25,
-                                spreadRadius: 4,
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            IconsaxPlusBold.tick_circle,
-                            size: 85,
-                            color: Colors.white,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Shrinks to fit instead of overflowing
+                              // for large formatted amounts.
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _formatter.format(widget.amount),
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              const Divider(thickness: 0.7),
+                              const SizedBox(height: 10),
+                              _infoRow("GTag", widget.recipientTag, theme),
+                              const SizedBox(height: 10),
+                              _infoRow(
+                                "Date",
+                                DateFormat(
+                                  "MMM d, yyyy • hh:mm a",
+                                ).format(DateTime.now()),
+                                theme,
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 25),
-                    Text(
-                      "Payment Successful ✔️",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Transaction completed securely",
-                      style: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
 
-                    // Animated transaction card
-                    SlideTransition(
-                      position: _cardSlide,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 24),
-                        decoration: BoxDecoration(
-                          color: cardColor.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 18,
-                              offset: const Offset(0, 8),
+                      const SizedBox(height: 45),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              _formatter.format(widget.amount),
+                            elevation: 6,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              "Done",
+                              maxLines: 1,
                               style: TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                fontSize: 18,
+                                color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            const Divider(thickness: 0.7),
-                            const SizedBox(height: 10),
-                            _infoRow("GTag", widget.recipientTag, theme),
-                            const SizedBox(height: 10),
-                            _infoRow(
-                              "Date",
-                              DateFormat("MMM d, yyyy • hh:mm a")
-                                  .format(DateTime.now()),
-                              theme,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 45),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 80, vertical: 15),
-                        elevation: 6,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        "Done",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -245,10 +278,12 @@ class _GTagSuccessfulPaymentState extends State<GTagSuccessfulPayment>
             fontSize: 15,
           ),
         ),
+        const SizedBox(width: 12),
         Flexible(
           child: Text(
             value,
             textAlign: TextAlign.right,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontWeight: FontWeight.w700,

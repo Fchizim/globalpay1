@@ -30,7 +30,9 @@ class _BusinessPageState extends State<BusinessPage> {
   // 👇 confirm this matches your actual fees endpoint filename
   Future<void> _fetchSubFee() async {
     try {
-      final res = await http.get(Uri.parse('https://glopa.org/glo/get_fees.php'));
+      final res = await http.get(
+        Uri.parse('https://glopa.org/glo/get_fees.php'),
+      );
       final data = jsonDecode(res.body);
       if (data['status'] == 'success' && mounted) {
         setState(() {
@@ -54,7 +56,8 @@ class _BusinessPageState extends State<BusinessPage> {
     {
       'icon': IconsaxPlusLinear.people,
       'title': 'Customer Connections',
-      'subtitle': 'Easily communicate with buyers and manage orders efficiently.',
+      'subtitle':
+          'Easily communicate with buyers and manage orders efficiently.',
     },
     {
       'icon': IconsaxPlusLinear.trend_up,
@@ -77,7 +80,9 @@ class _BusinessPageState extends State<BusinessPage> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Confirm Subscription'),
           content: Text(
             '₦${_subFee!.toStringAsFixed(0)} will be deducted from your wallet for a 1-year GlobalBiz subscription.',
@@ -89,10 +94,13 @@ class _BusinessPageState extends State<BusinessPage> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange),
+                backgroundColor: Colors.deepOrange,
+              ),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Confirm',
-                  style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Confirm',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -104,14 +112,18 @@ class _BusinessPageState extends State<BusinessPage> {
 
     try {
       final checkResponse = await http.get(
-        Uri.parse('https://glopa.org/glo/check_subscription.php?user_id=${user.userId}'),
+        Uri.parse(
+          'https://glopa.org/glo/check_subscription.php?user_id=${user.userId}',
+        ),
       );
       final checkData = jsonDecode(checkResponse.body);
 
       if (checkData['status'] == 'success' && checkData['active'] == true) {
         if (mounted) {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const StoreSetupPage()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StoreSetupPage()),
+          );
         }
         return;
       }
@@ -119,10 +131,7 @@ class _BusinessPageState extends State<BusinessPage> {
       final response = await http.post(
         Uri.parse('https://glopa.org/glo/add_subscription.php'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id':    user.userId,
-          'auto_renew': 0,
-        }),
+        body: jsonEncode({'user_id': user.userId, 'auto_renew': 0}),
       );
 
       final data = jsonDecode(response.body);
@@ -131,8 +140,10 @@ class _BusinessPageState extends State<BusinessPage> {
         _showSnack('Subscription activated! Welcome to GlobalBiz 🎉');
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const StoreSetupPage()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StoreSetupPage()),
+          );
         }
       } else {
         _showSnack(data['message'] ?? 'Subscription failed', isError: true);
@@ -143,7 +154,6 @@ class _BusinessPageState extends State<BusinessPage> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   void _showSnack(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -162,170 +172,212 @@ class _BusinessPageState extends State<BusinessPage> {
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = Colors.deepOrange;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            size: 20,
-            color: isDark ? Colors.white : Colors.black,
+    // ── Responsive helpers ──────────────────────────────────────────────
+    // Clamp system font scaling so accessibility "large text" settings
+    // can't blow up fixed-height rows (e.g. the 56px Get Started button).
+    final mq = MediaQuery.of(context);
+    final clampedTextScaler = mq.textScaler.clamp(
+      minScaleFactor: 0.9,
+      maxScaleFactor: 1.25,
+    );
+
+    return MediaQuery(
+      data: mq.copyWith(textScaler: clampedTextScaler),
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              size: 20,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
-          onPressed: () => Navigator.pop(context),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-
-            Text(
-              'Set up your\nGlobalBiz Profile',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
-
-            const SizedBox(height: 15),
-
-            Text(
-              'Start selling in the marketplace. Manage your sales, earnings, and customers in one professional dashboard.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade600,
-                height: 1.5,
-              ),
-            ).animate(delay: 100.ms).fadeIn(),
-
-            const SizedBox(height: 30),
-
-            // Pricing Section
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: primaryColor.withOpacity(0.15)),
-              ),
+        // Center + cap content width so this doesn't stretch into
+        // oversized rows on tablets, while staying full-width (minus
+        // padding) on phones of any size.
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              physics: const BouncingScrollPhysics(),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _pricingRow(
-                    IconsaxPlusLinear.card_pos,
-                    "Subscription",
-                    _loadingFee
-                        ? "Loading..."
-                        : _subFee != null
-                        ? "₦${_subFee!.toStringAsFixed(0)} / Year"
-                        : "Unavailable",
-                    isDark,
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1),
-                  ),
-                  _pricingRow(IconsaxPlusLinear.percentage_square, "Service Fee", "2% per sale", isDark),
+                  const SizedBox(height: 10),
+
+                  Text(
+                    'Set up your\nGlobalBiz Profile',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
+
                   const SizedBox(height: 15),
 
-                  // Checkbox
-                  InkWell(
-                    onTap: () => setState(() => _isAccepted = !_isAccepted),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Row(
+                  Text(
+                    'Start selling in the marketplace. Manage your sales, earnings, and customers in one professional dashboard.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
+                  ).animate(delay: 100.ms).fadeIn(),
+
+                  const SizedBox(height: 30),
+
+                  // Pricing Section
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: primaryColor.withOpacity(0.15)),
+                    ),
+                    child: Column(
                       children: [
-                        SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: Checkbox(
-                            value: _isAccepted,
-                            activeColor: primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            onChanged: (val) => setState(() => _isAccepted = val!),
-                          ),
+                        _pricingRow(
+                          IconsaxPlusLinear.card_pos,
+                          "Subscription",
+                          _loadingFee
+                              ? "Loading..."
+                              : _subFee != null
+                              ? "₦${_subFee!.toStringAsFixed(0)} / Year"
+                              : "Unavailable",
+                          isDark,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "I accept the terms and service fees",
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                            ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1),
+                        ),
+                        _pricingRow(
+                          IconsaxPlusLinear.percentage_square,
+                          "Service Fee",
+                          "2% per sale",
+                          isDark,
+                        ),
+                        const SizedBox(height: 15),
+
+                        // Checkbox
+                        InkWell(
+                          onTap: () =>
+                              setState(() => _isAccepted = !_isAccepted),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: _isAccepted,
+                                  activeColor: primaryColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  onChanged: (val) =>
+                                      setState(() => _isAccepted = val!),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  "I accept the terms and service fees",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
+                  ).animate(delay: 200.ms).scale(curve: Curves.easeOutBack),
+
+                  const SizedBox(height: 35),
+
+                  Text(
+                    'Key Features',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
+
+                  const SizedBox(height: 15),
+
+                  ...features.asMap().entries.map((entry) {
+                    return _featureItem(
+                          theme,
+                          entry.value['icon'] as IconData,
+                          entry.value['title'] as String,
+                          entry.value['subtitle'] as String,
+                          isDark,
+                        )
+                        .animate(delay: (400 + entry.key * 100).ms)
+                        .fadeIn()
+                        .slideX(begin: 0.1);
+                  }),
+
+                  const SizedBox(height: 40),
+
+                  // ─── Get Started Button ──────────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: (_isAccepted && !_isLoading)
+                          ? _subscribe
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade500,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                "Get Started",
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: _isAccepted
+                                      ? Colors.white
+                                      : Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ).animate(delay: 800.ms).fadeIn(),
+
+                  const SizedBox(height: 40),
                 ],
               ),
-            ).animate(delay: 200.ms).scale(curve: Curves.easeOutBack),
-
-            const SizedBox(height: 35),
-
-            Text(
-              'Key Features',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
-
-            const SizedBox(height: 15),
-
-            ...features.asMap().entries.map((entry) {
-              return _featureItem(
-                theme,
-                entry.value['icon'] as IconData,
-                entry.value['title'] as String,
-                entry.value['subtitle'] as String,
-                isDark,
-              ).animate(delay: (400 + entry.key * 100).ms).fadeIn().slideX(begin: 0.1);
-            }),
-
-            const SizedBox(height: 40),
-
-            // ─── Get Started Button ──────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: (_isAccepted && !_isLoading) ? _subscribe : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  disabledForegroundColor: Colors.grey.shade500,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
-                  ),
-                )
-                    : Text(
-                  "Get Started",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: _isAccepted ? Colors.white : Colors.grey.shade600,
-                  ),
-                ),
-              ),
-            ).animate(delay: 800.ms).fadeIn(),
-
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -336,27 +388,48 @@ class _BusinessPageState extends State<BusinessPage> {
       children: [
         Icon(icon, color: Colors.deepOrange, size: 22),
         const SizedBox(width: 15),
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            color: isDark ? Colors.white : Colors.black87,
+        // FIX: label had no Flexible, so together with a long fee value it
+        // could overflow the Row on narrow phones — Spacer only fills
+        // leftover space, it can't shrink content that's already too wide.
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ),
         const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.deepOrange,
-            fontSize: 16,
+        const SizedBox(width: 8),
+        // FIX: same issue on the value side — e.g. a large formatted fee
+        // like "₦1,000,000 / Year" now truncates instead of overflowing.
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.deepOrange,
+              fontSize: 16,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _featureItem(ThemeData theme, IconData icon, String title, String subtitle, bool isDark) {
+  Widget _featureItem(
+    ThemeData theme,
+    IconData icon,
+    String title,
+    String subtitle,
+    bool isDark,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
@@ -378,6 +451,8 @@ class _BusinessPageState extends State<BusinessPage> {
               children: [
                 Text(
                   title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,

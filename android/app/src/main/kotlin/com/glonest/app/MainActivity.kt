@@ -1,4 +1,4 @@
-package com.example.globalpay1
+package com.glonest.app
 
 import android.media.MediaScannerConnection
 import io.flutter.embedding.android.FlutterActivity

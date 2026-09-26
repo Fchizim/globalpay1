@@ -26,6 +26,8 @@ class _OrdersPageState extends State<OrdersPage>
     return (sw / 375 * v).clamp(v * 0.85, v * 1.25);
   }
 
+  bool get _isTablet => MediaQuery.of(context).size.width >= 700;
+
   @override
   void initState() {
     super.initState();
@@ -50,14 +52,12 @@ class _OrdersPageState extends State<OrdersPage>
     }
     if (tab == 'Delivered') {
       return _orders
-          .where((o) =>
-      (o['order_status'] ?? '').toLowerCase() == 'delivered')
+          .where((o) => (o['order_status'] ?? '').toLowerCase() == 'delivered')
           .toList();
     }
     if (tab == 'Cancelled') {
       return _orders
-          .where((o) =>
-      (o['order_status'] ?? '').toLowerCase() == 'cancelled')
+          .where((o) => (o['order_status'] ?? '').toLowerCase() == 'cancelled')
           .toList();
     }
     return _orders;
@@ -84,8 +84,7 @@ class _OrdersPageState extends State<OrdersPage>
       if (!mounted) return;
       if (data['status'] == 'success') {
         setState(() {
-          _orders =
-          List<Map<String, dynamic>>.from(data['orders']);
+          _orders = List<Map<String, dynamic>>.from(data['orders']);
           _loading = false;
         });
       } else {
@@ -113,15 +112,20 @@ class _OrdersPageState extends State<OrdersPage>
       builder: (_) => AlertDialog(
         title: const Text('Confirm Receipt'),
         content: const Text(
-            'Are you sure you have received this order? This cannot be undone.'),
+          'Are you sure you have received this order? This cannot be undone.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Yes, Received',
-                  style: TextStyle(color: Colors.green))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Yes, Received',
+              style: TextStyle(color: Colors.green),
+            ),
+          ),
         ],
       ),
     );
@@ -142,61 +146,84 @@ class _OrdersPageState extends State<OrdersPage>
       if (!mounted) return;
       if (data['status'] == 'success') {
         setState(() {
-          final index =
-          _orders.indexWhere((o) => o['order_id'] == orderId);
+          final index = _orders.indexWhere((o) => o['order_id'] == orderId);
           if (index != -1) {
             _orders[index]['order_status'] = 'delivered';
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Order marked as received!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order marked as received!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(data['message'] ?? 'Failed to update order'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to update order'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Network error. Please try again.'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Network error. Please try again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'delivered':  return Colors.green;
-      case 'cancelled':  return Colors.red;
-      case 'processing': return Colors.blue;
-      case 'shipped':    return Colors.orange;
-      default:           return Colors.grey;
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      case 'processing':
+        return Colors.blue;
+      case 'shipped':
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _statusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'delivered':  return Icons.check_circle_rounded;
-      case 'cancelled':  return Icons.cancel_rounded;
-      case 'processing': return Icons.sync_rounded;
-      case 'shipped':    return Icons.local_shipping_rounded;
-      default:           return Icons.schedule_rounded;
+      case 'delivered':
+        return Icons.check_circle_rounded;
+      case 'cancelled':
+        return Icons.cancel_rounded;
+      case 'processing':
+        return Icons.sync_rounded;
+      case 'shipped':
+        return Icons.local_shipping_rounded;
+      default:
+        return Icons.schedule_rounded;
     }
+  }
+
+  /// Safely turns any status value (including null/empty) into a
+  /// display-ready label without ever throwing a RangeError.
+  String _statusLabel(String status) {
+    if (status.trim().isEmpty) return 'Pending';
+    return status[0].toUpperCase() + status.substring(1);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final bgColor   = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
+    final maxContentWidth = _isTablet ? 720.0 : double.infinity;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -208,16 +235,21 @@ class _OrdersPageState extends State<OrdersPage>
           icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('My Orders',
-            style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-                fontSize: s(18))),
+        title: Text(
+          'My Orders',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: s(18),
+          ),
+        ),
+        // Height now scales with s() too, so the margin growth on
+        // bigger screens never squeezes the TabBar into less room
+        // than its own content needs.
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
+          preferredSize: Size.fromHeight(s(50)),
           child: Container(
-            margin: EdgeInsets.symmetric(
-                horizontal: s(16), vertical: s(6)),
+            margin: EdgeInsets.symmetric(horizontal: s(16), vertical: s(6)),
             decoration: BoxDecoration(
               color: isDark
                   ? Colors.white10
@@ -235,10 +267,11 @@ class _OrdersPageState extends State<OrdersPage>
                 borderRadius: BorderRadius.circular(s(25)),
               ),
               labelColor: Colors.white,
-              unselectedLabelColor:
-              isDark ? Colors.white70 : Colors.black54,
+              unselectedLabelColor: isDark ? Colors.white70 : Colors.black54,
               labelStyle: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: s(13)),
+                fontWeight: FontWeight.bold,
+                fontSize: s(13),
+              ),
               tabAlignment: TabAlignment.start,
               tabs: _tabs.map((t) {
                 // Count badge for each tab
@@ -252,15 +285,19 @@ class _OrdersPageState extends State<OrdersPage>
                   }).length;
                 } else if (t == 'Delivered') {
                   count = _orders
-                      .where((o) =>
-                  (o['order_status'] ?? '').toLowerCase() ==
-                      'delivered')
+                      .where(
+                        (o) =>
+                            (o['order_status'] ?? '').toLowerCase() ==
+                            'delivered',
+                      )
                       .length;
                 } else if (t == 'Cancelled') {
                   count = _orders
-                      .where((o) =>
-                  (o['order_status'] ?? '').toLowerCase() ==
-                      'cancelled')
+                      .where(
+                        (o) =>
+                            (o['order_status'] ?? '').toLowerCase() ==
+                            'cancelled',
+                      )
                       .length;
                 }
                 return Tab(
@@ -269,16 +306,20 @@ class _OrdersPageState extends State<OrdersPage>
                     children: [
                       Text(t),
                       if (count > 0) ...[
-                        const SizedBox(width: 4),
+                        SizedBox(width: s(4)),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 1),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: s(5),
+                            vertical: s(1),
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text('$count',
-                              style: const TextStyle(fontSize: 10)),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(fontSize: s(10)),
+                          ),
                         ),
                       ],
                     ],
@@ -289,45 +330,67 @@ class _OrdersPageState extends State<OrdersPage>
           ),
         ),
       ),
-      body: _loading
-          ? const Center(
-          child: CircularProgressIndicator(color: Colors.deepOrange))
-          : _error != null
-          ? Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline,
-                size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(_error!,
-                style: TextStyle(color: Colors.grey.shade500)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadOrders,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  foregroundColor: Colors.white),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      )
-          : RefreshIndicator(
-        color: Colors.deepOrange,
-        onRefresh: _loadOrders,
-        child: _filteredOrders.isEmpty
-            ? ListView(
-          children: [
-            SizedBox(height: s(80)),
-            _buildEmpty(textColor),
-          ],
-        )
-            : ListView.builder(
-          padding: EdgeInsets.all(s(16)),
-          itemCount: _filteredOrders.length,
-          itemBuilder: (_, i) => _buildOrderCard(
-              _filteredOrders[i], cardColor, textColor, isDark),
+      body: Center(
+        // Caps width on tablets so cards don't stretch edge-to-edge
+        // into an oversized, awkward layout.
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth),
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.deepOrange),
+                )
+              : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: s(20)),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadOrders,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  color: Colors.deepOrange,
+                  onRefresh: _loadOrders,
+                  child: _filteredOrders.isEmpty
+                      ? ListView(
+                          children: [
+                            SizedBox(height: s(80)),
+                            _buildEmpty(textColor),
+                          ],
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.all(s(16)),
+                          itemCount: _filteredOrders.length,
+                          itemBuilder: (_, i) => _buildOrderCard(
+                            _filteredOrders[i],
+                            cardColor,
+                            textColor,
+                            isDark,
+                          ),
+                        ),
+                ),
         ),
       ),
     );
@@ -337,28 +400,44 @@ class _OrdersPageState extends State<OrdersPage>
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(IconsaxPlusLinear.bag_2,
-            size: 72, color: Colors.grey.shade300),
+        Icon(IconsaxPlusLinear.bag_2, size: 72, color: Colors.grey.shade300),
         const SizedBox(height: 16),
-        Text('No orders here',
-            style: TextStyle(
-                fontSize: s(18),
-                fontWeight: FontWeight.bold,
-                color: textColor)),
+        Text(
+          'No orders here',
+          style: TextStyle(
+            fontSize: s(18),
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text('Your orders will appear here',
-            style: TextStyle(color: Colors.grey.shade500)),
+        Text(
+          'Your orders will appear here',
+          style: TextStyle(color: Colors.grey.shade500),
+        ),
       ],
     ),
   );
 
   Widget _buildOrderCard(
-      Map<String, dynamic> order, Color card, Color text, bool isDark) {
-    final status      = order['order_status'] ?? 'pending';
-    final items       = List<Map<String, dynamic>>.from(order['items'] ?? []);
-    final total       = double.tryParse(order['total_amount'].toString()) ?? 0;
+    Map<String, dynamic> order,
+    Color card,
+    Color text,
+    bool isDark,
+  ) {
+    final status = (order['order_status'] ?? 'pending').toString();
+    final items = List<Map<String, dynamic>>.from(order['items'] ?? []);
+    final total = double.tryParse(order['total_amount'].toString()) ?? 0;
     final deliveryFee = double.tryParse(order['delivery_fee'].toString()) ?? 0;
-    final date        = order['created_at'] ?? '';
+    // Stringify once, up front, so `.length`/`.substring` can never be
+    // called on a non-String value (which used to throw if the API
+    // ever sent the date as something other than a plain string).
+    final dateStr = (order['created_at'] ?? '').toString();
+    final dateDisplay = dateStr.substring(
+      0,
+      dateStr.length > 16 ? 16 : dateStr.length,
+    );
+    final statusLabel = _statusLabel(status);
 
     return Container(
       margin: EdgeInsets.only(bottom: s(14)),
@@ -367,63 +446,81 @@ class _OrdersPageState extends State<OrdersPage>
         borderRadius: BorderRadius.circular(s(16)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // ── Order header ──
           Padding(
             padding: EdgeInsets.all(s(14)),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(order['order_id'] ?? '',
-                          style: TextStyle(
-                              fontSize: s(12),
-                              color: Colors.grey.shade500,
-                              fontFamily: 'monospace')),
+                      Text(
+                        order['order_id'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: s(12),
+                          color: Colors.grey.shade500,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                          date.toString().substring(
-                              0,
-                              date.length > 16
-                                  ? 16
-                                  : date.length),
-                          style: TextStyle(
-                              fontSize: s(11),
-                              color: Colors.grey.shade400)),
+                        dateDisplay,
+                        style: TextStyle(
+                          fontSize: s(11),
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: s(10), vertical: s(5)),
-                  decoration: BoxDecoration(
-                    color: _statusColor(status).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(s(20)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_statusIcon(status),
-                          size: s(13), color: _statusColor(status)),
-                      SizedBox(width: s(4)),
-                      Text(
-                        status[0].toUpperCase() + status.substring(1),
-                        style: TextStyle(
-                            fontSize: s(11),
-                            fontWeight: FontWeight.w700,
-                            color: _statusColor(status)),
-                      ),
-                    ],
+                SizedBox(width: s(8)),
+                // Flexible so a longer status label shrinks/ellipses
+                // instead of pushing the row wider than the card.
+                Flexible(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: s(10),
+                      vertical: s(5),
+                    ),
+                    decoration: BoxDecoration(
+                      color: _statusColor(status).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(s(20)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _statusIcon(status),
+                          size: s(13),
+                          color: _statusColor(status),
+                        ),
+                        SizedBox(width: s(4)),
+                        Flexible(
+                          child: Text(
+                            statusLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: s(11),
+                              fontWeight: FontWeight.w700,
+                              color: _statusColor(status),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -434,12 +531,10 @@ class _OrdersPageState extends State<OrdersPage>
 
           // ── Order items ──
           ...items.map((item) {
-            final qty      = item['quantity'] ?? 1;
-            final subtotal =
-                double.tryParse(item['subtotal'].toString()) ?? 0;
+            final qty = item['quantity'] ?? 1;
+            final subtotal = double.tryParse(item['subtotal'].toString()) ?? 0;
             return Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: s(14), vertical: s(10)),
+              padding: EdgeInsets.symmetric(horizontal: s(14), vertical: s(10)),
               child: Row(
                 children: [
                   ClipRRect(
@@ -454,9 +549,10 @@ class _OrdersPageState extends State<OrdersPage>
                         height: s(50),
                         color: Colors.grey.shade200,
                         child: const Icon(
-                            Icons.image_not_supported_outlined,
-                            color: Colors.grey,
-                            size: 20),
+                          Icons.image_not_supported_outlined,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -465,26 +561,44 @@ class _OrdersPageState extends State<OrdersPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item['product_name'] ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: s(13),
-                                fontWeight: FontWeight.w600,
-                                color: text)),
+                        Text(
+                          item['product_name'] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: s(13),
+                            fontWeight: FontWeight.w600,
+                            color: text,
+                          ),
+                        ),
                         SizedBox(height: s(3)),
-                        Text('Qty: $qty',
-                            style: TextStyle(
-                                fontSize: s(11),
-                                color: Colors.grey.shade500)),
+                        Text(
+                          'Qty: $qty',
+                          style: TextStyle(
+                            fontSize: s(11),
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  Text('₦${subtotal.toStringAsFixed(2)}',
+                  SizedBox(width: s(8)),
+                  // Constrained so an unexpectedly long/large number
+                  // can't push the row past the screen edge.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: s(90)),
+                    child: Text(
+                      '₦${subtotal.toStringAsFixed(2)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
                       style: TextStyle(
-                          fontSize: s(13),
-                          fontWeight: FontWeight.w700,
-                          color: Colors.deepOrange)),
+                        fontSize: s(13),
+                        fontWeight: FontWeight.w700,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -503,46 +617,69 @@ class _OrdersPageState extends State<OrdersPage>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Delivery Fee',
-                            style: TextStyle(
-                                fontSize: s(12),
-                                color: Colors.grey.shade500)),
-                        Text('₦${deliveryFee.toStringAsFixed(2)}',
-                            style: TextStyle(
-                                fontSize: s(12),
-                                color: Colors.grey.shade500)),
+                        Text(
+                          'Delivery Fee',
+                          style: TextStyle(
+                            fontSize: s(12),
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        Text(
+                          '₦${deliveryFee.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: s(12),
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total',
+                    Text(
+                      'Total',
+                      style: TextStyle(
+                        fontSize: s(14),
+                        fontWeight: FontWeight.bold,
+                        color: text,
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        '₦${total.toStringAsFixed(2)}',
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: s(14),
-                            fontWeight: FontWeight.bold,
-                            color: text)),
-                    Text('₦${total.toStringAsFixed(2)}',
-                        style: TextStyle(
-                            fontSize: s(15),
-                            fontWeight: FontWeight.w900,
-                            color: Colors.deepOrange)),
+                          fontSize: s(15),
+                          fontWeight: FontWeight.w900,
+                          color: Colors.deepOrange,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 if ((order['delivery_address'] ?? '').isNotEmpty) ...[
                   SizedBox(height: s(8)),
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined,
-                          size: s(13), color: Colors.grey.shade400),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: s(13),
+                        color: Colors.grey.shade400,
+                      ),
                       SizedBox(width: s(4)),
                       Expanded(
-                        child: Text(order['delivery_address'],
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: s(11),
-                                color: Colors.grey.shade400)),
+                        child: Text(
+                          order['delivery_address'],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: s(11),
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -557,14 +694,17 @@ class _OrdersPageState extends State<OrdersPage>
                     child: ElevatedButton.icon(
                       onPressed: () => _markReceived(order['order_id']),
                       icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: const Text('Mark as Received',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      label: const Text(
+                        'Mark as Received',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(s(12))),
+                          borderRadius: BorderRadius.circular(s(12)),
+                        ),
                       ),
                     ),
                   ),
@@ -579,20 +719,25 @@ class _OrdersPageState extends State<OrdersPage>
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(s(12)),
-                      border: Border.all(
-                          color: Colors.green.withOpacity(0.3)),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check_circle_rounded,
-                            color: Colors.green, size: 16),
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green,
+                          size: 16,
+                        ),
                         SizedBox(width: s(6)),
-                        const Text('Order Received',
-                            style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13)),
+                        const Text(
+                          'Order Received',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),

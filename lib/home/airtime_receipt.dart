@@ -143,6 +143,11 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
         ? Colors.white70
         : const Color(0xFF6B7280);
 
+    // Screen-size aware scaling so the receipt looks right on small and
+    // large phones/tablets instead of using fixed pixel values everywhere.
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double scale = (screenWidth / 390.0).clamp(0.85, 1.15);
+
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
@@ -182,6 +187,9 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
             clipper: ReceiptTearClipper(toothWidth: 14.0, toothDepth: 10.0),
             child: Container(
               width: double.infinity,
+              // Cap the card width on tablets/large screens so it doesn't
+              // stretch edge-to-edge and look oversized.
+              constraints: const BoxConstraints(maxWidth: 480),
               padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 20),
               decoration: BoxDecoration(
                 color: cardColor,
@@ -215,84 +223,127 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                   // ✅ Receipt content
                   Column(
                     children: [
+                      // FIX: logo + "lonest" row could overflow on narrow
+                      // screens or with larger system text scale. Wrapped
+                      // in a Flexible + FittedBox so it shrinks instead of
+                      // throwing a RenderFlex overflow error.
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Image.asset(
-                            'assets/icons/png/globapay.jpg',
-                            height: 40,
-                          ),
-                          Text(
-                            "lonest",
-                            style: TextStyle(
-                              color: textPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    'assets/icons/png/globapay.jpg',
+                                    height: 40 * scale,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "lonest",
+                                    style: TextStyle(
+                                      color: textPrimary,
+                                      fontSize: 20 * scale,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 * scale),
                       ClipOval(
                         child: Image.asset(
                           _getNetworkLogo(widget.network),
-                          height: 48,
-                          width: 48,
+                          height: 48 * scale,
+                          width: 48 * scale,
                           fit: BoxFit.cover,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "₦$formattedAmount",
-                        style: TextStyle(
-                          color: textPrimary,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
+                      SizedBox(height: 10 * scale),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "₦$formattedAmount",
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 28 * scale,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6 * scale),
                       Text(
                         "Successful transaction",
-                        style: TextStyle(color: textSecondary, fontSize: 15),
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: 15 * scale,
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4 * scale),
                       Text(
                         time,
-                        style: TextStyle(color: textSecondary, fontSize: 13),
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: 13 * scale,
+                        ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14 * scale),
                       Divider(color: borderColor, height: 1),
-                      const SizedBox(height: 10),
-                      _infoRow("Transaction Type", widget.action, isDark),
+                      SizedBox(height: 10 * scale),
+                      _infoRow(
+                        "Transaction Type",
+                        widget.action,
+                        isDark,
+                        scale,
+                      ),
                       _infoRow(
                         "Bill Provider",
                         widget.network.toUpperCase(),
                         isDark,
+                        scale,
                       ),
                       _infoRow(
                         "Recipient Mobile Number",
                         widget.recipientPhone,
                         isDark,
+                        scale,
                       ),
-                      _infoRow("Order Amount", "₦$formattedAmount", isDark),
-                      _transactionIdRow(context, widget.transactionId, isDark),
-                      _infoRow("Transaction Date", time, isDark),
+                      _infoRow(
+                        "Order Amount",
+                        "₦$formattedAmount",
+                        isDark,
+                        scale,
+                      ),
+                      _transactionIdRow(
+                        context,
+                        widget.transactionId,
+                        isDark,
+                        scale,
+                      ),
+                      _infoRow("Transaction Date", time, isDark, scale),
                       _infoRow(
                         "Payer Mobile Number",
                         widget.payerPhone,
                         isDark,
+                        scale,
                       ),
-                      _infoRow("Payment Method", "Wallet", isDark),
-                      const SizedBox(height: 12),
+                      _infoRow("Payment Method", "Wallet", isDark, scale),
+                      SizedBox(height: 12 * scale),
                       Divider(color: borderColor),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8 * scale),
                       Text(
                         "Get cashbacks in Airtime & Data top-up. Unlimited free transfers "
                         "every Tuesday. Up to ₦150k credit lines & 16 days interest free."
                         " Enjoy all at Glonest!",
                         style: TextStyle(
                           color: textSecondary,
-                          fontSize: 13,
+                          fontSize: 13 * scale,
                           height: 1.4,
                         ),
                         textAlign: TextAlign.center,
@@ -308,18 +359,25 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
     );
   }
 
-  static Widget _infoRow(String title, String value, bool isDark) {
+  static Widget _infoRow(
+    String title,
+    String value,
+    bool isDark,
+    double scale,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8 * scale),
       child: Row(
         children: [
           Expanded(
             flex: 4,
             child: Text(
               title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isDark ? Colors.white70 : Colors.black54,
-                fontSize: 14,
+                fontSize: 14 * scale,
               ),
             ),
           ),
@@ -329,11 +387,12 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
             child: Text(
               value,
               textAlign: TextAlign.right,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isDark ? Colors.white : const Color(0xFF111827),
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 14 * scale,
               ),
             ),
           ),
@@ -346,9 +405,10 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
     BuildContext context,
     String id,
     bool isDark,
+    double scale,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8 * scale),
       child: Row(
         children: [
           Expanded(
@@ -357,7 +417,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
               "Transaction ID",
               style: TextStyle(
                 color: isDark ? Colors.white70 : Colors.black54,
-                fontSize: 14,
+                fontSize: 14 * scale,
               ),
             ),
           ),
@@ -375,7 +435,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                     style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF111827),
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: 14 * scale,
                     ),
                   ),
                 ),
@@ -392,7 +452,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                   },
                   child: Icon(
                     Icons.copy,
-                    size: 16,
+                    size: 16 * scale,
                     color: isDark ? Colors.grey[400] : Colors.grey,
                   ),
                 ),
@@ -409,96 +469,66 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
 class WatermarkPainter extends CustomPainter {
   final bool isDark;
   final ui.Image logoImage;
-  final List<_WatermarkItem> _items;
 
-  WatermarkPainter({required this.isDark, required this.logoImage})
-    : _items = _generateItems(logoImage);
+  WatermarkPainter({required this.isDark, required this.logoImage});
 
-  static List<_WatermarkItem> _generateItems(ui.Image logoImage) {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // FIX: watermark items are now generated from the actual canvas size
+    // (`size`) instead of a hardcoded 920x920 assumption, so the pattern
+    // fills the card correctly whether the receipt is short/tall or on a
+    // small/large device.
     const spacingX = 140.0;
     const spacingY = 110.0;
     const baseFontSize = 20.0;
     final random = Random();
-    final List<_WatermarkItem> items = [];
 
-    for (double y = -spacingY; y < 920 + spacingY; y += spacingY) {
-      for (double x = -spacingX; x < 920 + spacingX; x += spacingX) {
-        items.add(
-          _WatermarkItem(
-            offset: Offset(x, y),
-            angle: (random.nextDouble() - 0.5) * pi / 9,
-            opacity: 0.05 + random.nextDouble() * 0.09,
-            fontSize: baseFontSize,
+    for (double y = -spacingY; y < size.height + spacingY; y += spacingY) {
+      for (double x = -spacingX; x < size.width + spacingX; x += spacingX) {
+        final angle = (random.nextDouble() - 0.5) * pi / 9;
+        final opacity = 0.05 + random.nextDouble() * 0.09;
+
+        canvas.save();
+        canvas.translate(x, y);
+        canvas.rotate(angle);
+
+        final logoSize = baseFontSize * 1.5;
+        final paint = Paint()..color = Colors.white.withOpacity(opacity);
+
+        canvas.drawImageRect(
+          logoImage,
+          Rect.fromLTWH(
+            0,
+            0,
+            logoImage.width.toDouble(),
+            logoImage.height.toDouble(),
           ),
+          Rect.fromLTWH(0, 0, logoSize, logoSize),
+          paint,
         );
+
+        final textStyle = TextStyle(
+          fontSize: baseFontSize,
+          fontWeight: FontWeight.w700,
+          color: (isDark ? Colors.white : Colors.black).withOpacity(opacity),
+        );
+        final textPainter = TextPainter(
+          text: TextSpan(text: "lonest", style: textStyle),
+          textDirection: ui.TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(logoSize, (logoSize - baseFontSize) / 2),
+        );
+
+        canvas.restore();
       }
-    }
-    return items;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final item in _items) {
-      if (item.offset.dx < -50 ||
-          item.offset.dx > size.width + 50 ||
-          item.offset.dy < -50 ||
-          item.offset.dy > size.height + 50) {
-        continue;
-      }
-
-      canvas.save();
-      canvas.translate(item.offset.dx, item.offset.dy);
-      canvas.rotate(item.angle);
-
-      final logoSize = item.fontSize * 1.5;
-      final paint = Paint()..color = Colors.white.withOpacity(item.opacity);
-
-      canvas.drawImageRect(
-        logoImage,
-        Rect.fromLTWH(
-          0,
-          0,
-          logoImage.width.toDouble(),
-          logoImage.height.toDouble(),
-        ),
-        Rect.fromLTWH(0, 0, logoSize, logoSize),
-        paint,
-      );
-
-      final textStyle = TextStyle(
-        fontSize: item.fontSize,
-        fontWeight: FontWeight.w700,
-        color: (isDark ? Colors.white : Colors.black).withOpacity(item.opacity),
-      );
-      final textPainter = TextPainter(
-        text: TextSpan(text: "lonest", style: textStyle),
-        textDirection: ui.TextDirection.ltr,
-      );
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(logoSize, (logoSize - item.fontSize) / 2),
-      );
-
-      canvas.restore();
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _WatermarkItem {
-  final Offset offset;
-  final double angle;
-  final double opacity;
-  final double fontSize;
-  _WatermarkItem({
-    required this.offset,
-    required this.angle,
-    required this.opacity,
-    required this.fontSize,
-  });
 }
 
 // ---------------- Tear edge ----------------

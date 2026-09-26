@@ -25,9 +25,9 @@ class _EditListingPageState extends State<EditListingPage> {
   late final TextEditingController bonusController;
 
   // ── Categories ────────────────────────────────────────────
-  List<Map<String, dynamic>> _categories  = [];
-  Map<String, dynamic>?      _selectedCategory;
-  bool                       _loadingCats = true;
+  List<Map<String, dynamic>> _categories = [];
+  Map<String, dynamic>? _selectedCategory;
+  bool _loadingCats = true;
 
   // ── Images ────────────────────────────────────────────────
   // Each slot is either a File (newly picked) or a String (existing URL) or null (cleared)
@@ -37,25 +37,27 @@ class _EditListingPageState extends State<EditListingPage> {
   final ImagePicker _picker = ImagePicker();
 
   String _selectedStatus = 'available';
-  String _selectedState  = 'new';
-  bool   _isSaving       = false;
+  String _selectedState = 'new';
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     final p = widget.product;
 
-    titleController = TextEditingController(text: p['name']        ?? '');
+    titleController = TextEditingController(text: p['name'] ?? '');
     priceController = TextEditingController(text: p['price']?.toString() ?? '');
-    descController  = TextEditingController(text: p['description'] ?? '');
-    colorController = TextEditingController(text: p['prod_color']  ?? '');
-    bonusController = TextEditingController(text: p['bonus']       ?? '');
+    descController = TextEditingController(text: p['description'] ?? '');
+    colorController = TextEditingController(text: p['prod_color'] ?? '');
+    bonusController = TextEditingController(text: p['bonus'] ?? '');
 
     _selectedStatus = p['prod_status'] ?? 'available';
-    _selectedState  = p['prod_state']  ?? 'new';
+    _selectedState = p['prod_state'] ?? 'new';
 
     // Seed image slots from existing URLs
-    final existing = List<String>.from(p['images'] ?? p['product_images'] ?? []);
+    final existing = List<String>.from(
+      p['images'] ?? p['product_images'] ?? [],
+    );
     for (final url in existing) {
       _imageSlots.add(url);
     }
@@ -81,10 +83,10 @@ class _EditListingPageState extends State<EditListingPage> {
         Uri.parse('https://glopa.org/glo/get_category.php'),
         headers: {'Accept': 'application/json'},
       );
-      final raw   = res.body.trim();
+      final raw = res.body.trim();
       final start = raw.indexOf('{');
       if (start == -1) throw Exception('No JSON');
-      final data  = jsonDecode(raw.substring(start));
+      final data = jsonDecode(raw.substring(start));
       if (data['status'] == 'success') {
         final cats = List<Map<String, dynamic>>.from(data['categories']);
         setState(() {
@@ -94,7 +96,7 @@ class _EditListingPageState extends State<EditListingPage> {
           final currentCatId = widget.product['cat_id']?.toString();
           if (currentCatId != null) {
             _selectedCategory = cats.firstWhere(
-                  (c) => c['cat_id'].toString() == currentCatId,
+              (c) => c['cat_id'].toString() == currentCatId,
               orElse: () => cats.first,
             );
           }
@@ -126,15 +128,18 @@ class _EditListingPageState extends State<EditListingPage> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
     if (_imageSlots.isEmpty) {
-      _showSnack('Add at least one product photo', isError: true); return;
+      _showSnack('Add at least one product photo', isError: true);
+      return;
     }
     if (_selectedCategory == null) {
-      _showSnack('Please select a category', isError: true); return;
+      _showSnack('Please select a category', isError: true);
+      return;
     }
 
     final user = context.read<UserProvider>().user;
     if (user == null) {
-      _showSnack('Session expired. Please log in.', isError: true); return;
+      _showSnack('Session expired. Please log in.', isError: true);
+      return;
     }
 
     final businessId = widget.product['business_id']?.toString() ?? '';
@@ -150,16 +155,16 @@ class _EditListingPageState extends State<EditListingPage> {
       request.headers['Accept'] = 'application/json';
 
       request.fields.addAll({
-        'product_id':  widget.product['product_id'].toString(),
+        'product_id': widget.product['product_id'].toString(),
         'business_id': businessId,
-        'cat_id':      _selectedCategory!['cat_id'].toString(),
-        'name':        titleController.text.trim(),
+        'cat_id': _selectedCategory!['cat_id'].toString(),
+        'name': titleController.text.trim(),
         'description': descController.text.trim(),
-        'price':       priceController.text.trim(),
+        'price': priceController.text.trim(),
         'prod_status': _selectedStatus,
-        'prod_state':  _selectedState,
-        'prod_color':  colorController.text.trim(),
-        'bonus':       bonusController.text.trim(),
+        'prod_state': _selectedState,
+        'prod_color': colorController.text.trim(),
+        'bonus': bonusController.text.trim(),
       });
 
       // Walk all 7 slots
@@ -182,15 +187,18 @@ class _EditListingPageState extends State<EditListingPage> {
         }
       }
 
-      final streamed = await request.send().timeout(const Duration(seconds: 60));
-      final body     = await streamed.stream.bytesToString();
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
+      final body = await streamed.stream.bytesToString();
 
       debugPrint('=== EDIT PRODUCT (${streamed.statusCode}) === $body');
 
       if (!mounted) return;
 
       if (streamed.statusCode != 200) {
-        _showSnack('Server error (${streamed.statusCode})', isError: true); return;
+        _showSnack('Server error (${streamed.statusCode})', isError: true);
+        return;
       }
 
       final data = jsonDecode(body);
@@ -210,13 +218,14 @@ class _EditListingPageState extends State<EditListingPage> {
   }
 
   void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor:
-      isError ? Colors.red.shade600 : Colors.green.shade600,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   // ── Build ─────────────────────────────────────────────────
@@ -224,199 +233,259 @@ class _EditListingPageState extends State<EditListingPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Stack(children: [
-      Scaffold(
-        backgroundColor:
-        isDark ? const Color(0xFF121212) : const Color(0xFFFBFBFB),
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          leading: IconButton(
-            icon: Icon(IconsaxPlusLinear.close_circle,
-                color: isDark ? Colors.white : Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: true,
-          title: Text('Edit Listing',
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              )),
-        ),
-        body: Form(
-          key: _formKey,
-          child: Column(children: [
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 10),
+    // ── Responsive helpers ──────────────────────────────────────────────
+    // Clamp system font scaling so accessibility "large text" settings
+    // can't blow up fixed-height rows (e.g. the 55px Save Changes button).
+    final mq = MediaQuery.of(context);
+    final clampedTextScaler = mq.textScaler.clamp(
+      minScaleFactor: 0.9,
+      maxScaleFactor: 1.25,
+    );
 
-                    // ── Photos ─────────────────────────────────
-                    _sectionTitle('Product Photos',
-                        trailing: '${_imageSlots.length}/$_maxImages'),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 100,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _imageSlots.length +
-                            (_imageSlots.length < _maxImages ? 1 : 0),
-                        itemBuilder: (_, i) {
-                          if (i == _imageSlots.length) {
-                            return _buildAddPhotoBtn();
-                          }
-                          return _buildSlotPreview(i);
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-                    _sectionTitle('Product Info'),
-                    const SizedBox(height: 14),
-
-                    _buildTextField(
-                      controller: titleController,
-                      label: 'Product Name',
-                      hint: 'What are you selling?',
-                      icon: IconsaxPlusLinear.box_1,
-                      validator: (v) =>
-                      v!.trim().isEmpty ? 'Enter a product name' : null,
-                    ),
-
-                    _buildTextField(
-                      controller: priceController,
-                      label: 'Price (₦)',
-                      hint: '0.00',
-                      icon: IconsaxPlusLinear.card,
-                      keyboardType: TextInputType.number,
-                      prefixText: '₦ ',
-                      validator: (v) =>
-                      v!.trim().isEmpty ? 'Enter a price' : null,
-                    ),
-
-                    _loadingCats
-                        ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.deepOrange),
-                      ),
-                    )
-                        : _buildCategoryPicker(isDark),
-
-                    _buildChipSelector(
-                      label: 'Status',
-                      options: const ['available', 'out_of_stock'],
-                      displayLabels: const ['Available', 'Out of Stock'],
-                      selected: _selectedStatus,
-                      onSelected: (v) =>
-                          setState(() => _selectedStatus = v),
-                    ),
-
-                    _buildChipSelector(
-                      label: 'Condition',
-                      options: const ['new', 'used'],
-                      displayLabels: const ['New', 'Used'],
-                      selected: _selectedState,
-                      onSelected: (v) =>
-                          setState(() => _selectedState = v),
-                    ),
-
-                    _buildTextField(
-                      controller: descController,
-                      label: 'Description',
-                      hint: 'Size, color, features, flaws...',
-                      icon: IconsaxPlusLinear.note_text,
-                      maxLines: 4,
-                    ),
-
-                    _buildTextField(
-                      controller: colorController,
-                      label: 'Color (optional)',
-                      hint: 'e.g. Red, Black',
-                      icon: IconsaxPlusLinear.colorfilter,
-                    ),
-
-                    _buildTextField(
-                      controller: bonusController,
-                      label: 'Bonus (optional)',
-                      hint: 'e.g. Free delivery',
-                      icon: IconsaxPlusLinear.gift,
-                    ),
-
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Save button ─────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF121212) : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _handleSave,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepOrange,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)),
-                    ),
-                    child: const Text('Save Changes',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-              ),
-            ),
-          ]),
-        ),
-      ),
-
-      // ── Saving overlay ──────────────────────────────────
-      if (_isSaving)
-        Container(
-          color: Colors.black.withOpacity(0.6),
-          child: Center(
-            child: Card(
+    return MediaQuery(
+      data: mq.copyWith(textScaler: clampedTextScaler),
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: isDark
+                ? const Color(0xFF121212)
+                : const Color(0xFFFBFBFB),
+            appBar: AppBar(
               elevation: 0,
-              color: isDark ? Colors.grey.shade900 : Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              child: const Padding(
-                padding: EdgeInsets.all(30),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  CircularProgressIndicator(
-                      color: Colors.deepOrange, strokeWidth: 3),
-                  SizedBox(height: 20),
-                  Text('Saving...',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                ]),
+              backgroundColor: Colors.transparent,
+              leading: IconButton(
+                icon: Icon(
+                  IconsaxPlusLinear.close_circle,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+              centerTitle: true,
+              title: Text(
+                'Edit Listing',
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            // Center + cap content width so this doesn't stretch into
+            // oversized rows on tablets, while staying full-width (minus
+            // padding) on phones of any size. The Expanded scroll area
+            // still gets a bounded height from the Scaffold body, so the
+            // layout behaves the same as before on phones.
+            body: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 10),
+
+                              // ── Photos ─────────────────────────────────
+                              _sectionTitle(
+                                'Product Photos',
+                                trailing: '${_imageSlots.length}/$_maxImages',
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount:
+                                      _imageSlots.length +
+                                      (_imageSlots.length < _maxImages ? 1 : 0),
+                                  itemBuilder: (_, i) {
+                                    if (i == _imageSlots.length) {
+                                      return _buildAddPhotoBtn();
+                                    }
+                                    return _buildSlotPreview(i);
+                                  },
+                                ),
+                              ),
+
+                              const SizedBox(height: 28),
+                              _sectionTitle('Product Info'),
+                              const SizedBox(height: 14),
+
+                              _buildTextField(
+                                controller: titleController,
+                                label: 'Product Name',
+                                hint: 'What are you selling?',
+                                icon: IconsaxPlusLinear.box_1,
+                                validator: (v) => v!.trim().isEmpty
+                                    ? 'Enter a product name'
+                                    : null,
+                              ),
+
+                              _buildTextField(
+                                controller: priceController,
+                                label: 'Price (₦)',
+                                hint: '0.00',
+                                icon: IconsaxPlusLinear.card,
+                                keyboardType: TextInputType.number,
+                                prefixText: '₦ ',
+                                validator: (v) =>
+                                    v!.trim().isEmpty ? 'Enter a price' : null,
+                              ),
+
+                              _loadingCats
+                                  ? const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.deepOrange,
+                                        ),
+                                      ),
+                                    )
+                                  : _buildCategoryPicker(isDark),
+
+                              _buildChipSelector(
+                                label: 'Status',
+                                options: const ['available', 'out_of_stock'],
+                                displayLabels: const [
+                                  'Available',
+                                  'Out of Stock',
+                                ],
+                                selected: _selectedStatus,
+                                onSelected: (v) =>
+                                    setState(() => _selectedStatus = v),
+                              ),
+
+                              _buildChipSelector(
+                                label: 'Condition',
+                                options: const ['new', 'used'],
+                                displayLabels: const ['New', 'Used'],
+                                selected: _selectedState,
+                                onSelected: (v) =>
+                                    setState(() => _selectedState = v),
+                              ),
+
+                              _buildTextField(
+                                controller: descController,
+                                label: 'Description',
+                                hint: 'Size, color, features, flaws...',
+                                icon: IconsaxPlusLinear.note_text,
+                                maxLines: 4,
+                              ),
+
+                              _buildTextField(
+                                controller: colorController,
+                                label: 'Color (optional)',
+                                hint: 'e.g. Red, Black',
+                                icon: IconsaxPlusLinear.colorfilter,
+                              ),
+
+                              _buildTextField(
+                                controller: bonusController,
+                                label: 'Bonus (optional)',
+                                hint: 'e.g. Free delivery',
+                                icon: IconsaxPlusLinear.gift,
+                              ),
+
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // ── Save button ─────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF121212)
+                              : Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, -5),
+                            ),
+                          ],
+                        ),
+                        child: SafeArea(
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: _isSaving ? null : _handleSave,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepOrange,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                              ),
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Save Changes',
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-    ]);
+
+          // ── Saving overlay ──────────────────────────────────
+          if (_isSaving)
+            Container(
+              color: Colors.black.withOpacity(0.6),
+              child: Center(
+                child: Card(
+                  elevation: 0,
+                  color: isDark ? Colors.grey.shade900 : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          color: Colors.deepOrange,
+                          strokeWidth: 3,
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          'Saving...',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   // ── Category sheet ────────────────────────────────────────
@@ -437,99 +506,125 @@ class _EditListingPageState extends State<EditListingPage> {
           builder: (_, scrollCtrl) => Container(
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(children: [
-              Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 16),
-                decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
               ),
-              const Text('Select Category',
-                  style:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  autofocus: true,
-                  onChanged: (v) {
-                    setSheet(() {
-                      query    = v.toLowerCase();
-                      filtered = _categories
-                          .where((c) => (c['name'] ?? '')
-                          .toLowerCase()
-                          .contains(query))
-                          .toList();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search category...',
-                    hintStyle:
-                    const TextStyle(fontSize: 14, color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search,
-                        color: Colors.deepOrange, size: 20),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.white.withOpacity(0.06)
-                        : Colors.grey.shade100,
-                    contentPadding:
-                    const EdgeInsets.symmetric(vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: filtered.isEmpty
-                    ? const Center(
-                    child: Text('No categories found',
-                        style: TextStyle(color: Colors.grey)))
-                    : ListView.builder(
-                  controller: scrollCtrl,
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) {
-                    final cat        = filtered[i];
-                    final isSelected = _selectedCategory?['cat_id'] ==
-                        cat['cat_id'];
-                    return ListTile(
-                      leading: (cat['icon'] as String? ?? '')
-                          .isNotEmpty
-                          ? Image.network(cat['icon'],
-                          width: 28, height: 28,
-                          errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.category,
-                              color: Colors.deepOrange))
-                          : const Icon(Icons.category,
-                          color: Colors.deepOrange),
-                      title: Text(cat['name'] ?? '',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? Colors.deepOrange
-                                : null,
-                          )),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle,
-                          color: Colors.deepOrange, size: 20)
-                          : null,
-                      onTap: () {
-                        setState(() => _selectedCategory = cat);
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
+                const Text(
+                  'Select Category',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-              ),
-            ]),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    autofocus: true,
+                    onChanged: (v) {
+                      setSheet(() {
+                        query = v.toLowerCase();
+                        filtered = _categories
+                            .where(
+                              (c) => (c['name'] ?? '').toLowerCase().contains(
+                                query,
+                              ),
+                            )
+                            .toList();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search category...',
+                      hintStyle: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.deepOrange,
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: isDark
+                          ? Colors.white.withOpacity(0.06)
+                          : Colors.grey.shade100,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No categories found',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollCtrl,
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final cat = filtered[i];
+                            final isSelected =
+                                _selectedCategory?['cat_id'] == cat['cat_id'];
+                            return ListTile(
+                              leading: (cat['icon'] as String? ?? '').isNotEmpty
+                                  ? Image.network(
+                                      cat['icon'],
+                                      width: 28,
+                                      height: 28,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.category,
+                                        color: Colors.deepOrange,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.category,
+                                      color: Colors.deepOrange,
+                                    ),
+                              title: Text(
+                                cat['name'] ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.normal,
+                                  color: isSelected ? Colors.deepOrange : null,
+                                ),
+                              ),
+                              trailing: isSelected
+                                  ? const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.deepOrange,
+                                      size: 20,
+                                    )
+                                  : null,
+                              onTap: () {
+                                setState(() => _selectedCategory = cat);
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -538,50 +633,66 @@ class _EditListingPageState extends State<EditListingPage> {
 
   Widget _buildCategoryPicker(bool isDark) => Padding(
     padding: const EdgeInsets.only(bottom: 18),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _fieldLabel('Category *'),
-      const SizedBox(height: 8),
-      GestureDetector(
-        onTap: _showCategorySheet,
-        child: Container(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Row(children: [
-            (_selectedCategory != null &&
-                (_selectedCategory!['icon'] as String? ?? '')
-                    .isNotEmpty)
-                ? Image.network(_selectedCategory!['icon'],
-                width: 22, height: 22,
-                errorBuilder: (_, __, ___) => const Icon(
-                    Icons.category,
-                    size: 20,
-                    color: Colors.deepOrange))
-                : const Icon(Icons.category,
-                size: 20, color: Colors.deepOrange),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                _selectedCategory?['name'] ?? 'Select a category',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _selectedCategory == null
-                      ? Colors.grey
-                      : (isDark ? Colors.white : Colors.black87),
-                ),
-              ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel('Category *'),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _showCategorySheet,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(15),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded,
-                color: Colors.deepOrange),
-          ]),
+            child: Row(
+              children: [
+                (_selectedCategory != null &&
+                        (_selectedCategory!['icon'] as String? ?? '')
+                            .isNotEmpty)
+                    ? Image.network(
+                        _selectedCategory!['icon'],
+                        width: 22,
+                        height: 22,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.category,
+                          size: 20,
+                          color: Colors.deepOrange,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.category,
+                        size: 20,
+                        color: Colors.deepOrange,
+                      ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _selectedCategory?['name'] ?? 'Select a category',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _selectedCategory == null
+                          ? Colors.grey
+                          : (isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.deepOrange,
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-    ]),
+      ],
+    ),
   );
 
   Widget _buildChipSelector({
@@ -590,50 +701,55 @@ class _EditListingPageState extends State<EditListingPage> {
     required List<String> displayLabels,
     required String selected,
     required void Function(String) onSelected,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 18),
-        child:
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _fieldLabel(label),
-          const SizedBox(height: 8),
-          Row(
-            children: List.generate(options.length, (i) {
-              final isSelected = selected == options[i];
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onSelected(options[i]),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    margin: EdgeInsets.only(
-                        right: i < options.length - 1 ? 10 : 0),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.deepOrange
-                          : (Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white10
-                          : Colors.grey.shade100),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      displayLabels[i],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : Colors.grey.shade600,
-                      ),
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 18),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(label),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(options.length, (i) {
+            final isSelected = selected == options[i];
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onSelected(options[i]),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: EdgeInsets.only(
+                    right: i < options.length - 1 ? 10 : 0,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.deepOrange
+                        : (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white10
+                              : Colors.grey.shade100),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    displayLabels[i],
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.grey.shade600,
                     ),
                   ),
                 ),
-              );
-            }),
-          ),
-        ]),
-      );
+              ),
+            );
+          }),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -648,41 +764,49 @@ class _EditListingPageState extends State<EditListingPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child:
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _fieldLabel(label),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          validator: validator,
-          style: const TextStyle(fontSize: 14),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle:
-            const TextStyle(fontSize: 14, color: Colors.grey),
-            prefixText: prefixText,
-            prefixIcon: Icon(icon,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _fieldLabel(label),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            validator: validator,
+            style: const TextStyle(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+              prefixText: prefixText,
+              prefixIcon: Icon(
+                icon,
                 size: 18,
-                color: Colors.deepOrange.withOpacity(0.8)),
-            filled: true,
-            fillColor: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.grey.shade100,
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
+                color: Colors.deepOrange.withOpacity(0.8),
+              ),
+              filled: true,
+              fillColor: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.grey.shade100,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide:
-              const BorderSide(color: Colors.deepOrange, width: 1),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Colors.deepOrange,
+                  width: 1,
+                ),
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -708,7 +832,9 @@ class _EditListingPageState extends State<EditListingPage> {
             margin: const EdgeInsets.all(6),
             padding: const EdgeInsets.all(4),
             decoration: const BoxDecoration(
-                color: Colors.redAccent, shape: BoxShape.circle),
+              color: Colors.redAccent,
+              shape: BoxShape.circle,
+            ),
             child: const Icon(Icons.close, size: 14, color: Colors.white),
           ),
         ),
@@ -725,18 +851,23 @@ class _EditListingPageState extends State<EditListingPage> {
         color: Colors.deepOrange.withOpacity(0.05),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: Colors.deepOrange.withOpacity(0.25), width: 1.5),
+          color: Colors.deepOrange.withOpacity(0.25),
+          width: 1.5,
+        ),
       ),
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(IconsaxPlusLinear.add_square, color: Colors.deepOrange),
           SizedBox(height: 4),
-          Text('Add Photo',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.deepOrange)),
+          Text(
+            'Add Photo',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.deepOrange,
+            ),
+          ),
         ],
       ),
     ),
@@ -745,22 +876,33 @@ class _EditListingPageState extends State<EditListingPage> {
   Widget _sectionTitle(String text, {String? trailing}) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(text,
+      Expanded(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ),
+      if (trailing != null) ...[
+        const SizedBox(width: 8),
+        Text(
+          trailing,
           style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.bold)),
-      if (trailing != null)
-        Text(trailing,
-            style: const TextStyle(
-                color: Colors.deepOrange,
-                fontWeight: FontWeight.bold)),
+            color: Colors.deepOrange,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     ],
   );
 
   Widget _fieldLabel(String text) => Text(
     '  $text',
     style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: Colors.grey.shade600),
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: Colors.grey.shade600,
+    ),
   );
 }

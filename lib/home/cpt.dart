@@ -22,16 +22,17 @@ class ConfirmPinTransferPage extends StatefulWidget {
   });
 
   @override
-  State<ConfirmPinTransferPage> createState() =>
-      _ConfirmPinTransferPageState();
+  State<ConfirmPinTransferPage> createState() => _ConfirmPinTransferPageState();
 }
 
 class _ConfirmPinTransferPageState extends State<ConfirmPinTransferPage> {
   final TextEditingController _amountController = TextEditingController();
 
   // 4 separate boxes for the PIN — simple, no extra package required.
-  final List<TextEditingController> _pinControllers =
-  List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _pinControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
 
   bool _submitting = false;
@@ -43,6 +44,7 @@ class _ConfirmPinTransferPageState extends State<ConfirmPinTransferPage> {
       _amountController.text = widget.prefilledAmount!.toStringAsFixed(0);
     }
   }
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -100,7 +102,8 @@ class _ConfirmPinTransferPageState extends State<ConfirmPinTransferPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Sent ${amount.toStringAsFixed(2)} to ${widget.recipient['name']}'),
+              'Sent ${amount.toStringAsFixed(2)} to ${widget.recipient['name']}',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -139,6 +142,11 @@ class _ConfirmPinTransferPageState extends State<ConfirmPinTransferPage> {
     final phone = (widget.recipient['phone'] as String?) ?? '';
     final image = (widget.recipient['image'] as String?) ?? '';
 
+    // Screen-size aware scaling so this page looks right on small and
+    // large phones/tablets instead of using fixed pixel values everywhere.
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double scale = (screenWidth / 390.0).clamp(0.85, 1.15);
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -147,211 +155,269 @@ class _ConfirmPinTransferPageState extends State<ConfirmPinTransferPage> {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── recipient summary ──
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: Colors.deepOrange.withOpacity(0.15),
-                    backgroundImage:
-                    image.isNotEmpty ? NetworkImage(image) : null,
-                    child: image.isEmpty
-                        ? Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        color: Colors.deepOrange,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                      ),
-                    )
-                        : null,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('SENDING TO',
-                            style: TextStyle(
-                                color: subTextColor,
-                                fontSize: 11,
-                                letterSpacing: 0.5)),
-                        const SizedBox(height: 2),
-                        Text(name,
-                            style: TextStyle(
-                                color: textColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700)),
-                        Text(phone,
-                            style: TextStyle(
-                                color: subTextColor, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ── amount ──
-            Text('AMOUNT',
-                style: TextStyle(
-                    color: subTextColor,
-                    fontSize: 11,
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _amountController,
-                readOnly: widget.prefilledAmount != null,
-                keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-                style: TextStyle(
-                    color: textColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700),
-                decoration: InputDecoration(
-                  hintText: '0.00',
-                  hintStyle: TextStyle(color: hintColor),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text('Available balance: ${widget.balance.toStringAsFixed(2)}',
-                style: TextStyle(color: subTextColor, fontSize: 12)),
-
-            const SizedBox(height: 28),
-
-            // ── PIN ──
-            Text('ENTER YOUR 4-DIGIT PIN',
-                style: TextStyle(
-                    color: subTextColor,
-                    fontSize: 11,
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (i) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: SizedBox(
-                    width: 52,
-                    height: 56,
-                    child: TextField(
-                      controller: _pinControllers[i],
-                      focusNode: _pinFocusNodes[i],
-                      textAlign: TextAlign.center,
-                      obscureText: true,
-                      obscuringCharacter: '●',
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      style: TextStyle(
-                          color: textColor,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: InputDecoration(
-                        counterText: '',
-                        filled: true,
-                        fillColor: cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                          const BorderSide(color: Colors.deepOrange),
-                        ),
-                      ),
-                      onChanged: (val) {
-                        if (val.isNotEmpty && i < 3) {
-                          _pinFocusNodes[i + 1].requestFocus();
-                        } else if (val.isEmpty && i > 0) {
-                          _pinFocusNodes[i - 1].requestFocus();
-                        }
-                      },
-                    ),
-                  ),
-                );
-              }),
-            ),
-
-            if (_error != null) ...[
-              const SizedBox(height: 16),
+        padding: EdgeInsets.all(20 * scale),
+        child: ConstrainedBox(
+          // Caps the form width on tablets/large screens instead of
+          // stretching edge-to-edge.
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── recipient summary ──
               Container(
-                width: double.infinity,
-                padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: EdgeInsets.all(16 * scale),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.redAccent),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26 * scale,
+                      backgroundColor: Colors.deepOrange.withOpacity(0.15),
+                      backgroundImage: image.isNotEmpty
+                          ? NetworkImage(image)
+                          : null,
+                      child: image.isEmpty
+                          ? Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: Colors.deepOrange,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18 * scale,
+                              ),
+                            )
+                          : null,
+                    ),
+                    SizedBox(width: 14 * scale),
+                    // FIX: name/phone had no maxLines/overflow, so a long
+                    // recipient name could wrap unpredictably. Added
+                    // ellipsis so it clips cleanly on narrow screens.
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'SENDING TO',
+                            style: TextStyle(
+                              color: subTextColor,
+                              fontSize: 11 * scale,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SizedBox(height: 2 * scale),
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16 * scale,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            phone,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: subTextColor,
+                              fontSize: 13 * scale,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 20 * scale),
+
+              // ── amount ──
+              Text(
+                'AMOUNT',
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 11 * scale,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 8 * scale),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+                child: TextField(
+                  controller: _amountController,
+                  readOnly: widget.prefilledAmount != null,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 22 * scale,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: TextStyle(color: hintColor),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 16 * scale),
+                  ),
+                ),
+              ),
+              SizedBox(height: 4 * scale),
+              Text(
+                'Available balance: ${widget.balance.toStringAsFixed(2)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: subTextColor, fontSize: 12 * scale),
+              ),
+
+              SizedBox(height: 28 * scale),
+
+              // ── PIN ──
+              Text(
+                'ENTER YOUR 4-DIGIT PIN',
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 11 * scale,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12 * scale),
+              // FIX: 4 boxes at a fixed 52px width + 16px horizontal
+              // padding each (272px total) had no safeguard for very
+              // narrow phones (~320dp wide) where that plus the page's
+              // own padding can exceed the available width and overflow.
+              // LayoutBuilder now sizes each box from the actual
+              // available width instead of a fixed constant.
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const gap = 12.0;
+                  final maxBoxSize = 56.0 * scale;
+                  final boxSize = ((constraints.maxWidth - gap * 3) / 4).clamp(
+                    40.0,
+                    maxBoxSize,
+                  );
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(4, (i) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: gap / 2),
+                        child: SizedBox(
+                          width: boxSize,
+                          height: boxSize + 4,
+                          child: TextField(
+                            controller: _pinControllers[i],
+                            focusNode: _pinFocusNodes[i],
+                            textAlign: TextAlign.center,
+                            obscureText: true,
+                            obscuringCharacter: '●',
+                            keyboardType: TextInputType.number,
+                            maxLength: 1,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 22 * scale,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              counterText: '',
+                              filled: true,
+                              fillColor: cardColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: Colors.deepOrange,
+                                ),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              if (val.isNotEmpty && i < 3) {
+                                _pinFocusNodes[i + 1].requestFocus();
+                              } else if (val.isEmpty && i > 0) {
+                                _pinFocusNodes[i - 1].requestFocus();
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
+
+              if (_error != null) ...[
+                SizedBox(height: 16 * scale),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14 * scale,
+                    vertical: 12 * scale,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 13 * scale,
+                    ),
+                  ),
+                ),
+              ],
+
+              SizedBox(height: 28 * scale),
+
+              SizedBox(
+                height: 50 * scale,
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    disabledBackgroundColor: Colors.deepOrange.withOpacity(0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  onPressed: _submitting ? null : _submit,
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Confirm & Send',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18 * scale,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
             ],
-
-            const SizedBox(height: 28),
-
-            SizedBox(
-              height: 50,
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  disabledBackgroundColor: Colors.deepOrange.withOpacity(0.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                onPressed: _submitting ? null : _submit,
-                child: _submitting
-                    ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
-                    color: Colors.white,
-                  ),
-                )
-                    : const Text(
-                  'Confirm & Send',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

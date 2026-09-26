@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:provider/provider.dart';
 import '../models/user_model.dart';
@@ -16,6 +19,46 @@ class ProfileDetails extends StatefulWidget {
 }
 
 class _ProfileDetailsState extends State<ProfileDetails> {
+  String? _walletAccountNumber;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAccountNumber();
+  }
+
+  Future<void> _fetchAccountNumber() async {
+    final user = context.read<UserProvider>().user;
+    if (user == null) return;
+    try {
+      final res = await http.get(
+        Uri.parse(
+          'https://glopa.org/glo/get_virtual_account.php?user_id=${user.userId}',
+        ),
+      );
+      final data = jsonDecode(res.body);
+      if (!mounted) return;
+      if (data['status'] == 'success') {
+        setState(() {
+          _walletAccountNumber = data['data']?['account_number']?.toString();
+        });
+      }
+    } catch (_) {
+      // Silent — row just falls back to '--' if this fails.
+    }
+  }
+
+  Future<void> _copyToClipboard(String value, String label) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("$label copied"),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>().user;
@@ -26,7 +69,7 @@ class _ProfileDetailsState extends State<ProfileDetails> {
 
     final firstName = user.name;
     final email = user.email ?? 'Add Email';
-    final accountNumber = user.accountNumber ?? '--';
+    final accountNumber = _walletAccountNumber ?? '--';
     final gender = user.gender ?? '--';
     final phone = user.phone ?? '--';
     final address = user.address ?? '--';
@@ -121,7 +164,13 @@ class _ProfileDetailsState extends State<ProfileDetails> {
             const SizedBox(height: 30),
 
             _profileInfoCard(cardColor, [
-              // _row("Account Number", accountNumber),
+              _row(
+                "Account Number",
+                accountNumber,
+                onCopy: accountNumber == '--'
+                    ? null
+                    : () => _copyToClipboard(accountNumber, "Account number"),
+              ),
               _row(
                 "Email",
                 email,
@@ -671,7 +720,12 @@ class _ProfileDetailsState extends State<ProfileDetails> {
     ),
   );
 
-  Widget _row(String title, String value, {VoidCallback? onTap}) => InkWell(
+  Widget _row(
+    String title,
+    String value, {
+    VoidCallback? onTap,
+    VoidCallback? onCopy,
+  }) => InkWell(
     onTap: onTap,
     child: Container(
       height: 60,
@@ -683,6 +737,17 @@ class _ProfileDetailsState extends State<ProfileDetails> {
           Row(
             children: [
               Text(value),
+              if (onCopy != null) ...[
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onCopy,
+                  borderRadius: BorderRadius.circular(20),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(Icons.copy_rounded, size: 18),
+                  ),
+                ),
+              ],
               if (onTap != null) const SizedBox(width: 6),
               if (onTap != null) const Icon(Icons.arrow_forward_ios, size: 14),
             ],

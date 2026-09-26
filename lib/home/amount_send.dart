@@ -55,6 +55,11 @@ class _AmountSendState extends State<AmountSend> {
   late NumberFormat _currencyFormatter;
   bool _isProcessing = false;
 
+  // Screen-size aware scale factor, computed once we have a BuildContext
+  // in build(); used to keep the whole page proportional on small and
+  // large phones/tablets instead of relying on fixed pixel values.
+  double _scale = 1.0;
+
   @override
   void initState() {
     super.initState();
@@ -171,7 +176,7 @@ class _AmountSendState extends State<AmountSend> {
     final disabled = onPressed == null;
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: 56 * _scale,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
@@ -203,18 +208,32 @@ class _AmountSendState extends State<AmountSend> {
             ),
             child: Container(
               alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: 12 * _scale),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
+                  Icon(
+                    Icons.lock_rounded,
+                    color: Colors.white,
+                    size: 18 * _scale,
+                  ),
+                  SizedBox(width: 8 * _scale),
+                  // FIX: label ("Pay ₦…") had no Flexible, so a very large
+                  // formatted amount could overflow the button on narrow
+                  // screens. Flexible + FittedBox lets it shrink instead.
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.5 * _scale,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -248,108 +267,133 @@ class _AmountSendState extends State<AmountSend> {
                   top: Radius.circular(28),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 18),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(10),
+              padding: EdgeInsets.fromLTRB(
+                20 * _scale,
+                12 * _scale,
+                20 * _scale,
+                24 * _scale,
+              ),
+              // Wrapped in SingleChildScrollView so on short screens (or
+              // with larger system text scale) the sheet can scroll
+              // instead of overflowing past the top of the screen.
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 4,
+                      margin: EdgeInsets.only(bottom: 18 * _scale),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Confirm Transfer',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
+                    Text(
+                      'Confirm Transfer',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 17 * _scale,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: subTextColor.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        _bankAvatar(radius: 24),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.accountHolderName,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14.5,
+                    SizedBox(height: 18 * _scale),
+                    Container(
+                      padding: EdgeInsets.all(14 * _scale),
+                      decoration: BoxDecoration(
+                        color: subTextColor.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          _bankAvatar(radius: 24 * _scale),
+                          SizedBox(width: 12 * _scale),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.accountHolderName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.5 * _scale,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                widget.bank,
-                                style: TextStyle(
-                                  color: subTextColor,
-                                  fontSize: 12.5,
+                                SizedBox(height: 2 * _scale),
+                                Text(
+                                  widget.bank,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: subTextColor,
+                                    fontSize: 12.5 * _scale,
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 8 * _scale),
+                          // FIX: this trailing account-number Text had no
+                          // width cap, so on a narrow screen it could
+                          // squeeze the name/bank column to almost nothing.
+                          // Constrained + ellipsis so it never grows past
+                          // a sensible width.
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: 90 * _scale),
+                            child: Text(
+                              widget.account,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: subTextColor,
+                                fontSize: 12.5 * _scale,
+                                fontWeight: FontWeight.w600,
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                        Text(
-                          widget.account,
-                          style: TextStyle(
-                            color: subTextColor,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  _infoRow(
-                    "Amount",
-                    _currencyFormatter.format(amount),
-                    textColor,
-                    subTextColor,
-                    emphasize: true,
-                  ),
-                  const SizedBox(height: 10),
-                  _infoRow(
-                    "Payment method",
-                    _paymentMethod,
-                    textColor,
-                    subTextColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _infoRow(
-                    "Available balance",
-                    _currencyFormatter.format(widget.balance),
-                    textColor,
-                    subTextColor,
-                  ),
-                  if (_noteCtrl.text.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _infoRow("Note", _noteCtrl.text, textColor, subTextColor),
+                    SizedBox(height: 18 * _scale),
+                    _infoRow(
+                      "Amount",
+                      _currencyFormatter.format(amount),
+                      textColor,
+                      subTextColor,
+                      emphasize: true,
+                    ),
+                    SizedBox(height: 10 * _scale),
+                    _infoRow(
+                      "Payment method",
+                      _paymentMethod,
+                      textColor,
+                      subTextColor,
+                    ),
+                    SizedBox(height: 10 * _scale),
+                    _infoRow(
+                      "Available balance",
+                      _currencyFormatter.format(widget.balance),
+                      textColor,
+                      subTextColor,
+                    ),
+                    if (_noteCtrl.text.isNotEmpty) ...[
+                      SizedBox(height: 10 * _scale),
+                      _infoRow("Note", _noteCtrl.text, textColor, subTextColor),
+                    ],
+                    SizedBox(height: 22 * _scale),
+                    _payButton(
+                      label: "Pay ${_currencyFormatter.format(amount)}",
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _openPinSheet(amount, isDark);
+                      },
+                    ),
                   ],
-                  const SizedBox(height: 22),
-                  _payButton(
-                    label: "Pay ${_currencyFormatter.format(amount)}",
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _openPinSheet(amount, isDark);
-                    },
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -358,6 +402,9 @@ class _AmountSendState extends State<AmountSend> {
     );
   }
 
+  // FIX: label/value were bare Text widgets in a spaceBetween Row with no
+  // Expanded/Flexible, so a long note or a very large formatted amount
+  // could overflow. Value side now wraps and shrinks safely.
   Widget _infoRow(
     String label,
     String value,
@@ -368,13 +415,22 @@ class _AmountSendState extends State<AmountSend> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: subTextColor, fontSize: 13.5)),
         Text(
-          value,
-          style: TextStyle(
-            color: emphasize ? _accent : textColor,
-            fontWeight: FontWeight.w700,
-            fontSize: emphasize ? 17 : 14,
+          label,
+          style: TextStyle(color: subTextColor, fontSize: 13.5 * _scale),
+        ),
+        SizedBox(width: 12 * _scale),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: emphasize ? _accent : textColor,
+              fontWeight: FontWeight.w700,
+              fontSize: (emphasize ? 17 : 14) * _scale,
+            ),
           ),
         ),
       ],
@@ -389,6 +445,10 @@ class _AmountSendState extends State<AmountSend> {
     final hiddenCtrl = TextEditingController();
     final hiddenFocus = FocusNode();
     final pins = List<String>.filled(4, '');
+    final double scale = _scale;
+    // PIN box size shrinks a bit on very narrow phones so 4 boxes +
+    // spacing always fit without squeezing into each other.
+    final double pinBoxSize = (56 * scale).clamp(44.0, 60.0);
 
     showModalBottomSheet(
       context: context,
@@ -406,122 +466,130 @@ class _AmountSendState extends State<AmountSend> {
 
         return Padding(
           padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 12,
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 28,
+            left: 20 * scale,
+            right: 20 * scale,
+            top: 12 * scale,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 28 * scale,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 22),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.lock_rounded, color: _accent, size: 22),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                "Enter Transaction PIN",
-                style: TextStyle(
-                  fontSize: 17.5,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                "Confirm ${_currencyFormatter.format(amount)} to ${widget.accountHolderName}",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12.5, color: subTextColor),
-              ),
-              const SizedBox(height: 28),
-              GestureDetector(
-                onTap: () =>
-                    FocusScope.of(sheetContext).requestFocus(hiddenFocus),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(4, (i) {
-                    final filled = pins[i].isNotEmpty;
-                    final currentLen = hiddenCtrl.text
-                        .replaceAll(RegExp(r'\s+'), '')
-                        .length;
-                    final isCursorBox = currentLen == i;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: 56,
-                      height: 56,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: filled || isCursorBox
-                              ? _accent
-                              : (isDark
-                                    ? Colors.white24
-                                    : Colors.grey.shade300),
-                          width: isCursorBox ? 2 : 1.2,
-                        ),
-                        color: filled
-                            ? _accent.withOpacity(0.1)
-                            : (isDark
-                                  ? Colors.white.withOpacity(0.03)
-                                  : Colors.grey.shade50),
-                      ),
-                      child: filled
-                          ? Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: _accent,
-                                shape: BoxShape.circle,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    );
-                  }),
-                ),
-              ),
-              Opacity(
-                opacity: 0,
-                child: SizedBox(
-                  height: 1,
-                  child: TextField(
-                    controller: hiddenCtrl,
-                    focusNode: hiddenFocus,
-                    maxLength: 4,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    onChanged: (v) {
-                      final cleaned = v.replaceAll(RegExp(r'\s+'), '');
-                      for (int i = 0; i < 4; i++) {
-                        pins[i] = i < cleaned.length ? cleaned[i] : '';
-                      }
-                      setState(() {});
-                      if (cleaned.length == 4) {
-                        Future.delayed(const Duration(milliseconds: 200), () {
-                          Navigator.pop(sheetContext);
-                          // ── The actual fix: PIN is now passed through ──
-                          _processPayment(amount, cleaned);
-                        });
-                      }
-                    },
-                    decoration: const InputDecoration(counterText: ''),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  margin: EdgeInsets.only(bottom: 22 * scale),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: EdgeInsets.all(12 * scale),
+                  decoration: BoxDecoration(
+                    color: _accent.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock_rounded,
+                    color: _accent,
+                    size: 22 * scale,
+                  ),
+                ),
+                SizedBox(height: 14 * scale),
+                Text(
+                  "Enter Transaction PIN",
+                  style: TextStyle(
+                    fontSize: 17.5 * scale,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+                SizedBox(height: 6 * scale),
+                Text(
+                  "Confirm ${_currencyFormatter.format(amount)} to ${widget.accountHolderName}",
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12.5 * scale, color: subTextColor),
+                ),
+                SizedBox(height: 28 * scale),
+                GestureDetector(
+                  onTap: () =>
+                      FocusScope.of(sheetContext).requestFocus(hiddenFocus),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(4, (i) {
+                      final filled = pins[i].isNotEmpty;
+                      final currentLen = hiddenCtrl.text
+                          .replaceAll(RegExp(r'\s+'), '')
+                          .length;
+                      final isCursorBox = currentLen == i;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: pinBoxSize,
+                        height: pinBoxSize,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: filled || isCursorBox
+                                ? _accent
+                                : (isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade300),
+                            width: isCursorBox ? 2 : 1.2,
+                          ),
+                          color: filled
+                              ? _accent.withOpacity(0.1)
+                              : (isDark
+                                    ? Colors.white.withOpacity(0.03)
+                                    : Colors.grey.shade50),
+                        ),
+                        child: filled
+                            ? Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: _accent,
+                                  shape: BoxShape.circle,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      );
+                    }),
+                  ),
+                ),
+                Opacity(
+                  opacity: 0,
+                  child: SizedBox(
+                    height: 1,
+                    child: TextField(
+                      controller: hiddenCtrl,
+                      focusNode: hiddenFocus,
+                      maxLength: 4,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      onChanged: (v) {
+                        final cleaned = v.replaceAll(RegExp(r'\s+'), '');
+                        for (int i = 0; i < 4; i++) {
+                          pins[i] = i < cleaned.length ? cleaned[i] : '';
+                        }
+                        setState(() {});
+                        if (cleaned.length == 4) {
+                          Future.delayed(const Duration(milliseconds: 200), () {
+                            Navigator.pop(sheetContext);
+                            // ── The actual fix: PIN is now passed through ──
+                            _processPayment(amount, cleaned);
+                          });
+                        }
+                      },
+                      decoration: const InputDecoration(counterText: ''),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -601,12 +669,18 @@ class _AmountSendState extends State<AmountSend> {
         : const Color(0xFFF5F5F5);
     final masked = _maskAccount(widget.account);
 
+    // Screen-size aware scaling so this page (and the sheets it opens)
+    // look right on small and large phones/tablets instead of using fixed
+    // pixel values everywhere.
+    final double screenWidth = MediaQuery.of(context).size.width;
+    _scale = (screenWidth / 390.0).clamp(0.85, 1.15);
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Send Money",
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17 * _scale),
         ),
         centerTitle: true,
         backgroundColor: bgColor,
@@ -614,10 +688,16 @@ class _AmountSendState extends State<AmountSend> {
         surfaceTintColor: Colors.transparent,
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: EdgeInsets.fromLTRB(
+          16 * _scale,
+          4 * _scale,
+          16 * _scale,
+          24 * _scale,
+        ),
         children: [
           // ── Recipient card ──
           Container(
+            constraints: const BoxConstraints(maxWidth: 560),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(20),
@@ -631,61 +711,70 @@ class _AmountSendState extends State<AmountSend> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16 * _scale),
             child: Row(
               children: [
-                _bankAvatar(radius: 28),
-                const SizedBox(width: 14),
+                _bankAvatar(radius: 28 * _scale),
+                SizedBox(width: 14 * _scale),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         widget.accountHolderName,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: textColor,
                           fontWeight: FontWeight.w700,
-                          fontSize: 16.5,
+                          fontSize: 16.5 * _scale,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      SizedBox(height: 3 * _scale),
                       Text(
                         widget.bank,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: subTextColor,
-                          fontSize: 12.5,
+                          fontSize: 12.5 * _scale,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2 * _scale),
                       Text(
                         masked,
-                        style: TextStyle(color: subTextColor, fontSize: 12.5),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: subTextColor,
+                          fontSize: 12.5 * _scale,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.all(7),
+                  padding: EdgeInsets.all(7 * _scale),
                   decoration: BoxDecoration(
                     color: const Color(0xFF22C55E).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.verified_rounded,
-                    color: Color(0xFF22C55E),
-                    size: 16,
+                    color: const Color(0xFF22C55E),
+                    size: 16 * _scale,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * _scale),
 
           // ── Amount card ──
           Container(
-            padding: const EdgeInsets.all(18),
+            constraints: const BoxConstraints(maxWidth: 560),
+            padding: EdgeInsets.all(18 * _scale),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(20),
@@ -709,33 +798,33 @@ class _AmountSendState extends State<AmountSend> {
                       'AMOUNT',
                       style: TextStyle(
                         color: subTextColor,
-                        fontSize: 11,
+                        fontSize: 11 * _scale,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.4,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6 * _scale),
                     TextField(
                       controller: _amountCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: false,
                       ),
                       style: TextStyle(
-                        fontSize: 30,
+                        fontSize: 30 * _scale,
                         fontWeight: FontWeight.w800,
                         color: textColor,
                       ),
                       decoration: InputDecoration(
                         prefixText: '${CurrencyConfig().symbol} ',
                         prefixStyle: TextStyle(
-                          fontSize: 24,
+                          fontSize: 24 * _scale,
                           color: textColor,
                           fontWeight: FontWeight.w700,
                         ),
                         hintText: '0',
                         hintStyle: TextStyle(
                           color: subTextColor,
-                          fontSize: 28,
+                          fontSize: 28 * _scale,
                           fontWeight: FontWeight.w700,
                         ),
                         border: InputBorder.none,
@@ -743,30 +832,37 @@ class _AmountSendState extends State<AmountSend> {
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12 * _scale),
                     Divider(color: subTextColor.withOpacity(0.15), height: 1),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12 * _scale),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: EdgeInsets.all(6 * _scale),
                           decoration: BoxDecoration(
                             color: _accent.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             IconsaxPlusBold.wallet,
                             color: _accent,
-                            size: 15,
+                            size: 15 * _scale,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Balance: ${_currencyFormatter.format(widget.balance)}",
-                          style: TextStyle(
-                            color: subTextColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                        SizedBox(width: 8 * _scale),
+                        // FIX: balance label had no Expanded/ellipsis, so a
+                        // very large formatted balance could overflow past
+                        // the card edge on narrow screens.
+                        Expanded(
+                          child: Text(
+                            "Balance: ${_currencyFormatter.format(widget.balance)}",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: subTextColor,
+                              fontSize: 13 * _scale,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -778,9 +874,9 @@ class _AmountSendState extends State<AmountSend> {
                     top: -8,
                     right: 0,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10 * _scale,
+                        vertical: 6 * _scale,
                       ),
                       decoration: BoxDecoration(
                         color: _accent.withOpacity(0.1),
@@ -789,18 +885,18 @@ class _AmountSendState extends State<AmountSend> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             IconsaxPlusBold.activity,
-                            size: 13,
+                            size: 13 * _scale,
                             color: _accent,
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4 * _scale),
                           Text(
                             _unit,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _accent,
                               fontWeight: FontWeight.w700,
-                              fontSize: 11.5,
+                              fontSize: 11.5 * _scale,
                             ),
                           ),
                         ],
@@ -811,20 +907,23 @@ class _AmountSendState extends State<AmountSend> {
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * _scale),
 
           TextField(
             controller: _noteCtrl,
             maxLength: 50,
-            style: TextStyle(color: textColor, fontSize: 14),
+            style: TextStyle(color: textColor, fontSize: 14 * _scale),
             decoration: InputDecoration(
               labelText: "Add a note (optional)",
-              labelStyle: TextStyle(color: subTextColor, fontSize: 13.5),
+              labelStyle: TextStyle(
+                color: subTextColor,
+                fontSize: 13.5 * _scale,
+              ),
               filled: true,
               fillColor: fieldFill,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 14,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14 * _scale,
+                vertical: 14 * _scale,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -834,10 +933,13 @@ class _AmountSendState extends State<AmountSend> {
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: _accent, width: 1.5),
               ),
-              counterStyle: TextStyle(color: subTextColor, fontSize: 11),
+              counterStyle: TextStyle(
+                color: subTextColor,
+                fontSize: 11 * _scale,
+              ),
             ),
           ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22 * _scale),
 
           _payButton(
             label: "Confirm to Pay",

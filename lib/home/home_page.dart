@@ -104,10 +104,8 @@ class _HomePageState extends State<HomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => LoginPage(
-            onToggleTheme: () {},
-            onLoginSuccess: () {},
-          ),
+          builder: (_) =>
+              LoginPage(onToggleTheme: () {}, onLoginSuccess: () {}),
         ),
       );
       return;
@@ -129,6 +127,16 @@ class _HomePageState extends State<HomePage> {
       final formatter = NumberFormat("#,##0.00", "en_US");
       return "${CurrencyConfig().symbol}${formatter.format(amount)}";
     }
+  }
+
+  // ── Responsive helpers ──────────────────────────────────────
+  // Scales font/icon sizes off actual screen width instead of hardcoding
+  // for one device size. Baseline is a 375-wide phone (iPhone SE/standard
+  // Android). Clamped so very large tablets don't blow icons/text up too
+  // far, and very small phones don't shrink things unreadably.
+  double _scale(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return (width / 375).clamp(0.82, 1.2);
   }
 
   @override
@@ -156,7 +164,9 @@ class _HomePageState extends State<HomePage> {
     final balanceNotifier = context.watch<UserBalance>();
     double balance = isGuest ? 0 : balanceNotifier.balance;
     final bool canToggle = balance >= 1000000;
-    final String displayedBalance = (balance < 1000000 || _showFullFormat)
+    final String displayedBalance = balanceNotifier.isHidden
+        ? "* * * *"
+        : (balance < 1000000 || _showFullFormat)
         ? formatFull(balance)
         : formatBalance(balance);
 
@@ -169,318 +179,410 @@ class _HomePageState extends State<HomePage> {
         : Colors.deepOrange.shade50.withOpacity(0.2);
     final hintColor = isDark ? Colors.white : Colors.grey.shade600;
 
+    final double s = _scale(context);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    // Horizontal padding shrinks a little on very narrow screens so the
+    // 4-across rows below get more room before anything has to compress.
+    final double outerPad = screenWidth < 340 ? 14 : 20;
+
     return Scaffold(
       backgroundColor: scaffoldColor,
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        color: Colors.deepOrange,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+      body: Theme(
+        data: Theme.of(context).copyWith(platform: TargetPlatform.iOS),
+        child: RefreshIndicator.adaptive(
+          onRefresh: _refresh,
+          color: Colors.deepOrange,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
 
-              if (isGuest)
+                if (isGuest)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(outerPad, 0, outerPad, 10),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 16,
+                            color: Colors.deepOrange,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "You're browsing as a guest. Sign in to send money or fund your wallet.",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textColor.withOpacity(0.8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          TextButton(
+                            onPressed: () => _requireAuth(true, () {}),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 0),
+                            ),
+                            child: const Text(
+                              'Sign in',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // ── Balance card ───────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  padding: EdgeInsets.symmetric(horizontal: outerPad),
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AllAsset()),
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                                  Colors.deepOrange.shade500,
+                                  Colors.white12,
+                                  Colors.deepOrange.shade400,
+                                ]
+                              : [Colors.deepOrange.shade200, Colors.white],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                IconsaxPlusBold.shield_tick,
+                                color: Colors.green.shade600,
+                                size: 20 * s,
+                              ),
+                              const SizedBox(width: 4),
+                              // Flexible + FittedBox: on narrow screens this
+                              // label shrinks instead of pushing the eye /
+                              // toggle icons off the edge of the card.
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Available Balance',
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 20,
+                                      letterSpacing: -0.5,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () => balanceNotifier.toggleHidden(),
+                                child: Icon(
+                                  balanceNotifier.isHidden
+                                      ? IconsaxPlusLinear.eye_slash
+                                      : IconsaxPlusLinear.eye,
+                                  size: 20 * s,
+                                  color: hintColor,
+                                ),
+                              ),
+                              if (canToggle) ...[
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () => setState(
+                                    () => _showFullFormat = !_showFullFormat,
+                                  ),
+                                  child: Icon(
+                                    _showFullFormat
+                                        ? Icons.toggle_on
+                                        : Icons.toggle_off,
+                                    size: 20 * s,
+                                    color: _showFullFormat
+                                        ? Colors.deepOrange
+                                        : hintColor,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: () => _requireAuth(
+                              isGuest,
+                              () => _navigateWithLoader(WalletScreen()),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      displayedBalance,
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        fontSize: 30,
+                                        letterSpacing: -2,
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Icon(
+                                  IconsaxPlusLinear.add_circle,
+                                  color: textColor,
+                                  size: 22 * s,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // ── Quick actions ──────────────────────────────
+                // Previously each InkWell/_buildCard had no width
+                // constraint, so on narrower phones the row of 4 could
+                // overflow horizontally. Wrapping each in Expanded forces
+                // them to share the available width evenly and shrink
+                // together instead.
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: outerPad),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    height: 100 * s,
                     decoration: BoxDecoration(
-                      color: Colors.deepOrange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(18),
+                      color: cardColor,
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline_rounded, size: 16, color: Colors.deepOrange),
-                        const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            "You're browsing as a guest. Sign in to send money or fund your wallet.",
-                            style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.8)),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => _requireAuth(true, () {}),
-                          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
-                          child: const Text('Sign in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // ── Balance card ───────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => AllAsset()),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [
-                          Colors.deepOrange.shade500,
-                          Colors.white12,
-                          Colors.deepOrange.shade400,
-                        ]
-                            : [Colors.deepOrange.shade200, Colors.white],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              IconsaxPlusBold.shield_tick,
-                              color: Colors.green.shade600,
-                              size: 20,
-                            ),
-                            Text(
-                              ' Available Balance ',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 22,
-                                letterSpacing: -1,
-                                color: textColor,
-                              ),
-                            ),
-                            Icon(
-                              IconsaxPlusLinear.eye,
-                              size: 20,
-                              color: hintColor,
-                            ),
-                            if (canToggle) ...[
-                              const SizedBox(width: 6),
-                              GestureDetector(
-                                onTap: () => setState(
-                                      () => _showFullFormat = !_showFullFormat,
-                                ),
-                                child: Icon(
-                                  _showFullFormat
-                                      ? Icons.toggle_on
-                                      : Icons.toggle_off,
-                                  size: 32,
-                                  color: _showFullFormat
-                                      ? Colors.deepOrange
-                                      : hintColor,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        GestureDetector(
-                          onTap: () => _requireAuth(
-                            isGuest,
-                                () => _navigateWithLoader(WalletScreen()),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                displayedBalance,
-                                style: TextStyle(
-                                  fontSize: 37,
-                                  letterSpacing: -2,
-                                  fontWeight: FontWeight.w500,
-                                  color: textColor,
-                                ),
-                              ),
-                              const SizedBox(width: 5),
-                              Icon(
-                                IconsaxPlusLinear.add_circle,
-                                color: textColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // ── Quick actions ──────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  width: double.infinity,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    color: cardColor,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      InkWell(
-                        onTap: () => _requireAuth(
-                          isGuest,
+                          child: InkWell(
+                            onTap: () => _requireAuth(
+                              isGuest,
                               () => _navigateWithLoader(
-                            SendMoney(
-                              balance: balance,
-                              userId: context.read<UserProvider>().user?.userId ?? '',
-                              onTransaction: (double amount) => setState(
-                                    () => UserBalance.instance.balance -= amount,
+                                SendMoney(
+                                  balance: balance,
+                                  userId:
+                                      context
+                                          .read<UserProvider>()
+                                          .user
+                                          ?.userId ??
+                                      '',
+                                  onTransaction: (double amount) => setState(
+                                    () =>
+                                        UserBalance.instance.balance -= amount,
+                                  ),
+                                ),
                               ),
+                            ),
+                            child: _buildCard(
+                              context,
+                              icon: IconsaxPlusBold.bank,
+                              label: "To Bank",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                              scale: s,
                             ),
                           ),
                         ),
-                        child: _buildCard(
-                          context,
-                          icon: IconsaxPlusBold.bank,
-                          label: "To Bank",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () => _requireAuth(
-                          isGuest,
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _requireAuth(
+                              isGuest,
                               () => _navigateWithLoader(
-                            UserPage(
-                              balance: balance,
-                              onTransaction: (double amount) => setState(
-                                    () => UserBalance.instance.balance -= amount,
+                                UserPage(
+                                  balance: balance,
+                                  onTransaction: (double amount) => setState(
+                                    () =>
+                                        UserBalance.instance.balance -= amount,
+                                  ),
+                                ),
                               ),
+                            ),
+                            child: _buildCard(
+                              context,
+                              icon: Icons.diversity_1,
+                              label: "To User",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                              scale: s,
                             ),
                           ),
                         ),
-                        child: _buildCard(
-                          context,
-                          icon: Icons.diversity_1,
-                          label: "To User",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () =>
-                            Navigator.push(
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(builder: (_) => GDropPage()),
                             ),
-                        child: _buildCard(
-                          context,
-                          icon: IconsaxPlusBold.coin_1,
-                          label: "G-Drop",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () => _requireAuth(
-                          isGuest,
-                              () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GTagPaymentPage(balance: balance),
+                            child: _buildCard(
+                              context,
+                              icon: IconsaxPlusBold.coin_1,
+                              label: "G-Drop",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                              scale: s,
                             ),
                           ),
                         ),
-                        child: _buildCard(
-                          context,
-                          icon: IconsaxPlusBold.tag_2,
-                          label: "G-Tag",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Services page view ─────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Container(
-                  height: 170,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: const BorderRadius.all(Radius.circular(15)),
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 140,
-                        child: PageView(
-                          controller: _pageController,
-                          children: [
-                            Column(
-                              children: [
-                                _buildPageViewRow(cardColor, textColor, isGuest),
-                                _buildPageViewRow2(cardColor, textColor, isGuest),
-                              ],
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _requireAuth(
+                              isGuest,
+                              () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      GTagPaymentPage(balance: balance),
+                                ),
+                              ),
                             ),
-                          ],
+                            child: _buildCard(
+                              context,
+                              icon: IconsaxPlusBold.tag_2,
+                              label: "G-Tag",
+                              cardColor: cardColor,
+                              textColor: textColor,
+                              scale: s,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      SmoothPageIndicator(
-                        controller: _pageController,
-                        count: 1,
-                        effect: WormEffect(
-                          dotHeight: 7,
-                          dotWidth: 20,
-                          dotColor: hintColor,
-                          activeDotColor: Colors.deepOrange,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 15),
+                const SizedBox(height: 16),
 
-              // ── Transactions (dynamic) — empty for guests, no user to
-              // fetch transactions for. TransactionListWidget itself isn't
-              // shown here so I'm not guessing at its null-handling; if it
-              // also assumes a non-null user internally, it'll need the
-              // same treatment as this screen got. ──
-              if (!isGuest)
-                TransactionListWidget(
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  hintColor: hintColor,
-                  isDark: isDark,
-                )
-              else
+                // ── Services page view ─────────────────────────
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: outerPad - 2),
                   child: Container(
+                    height: 170 * s,
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: cardColor,
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: const BorderRadius.all(Radius.circular(15)),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Sign in to see your transactions',
-                        style: TextStyle(fontSize: 13, color: hintColor),
-                      ),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 140 * s,
+                          child: PageView(
+                            controller: _pageController,
+                            children: [
+                              Column(
+                                children: [
+                                  Expanded(
+                                    child: _buildPageViewRow(
+                                      cardColor,
+                                      textColor,
+                                      isGuest,
+                                      s,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildPageViewRow2(
+                                      cardColor,
+                                      textColor,
+                                      isGuest,
+                                      s,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        SmoothPageIndicator(
+                          controller: _pageController,
+                          count: 1,
+                          effect: WormEffect(
+                            dotHeight: 7,
+                            dotWidth: 20,
+                            dotColor: hintColor,
+                            activeDotColor: Colors.deepOrange,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
 
-              const SizedBox(height: 70),
-            ],
+                const SizedBox(height: 15),
+
+                // ── Transactions (dynamic) — empty for guests, no user to
+                // fetch transactions for. TransactionListWidget itself isn't
+                // shown here so I'm not guessing at its null-handling; if it
+                // also assumes a non-null user internally, it'll need the
+                // same treatment as this screen got. ──
+                if (!isGuest)
+                  TransactionListWidget(
+                    cardColor: cardColor,
+                    textColor: textColor,
+                    hintColor: hintColor,
+                    isDark: isDark,
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: outerPad),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Sign in to see your transactions',
+                          style: TextStyle(fontSize: 13, color: hintColor),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 70),
+              ],
+            ),
           ),
         ),
       ),
@@ -490,37 +592,47 @@ class _HomePageState extends State<HomePage> {
   // ── Helpers ───────────────────────────────────────────────
 
   Widget _buildCard(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required Color cardColor,
-        required Color textColor,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color cardColor,
+    required Color textColor,
+    required double scale,
+  }) {
     return Container(
-      height: 100,
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            height: 49,
-            width: 49,
+            height: 44 * scale,
+            width: 44 * scale,
             decoration: BoxDecoration(
               color: Colors.deepOrange.shade50,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.deepOrange, size: 25),
+            child: Icon(icon, color: Colors.deepOrange, size: 22 * scale),
           ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
+          SizedBox(height: 8 * scale),
+          // FittedBox + maxLines 1: shrinks the label instead of wrapping
+          // it onto a second line and overflowing the card's height.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ],
@@ -528,125 +640,157 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPageViewRow(Color cardColor, Color textColor, bool isGuest) {
+  Widget _buildPageViewRow(
+    Color cardColor,
+    Color textColor,
+    bool isGuest,
+    double scale,
+  ) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => AirtimeScreen()),
-          ),
-          child: _buildSmallCard(
-            IconsaxPlusBold.call,
-            "Airtime",
-            Colors.deepOrange,
-            cardColor,
-            textColor,
-          ),
-        ),
-        InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => DataScreen()),
-          ),
-          child: _buildSmallCard(
-            IconsaxPlusBold.radar_2,
-            "Data",
-            Colors.deepPurple,
-            cardColor,
-            textColor,
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => AirtimeScreen()),
+            ),
+            child: _buildSmallCard(
+              IconsaxPlusBold.call,
+              "Airtime",
+              Colors.deepOrange,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
         ),
-        InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ElectricityScreen()),
-          ),
-          child: _buildSmallCard(
-            LucideIcons.lightbulb,
-            "Electricity",
-            Colors.blueAccent,
-            cardColor,
-            textColor,
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DataScreen()),
+            ),
+            child: _buildSmallCard(
+              IconsaxPlusBold.radar_2,
+              "Data",
+              Colors.deepPurple,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
         ),
-        InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ComingSoonScreen()),
-            // MaterialPageRoute(builder: (_) => GiftCardPage()),
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ElectricityScreen()),
+            ),
+            child: _buildSmallCard(
+              LucideIcons.lightbulb,
+              "Electricity",
+              Colors.blueAccent,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
-          child: _buildSmallCard(
-            IconsaxPlusBold.ship,
-            "Gift Card",
-            Colors.blue.shade800,
-            cardColor,
-            textColor,
+        ),
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ComingSoonScreen()),
+              // MaterialPageRoute(builder: (_) => GiftCardPage()),
+            ),
+            child: _buildSmallCard(
+              IconsaxPlusBold.ship,
+              "Gift Card",
+              Colors.blue.shade800,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPageViewRow2(Color cardColor, Color textColor, bool isGuest) {
+  Widget _buildPageViewRow2(
+    Color cardColor,
+    Color textColor,
+    bool isGuest,
+    double scale,
+  ) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        InkWell(
-          onTap: () => _requireAuth(
-            isGuest,
-                () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => InviteFriends()),
+        Expanded(
+          child: InkWell(
+            onTap: () => _requireAuth(
+              isGuest,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => InviteFriends()),
+              ),
+            ),
+            child: _buildSmallCard(
+              LucideIcons.gem,
+              "Earn",
+              Colors.deepOrange,
+              cardColor,
+              textColor,
+              scale,
             ),
           ),
-          child: _buildSmallCard(
-            LucideIcons.gem,
-            "Earn",
-            Colors.deepOrange,
-            cardColor,
-            textColor,
+        ),
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TvScreen()),
+            ),
+            child: _buildSmallCard(
+              LucideIcons.tv,
+              "TV",
+              Colors.deepPurple,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
         ),
-        InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => TvScreen()),
-          ),
-          child: _buildSmallCard(
-            LucideIcons.tv,
-            "TV",
-            Colors.deepPurple,
-            cardColor,
-            textColor,
-          ),
-        ),
-        InkWell(
-          onTap: () => Navigator.push(
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
               context,
               // MaterialPageRoute(builder: (_) => CreateTargetPage()),
-              MaterialPageRoute(builder: (_) => ComingSoonScreen())
-          ),
-          child: _buildSmallCard(
-            Icons.savings_outlined,
-            "T-save",
-            Colors.blueAccent,
-            cardColor,
-            textColor,
+              MaterialPageRoute(builder: (_) => ComingSoonScreen()),
+            ),
+            child: _buildSmallCard(
+              Icons.savings_outlined,
+              "T-save",
+              Colors.blueAccent,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
         ),
-        InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => BetScreen()),
-          ),
-          child: _buildSmallCard(
-            LucideIcons.handCoins,
-            "Betting",
-            Colors.blue.shade800,
-            cardColor,
-            textColor,
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => BetScreen()),
+            ),
+            child: _buildSmallCard(
+              LucideIcons.handCoins,
+              "Betting",
+              Colors.blue.shade800,
+              cardColor,
+              textColor,
+              scale,
+            ),
           ),
         ),
       ],
@@ -654,29 +798,41 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSmallCard(
-      IconData icon,
-      String label,
-      Color color,
-      Color cardColor,
-      Color textColor,
-      ) {
+    IconData icon,
+    String label,
+    Color color,
+    Color cardColor,
+    Color textColor,
+    double scale,
+  ) {
     return Container(
-      height: 65,
-      width: 75,
+      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: textColor,
+          Icon(icon, color: color, size: 22 * scale),
+          const SizedBox(height: 2),
+          // FittedBox: "Electricity" / "Gift Card" now shrink to fit the
+          // card's actual (now flexible) width instead of wrapping onto a
+          // second line and getting clipped top/bottom.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
             ),
           ),
         ],

@@ -24,7 +24,6 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     });
 
-
     _startSplash();
   }
 
@@ -45,67 +44,87 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
+  // Clamp sizing so it scales down on small phones and doesn't look
+  // tiny on tablets, same baseline used across the app.
+  double _scale(BuildContext context, double base) {
+    final width = MediaQuery.of(context).size.width;
+    final factor = (width / 375).clamp(0.75, 1.3);
+    return base * factor;
+  }
 
   @override
   Widget build(BuildContext context) {
+    // The logo circle overlaps the left edge of the white "GlobalPay"
+    // rectangle by design, so its margin needs to scale down on narrow
+    // phones — otherwise the fixed 80px margin + 32pt text could push
+    // past the screen edge. This keeps the same proportions instead.
+    final logoSize = _scale(context, 90);
+    final overlapMargin = logoSize - _scale(context, 10);
+
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
-
-
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/images/png/background.png"),
             fit: BoxFit.cover,
           ),
         ),
-
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                alignment: Alignment.centerLeft,
-                children: [
-                  // Rectangle behind circle
-                  Container(
-                    margin: const EdgeInsets.only(left: 80),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(20),
+          child: Padding(
+            // Keeps the whole lockup off the screen edges on small phones.
+            padding: EdgeInsets.symmetric(horizontal: _scale(context, 16)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [
+                    // Rectangle behind circle
+                    Container(
+                      margin: EdgeInsets.only(left: overlapMargin),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      padding: EdgeInsets.only(right: _scale(context, 20)),
+                      child: FittedBox(
+                        // Guarantees the wordmark never overflows its
+                        // rectangle, even on the smallest phones.
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          " lobalPay",
+                          style: TextStyle(
+                            fontSize: _scale(context, 32),
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                       ),
                     ),
-                    padding: const EdgeInsets.only(right: 20),
-                    child: const Text(
-                      " lobalPay",
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepOrange,
-                        letterSpacing: 1.2,
+
+                    // Circular logo
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Image.asset(
+                        'assets/images/png/logo_transparent.png',
+                        width: logoSize,
+                        height: logoSize,
                       ),
                     ),
-                  ),
+                  ],
+                ),
 
-                  // Circular logo
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Image.asset(
-                      'assets/images/png/logo_transparent.png',
-                      width: 90,
-                      height: 90,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-            ],
+                SizedBox(height: _scale(context, 20)),
+              ],
+            ),
           ),
         ),
       ),

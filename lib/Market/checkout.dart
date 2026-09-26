@@ -33,13 +33,13 @@ class CartItem {
   double get subtotal => unitPrice * quantity;
 
   factory CartItem.fromJson(Map<String, dynamic> j) => CartItem(
-    cartId:       j['cart_id'].toString(),
-    productId:    j['product_id'].toString(),
-    productName:  j['product_name'].toString(),
+    cartId: j['cart_id'].toString(),
+    productId: j['product_id'].toString(),
+    productName: j['product_name'].toString(),
     productImage: j['product_image'].toString(),
-    vendorName:   j['vendor_name'].toString(),
-    unitPrice:    double.tryParse(j['unit_price'].toString()) ?? 0,
-    quantity:     int.tryParse(j['quantity'].toString()) ?? 1,
+    vendorName: j['vendor_name'].toString(),
+    unitPrice: double.tryParse(j['unit_price'].toString()) ?? 0,
+    quantity: int.tryParse(j['quantity'].toString()) ?? 1,
   );
 }
 
@@ -66,7 +66,9 @@ class CartService {
 
   static Future<Map<String, dynamic>?> getCart(String userId) async {
     try {
-      final res = await http.get(Uri.parse('$_base?action=get&user_id=$userId'));
+      final res = await http.get(
+        Uri.parse('$_base?action=get&user_id=$userId'),
+      );
       return jsonDecode(res.body);
     } catch (_) {
       return null;
@@ -132,7 +134,10 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _loadCart() async {
     setState(() => _loading = true);
     final user = context.read<UserProvider>().user;
-    if (user == null) { setState(() => _loading = false); return; }
+    if (user == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     final data = await CartService.getCart(user.userId);
     if (!mounted) return;
@@ -171,73 +176,122 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final bgColor   = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
+    // ── Responsive helpers ──────────────────────────────────────────────
+    // Clamp system font scaling on top of the manual s() scaling above, so
+    // accessibility "large text" settings can't blow up fixed-height rows
+    // (e.g. the 52px checkout button).
+    final mq = MediaQuery.of(context);
+    final clampedTextScaler = mq.textScaler.clamp(
+      minScaleFactor: 0.9,
+      maxScaleFactor: 1.25,
+    );
+
+    return MediaQuery(
+      data: mq.copyWith(textScaler: clampedTextScaler),
+      child: Scaffold(
         backgroundColor: bgColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text('My Cart',
+        appBar: AppBar(
+          backgroundColor: bgColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'My Cart',
             style: TextStyle(
-                color: textColor, fontWeight: FontWeight.bold, fontSize: s(18))),
-        actions: [
-          if (_items.isNotEmpty)
-            TextButton(
-              onPressed: () async {
-                final user = context.read<UserProvider>().user;
-                if (user == null) return;
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: const Text('Clear Cart'),
-                    content: const Text('Remove all items from cart?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(context, true),  child: const Text('Clear', style: TextStyle(color: Colors.red))),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  await http.post(
-                    Uri.parse('https://glopa.org/glo/cart.php?action=clear'),
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode({'user_id': user.userId}),
-                  );
-                  setState(() { _items.clear(); _total = 0; });
-                }
-              },
-              child: const Text('Clear', style: TextStyle(color: Colors.red)),
-            ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.deepOrange))
-          : _items.isEmpty
-          ? _buildEmpty(textColor)
-          : Stack(
-        children: [
-          RefreshIndicator(
-            color: Colors.deepOrange,
-            onRefresh: _loadCart,
-            child: ListView.separated(
-              padding: EdgeInsets.fromLTRB(s(16), s(12), s(16), s(120)),
-              itemCount: _items.length,
-              separatorBuilder: (_, __) => SizedBox(height: s(12)),
-              itemBuilder: (_, i) =>
-                  _buildCartItem(_items[i], cardColor, textColor, isDark),
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: s(18),
             ),
           ),
-          _buildBottomBar(cardColor, textColor, isDark),
-        ],
+          actions: [
+            if (_items.isNotEmpty)
+              TextButton(
+                onPressed: () async {
+                  final user = context.read<UserProvider>().user;
+                  if (user == null) return;
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Clear Cart'),
+                      content: const Text('Remove all items from cart?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text(
+                            'Clear',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    await http.post(
+                      Uri.parse('https://glopa.org/glo/cart.php?action=clear'),
+                      headers: {'Content-Type': 'application/json'},
+                      body: jsonEncode({'user_id': user.userId}),
+                    );
+                    setState(() {
+                      _items.clear();
+                      _total = 0;
+                    });
+                  }
+                },
+                child: const Text('Clear', style: TextStyle(color: Colors.red)),
+              ),
+          ],
+        ),
+        // Center + cap content width so this doesn't stretch into
+        // oversized rows on tablets, while staying full-width (minus
+        // padding) on phones of any size.
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.deepOrange),
+                  )
+                : _items.isEmpty
+                ? _buildEmpty(textColor)
+                : Stack(
+                    children: [
+                      RefreshIndicator(
+                        color: Colors.deepOrange,
+                        onRefresh: _loadCart,
+                        child: ListView.separated(
+                          padding: EdgeInsets.fromLTRB(
+                            s(16),
+                            s(12),
+                            s(16),
+                            s(120),
+                          ),
+                          itemCount: _items.length,
+                          separatorBuilder: (_, __) => SizedBox(height: s(12)),
+                          itemBuilder: (_, i) => _buildCartItem(
+                            _items[i],
+                            cardColor,
+                            textColor,
+                            isDark,
+                          ),
+                        ),
+                      ),
+                      _buildBottomBar(cardColor, textColor, isDark),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }
@@ -246,17 +300,25 @@ class _CartScreenState extends State<CartScreen> {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(IconsaxPlusLinear.shopping_cart,
-            size: 72, color: Colors.grey.shade300),
+        Icon(
+          IconsaxPlusLinear.shopping_cart,
+          size: 72,
+          color: Colors.grey.shade300,
+        ),
         const SizedBox(height: 16),
-        Text('Your cart is empty',
-            style: TextStyle(
-                fontSize: s(18),
-                fontWeight: FontWeight.bold,
-                color: textColor)),
+        Text(
+          'Your cart is empty',
+          style: TextStyle(
+            fontSize: s(18),
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text('Add products to get started',
-            style: TextStyle(color: Colors.grey.shade500)),
+        Text(
+          'Add products to get started',
+          style: TextStyle(color: Colors.grey.shade500),
+        ),
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: () => Navigator.pop(context),
@@ -264,9 +326,9 @@ class _CartScreenState extends State<CartScreen> {
             backgroundColor: Colors.deepOrange,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(s(14))),
-            padding: EdgeInsets.symmetric(
-                horizontal: s(32), vertical: s(14)),
+              borderRadius: BorderRadius.circular(s(14)),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: s(32), vertical: s(14)),
           ),
           child: const Text('Browse Products'),
         ),
@@ -274,8 +336,7 @@ class _CartScreenState extends State<CartScreen> {
     ),
   );
 
-  Widget _buildCartItem(
-      CartItem item, Color card, Color text, bool isDark) {
+  Widget _buildCartItem(CartItem item, Color card, Color text, bool isDark) {
     return Dismissible(
       key: Key(item.cartId),
       direction: DismissDirection.endToStart,
@@ -292,13 +353,14 @@ class _CartScreenState extends State<CartScreen> {
       child: Container(
         padding: EdgeInsets.all(s(12)),
         decoration: BoxDecoration(
-          color:        card,
+          color: card,
           borderRadius: BorderRadius.circular(s(16)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 4)),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
@@ -307,13 +369,17 @@ class _CartScreenState extends State<CartScreen> {
               borderRadius: BorderRadius.circular(s(12)),
               child: Image.network(
                 item.productImage,
-                width: s(75), height: s(75),
+                width: s(75),
+                height: s(75),
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  width: s(75), height: s(75),
+                  width: s(75),
+                  height: s(75),
                   color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported_outlined,
-                      color: Colors.grey),
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ),
@@ -322,24 +388,36 @@ class _CartScreenState extends State<CartScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.productName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: s(14),
-                          color: text)),
+                  Text(
+                    item.productName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: s(14),
+                      color: text,
+                    ),
+                  ),
                   SizedBox(height: s(3)),
-                  Text(item.vendorName,
-                      style: TextStyle(
-                          fontSize: s(11), color: Colors.grey.shade500)),
+                  Text(
+                    item.vendorName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: s(11),
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
                   SizedBox(height: s(8)),
                   Text(
                     '₦${item.subtotal.toStringAsFixed(2)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        color: Colors.deepOrange,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15),
+                      color: Colors.deepOrange,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -349,11 +427,14 @@ class _CartScreenState extends State<CartScreen> {
                 _qtyButton(Icons.add, () => _updateQty(item, 1)),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: s(6)),
-                  child: Text('${item.quantity}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: s(15),
-                          color: text)),
+                  child: Text(
+                    '${item.quantity}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: s(15),
+                      color: text,
+                    ),
+                  ),
                 ),
                 _qtyButton(Icons.remove, () => _updateQty(item, -1)),
               ],
@@ -367,9 +448,10 @@ class _CartScreenState extends State<CartScreen> {
   Widget _qtyButton(IconData icon, VoidCallback onTap) => GestureDetector(
     onTap: onTap,
     child: Container(
-      width: 30, height: 30,
+      width: 30,
+      height: 30,
       decoration: BoxDecoration(
-        color:        Colors.deepOrange.withOpacity(0.1),
+        color: Colors.deepOrange.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, size: 16, color: Colors.deepOrange),
@@ -384,9 +466,10 @@ class _CartScreenState extends State<CartScreen> {
         color: card,
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 12,
-              offset: const Offset(0, -4)),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
         ],
       ),
       child: SafeArea(
@@ -396,16 +479,30 @@ class _CartScreenState extends State<CartScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total',
+                // FIX: neither Text had Flexible, so a large formatted
+                // total could push past the row's width on narrow phones.
+                Flexible(
+                  child: Text(
+                    'Total',
                     style: TextStyle(
-                        fontSize: s(16),
-                        color: Colors.grey.shade500)),
-                Text(
-                  '₦${_total.toStringAsFixed(2)}',
-                  style: TextStyle(
+                      fontSize: s(16),
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '₦${_total.toStringAsFixed(2)}',
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                       fontSize: s(20),
                       fontWeight: FontWeight.w900,
-                      color: Colors.deepOrange),
+                      color: Colors.deepOrange,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -421,7 +518,10 @@ class _CartScreenState extends State<CartScreen> {
                       items: _items,
                       total: _total,
                       onOrderPlaced: () {
-                        setState(() { _items.clear(); _total = 0; });
+                        setState(() {
+                          _items.clear();
+                          _total = 0;
+                        });
                       },
                     ),
                   ),
@@ -431,11 +531,22 @@ class _CartScreenState extends State<CartScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(s(16))),
+                    borderRadius: BorderRadius.circular(s(16)),
+                  ),
                 ),
-                child: Text('Proceed to Checkout',
+                // FIX: FittedBox so accessibility-large text can't overflow
+                // the fixed-height button.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Proceed to Checkout',
+                    maxLines: 1,
                     style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: s(16))),
+                      fontWeight: FontWeight.bold,
+                      fontSize: s(16),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -469,7 +580,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // 'wallet' | 'paystack' | 'flutterwave'
   String _paymentMethod = 'wallet';
   final _addressController = TextEditingController();
-  final _noteController    = TextEditingController();
+  final _noteController = TextEditingController();
   bool _placing = false;
   double _deliveryFee = 0;
   bool _loadingFee = true;
@@ -504,7 +615,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) return;
       setState(() {
         _deliveryFee = (data['send_fee'] as num?)?.toDouble() ?? 0;
-        _loadingFee  = false;
+        _loadingFee = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loadingFee = false);
@@ -519,24 +630,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     setState(() => _placing = true);
     final user = context.read<UserProvider>().user;
-    if (user == null) { setState(() => _placing = false); return; }
+    if (user == null) {
+      setState(() => _placing = false);
+      return;
+    }
 
     try {
       final res = await http.post(
         Uri.parse('https://glopa.org/glo/checkout.php'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':          user.userId,
-          'payment_method':   _paymentMethod,
+          'user_id': user.userId,
+          'payment_method': _paymentMethod,
           // NOTE: checkout.php currently expects `paystack_ref` — if it uses
           // that field to look up a `payment_intents` row, you'll want to
           // either rename it to a gateway-agnostic `payment_ref`, or add a
           // matching `flutterwave_ref` handling branch there. See note below.
-          'paystack_ref':     paymentRef,
+          'paystack_ref': paymentRef,
           'delivery_address': _addressController.text.trim(),
-          'note':             _noteController.text.trim(),
-          'delivery_fee':     _deliveryFee,
-          'service_fee':      _serviceFee,
+          'note': _noteController.text.trim(),
+          'delivery_fee': _deliveryFee,
+          'service_fee': _serviceFee,
         }),
       );
 
@@ -577,18 +691,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         Uri.parse('https://glopa.org/glo/init_payment.php'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':          user.userId,
-          'amount':           _grandTotal,
+          'user_id': user.userId,
+          'amount': _grandTotal,
           'delivery_address': _addressController.text.trim(),
-          'note':             _noteController.text.trim(),
-          'delivery_fee':     _deliveryFee,
-          'service_fee':      _serviceFee,
+          'note': _noteController.text.trim(),
+          'delivery_fee': _deliveryFee,
+          'service_fee': _serviceFee,
         }),
       );
       final initData = jsonDecode(initRes.body);
 
       if (initData['status'] != 'success') {
-        _snack(initData['message'] ?? 'Could not start payment.', isError: true);
+        _snack(
+          initData['message'] ?? 'Could not start payment.',
+          isError: true,
+        );
         return;
       }
 
@@ -597,9 +714,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => PaystackWebView(
-            checkoutUrl:       initData['authorization_url'],
+            checkoutUrl: initData['authorization_url'],
             callbackUrlPrefix: _paystackCallbackPrefix,
-            title:             'Pay with Paystack',
+            title: 'Pay with Paystack',
           ),
         ),
       );
@@ -633,18 +750,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         Uri.parse('https://glopa.org/glo/init_payment_flw.php'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':          user.userId,
-          'amount':           _grandTotal,
+          'user_id': user.userId,
+          'amount': _grandTotal,
           'delivery_address': _addressController.text.trim(),
-          'note':             _noteController.text.trim(),
-          'delivery_fee':     _deliveryFee,
-          'service_fee':      _serviceFee,
+          'note': _noteController.text.trim(),
+          'delivery_fee': _deliveryFee,
+          'service_fee': _serviceFee,
         }),
       );
       final initData = jsonDecode(initRes.body);
 
       if (initData['status'] != 'success') {
-        _snack(initData['message'] ?? 'Could not start payment.', isError: true);
+        _snack(
+          initData['message'] ?? 'Could not start payment.',
+          isError: true,
+        );
         return;
       }
 
@@ -653,9 +773,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => PaystackWebView(
-            checkoutUrl:       initData['authorization_url'],
+            checkoutUrl: initData['authorization_url'],
             callbackUrlPrefix: _flutterwaveCallbackPrefix,
-            title:             'Pay with Flutterwave',
+            title: 'Pay with Flutterwave',
           ),
         ),
       );
@@ -674,12 +794,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _snack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
@@ -691,266 +813,387 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final bgColor   = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text('Checkout',
-            style: TextStyle(
-                color: textColor, fontWeight: FontWeight.bold, fontSize: s(18))),
-      ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(s(16), s(12), s(16), s(140)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    // ── Responsive helpers ──────────────────────────────────────────────
+    final mq = MediaQuery.of(context);
+    final clampedTextScaler = mq.textScaler.clamp(
+      minScaleFactor: 0.9,
+      maxScaleFactor: 1.25,
+    );
 
-                _sectionTitle('Order Summary', textColor),
-                SizedBox(height: s(10)),
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(s(16)),
-                  ),
+    return MediaQuery(
+      data: mq.copyWith(textScaler: clampedTextScaler),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: bgColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Checkout',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: s(18),
+            ),
+          ),
+        ),
+        // Center + cap content width so this doesn't stretch into
+        // oversized rows on tablets, while staying full-width (minus
+        // padding) on phones of any size.
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(s(16), s(12), s(16), s(140)),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ...widget.items.map((item) => Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: s(16), vertical: s(10)),
-                        child: Row(
+                      _sectionTitle('Order Summary', textColor),
+                      SizedBox(height: s(10)),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(s(16)),
+                        ),
+                        child: Column(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(s(8)),
-                              child: Image.network(
-                                item.productImage,
-                                width: s(48), height: s(48),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: s(48), height: s(48),
-                                  color: Colors.grey.shade200,
+                            ...widget.items.map(
+                              (item) => Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: s(16),
+                                  vertical: s(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(s(8)),
+                                      child: Image.network(
+                                        item.productImage,
+                                        width: s(48),
+                                        height: s(48),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: s(48),
+                                          height: s(48),
+                                          color: Colors.grey.shade200,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: s(12)),
+                                    Expanded(
+                                      child: Text(
+                                        item.productName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: s(13),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: s(4)),
+                                    Text(
+                                      '×${item.quantity}',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: s(12),
+                                      ),
+                                    ),
+                                    SizedBox(width: s(8)),
+                                    // FIX: subtotal had no Flexible/ellipsis —
+                                    // a large amount could overflow past the
+                                    // row edge on narrow phones.
+                                    Flexible(
+                                      child: Text(
+                                        '₦${item.subtotal.toStringAsFixed(2)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          color: Colors.deepOrange,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                            SizedBox(width: s(12)),
-                            Expanded(
-                              child: Text(item.productName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
+                            Divider(
+                              height: 1,
+                              color: Colors.grey.withOpacity(0.1),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: s(16),
+                                vertical: s(10),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Delivery Fee',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: s(13),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _loadingFee
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.deepOrange,
+                                          ),
+                                        )
+                                      : Flexible(
+                                          child: Text(
+                                            '₦${_deliveryFee.toStringAsFixed(2)}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.right,
+                                            style: TextStyle(
+                                              color: Colors.deepOrange,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: s(13),
+                                            ),
+                                          ),
+                                        ),
+                                ],
+                              ),
+                            ),
+                            Divider(
+                              height: 1,
+                              color: Colors.grey.withOpacity(0.1),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: s(16),
+                                vertical: s(10),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Service Fee',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: s(13),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      '₦${_serviceFee.toStringAsFixed(2)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        color: Colors.deepOrange,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: s(13),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Divider(
+                              height: 1,
+                              color: Colors.grey.withOpacity(0.1),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(s(16)),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Total',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
                                       color: textColor,
-                                      fontSize: s(13))),
+                                      fontSize: s(15),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      '₦${_grandTotal.toStringAsFixed(2)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        color: Colors.deepOrange,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: s(18),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            Text('×${item.quantity}',
-                                style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: s(12))),
-                            SizedBox(width: s(8)),
-                            Text(
-                              '₦${item.subtotal.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                  color: Colors.deepOrange,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                          ],
-                        ),
-                      )),
-                      Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: s(16), vertical: s(10)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Delivery Fee',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: s(13))),
-                            _loadingFee
-                                ? const SizedBox(
-                                width: 16, height: 16,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.deepOrange))
-                                : Text('₦${_deliveryFee.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                    color: Colors.deepOrange,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: s(13))),
                           ],
                         ),
                       ),
-                      Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: s(16), vertical: s(10)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Service Fee',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: s(13))),
-                            Text('₦${_serviceFee.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                    color: Colors.deepOrange,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: s(13))),
-                          ],
-                        ),
+
+                      SizedBox(height: s(20)),
+
+                      _sectionTitle('Delivery Address', textColor),
+                      SizedBox(height: s(10)),
+                      _inputField(
+                        controller: _addressController,
+                        hint: 'Enter your delivery address',
+                        icon: IconsaxPlusLinear.location,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        maxLines: 2,
                       ),
-                      Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
-                      Padding(
-                        padding: EdgeInsets.all(s(16)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Total',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                    fontSize: s(15))),
-                            Text(
-                              '₦${_grandTotal.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                  color: Colors.deepOrange,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: s(18)),
-                            ),
-                          ],
-                        ),
+
+                      SizedBox(height: s(16)),
+
+                      _sectionTitle('Note (optional)', textColor),
+                      SizedBox(height: s(10)),
+                      _inputField(
+                        controller: _noteController,
+                        hint: 'Any special instructions?',
+                        icon: IconsaxPlusLinear.message,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+
+                      SizedBox(height: s(20)),
+
+                      _sectionTitle('Payment Method', textColor),
+                      SizedBox(height: s(10)),
+                      _paymentOption(
+                        value: 'wallet',
+                        label: 'Pay with Wallet',
+                        subtitle: 'Deducted from your Globalpay wallet',
+                        icon: IconsaxPlusLinear.wallet_1,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+                      SizedBox(height: s(10)),
+                      _paymentOption(
+                        value: 'paystack',
+                        label: 'Pay with Paystack',
+                        subtitle: 'Card, bank transfer, USSD',
+                        icon: IconsaxPlusLinear.card,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+                      SizedBox(height: s(10)),
+                      _paymentOption(
+                        value: 'flutterwave',
+                        label: 'Pay with Flutterwave',
+                        subtitle: 'Card, bank transfer, USSD, mobile money',
+                        icon: IconsaxPlusLinear.card_pos,
+                        cardColor: cardColor,
+                        textColor: textColor,
                       ),
                     ],
                   ),
                 ),
 
-                SizedBox(height: s(20)),
-
-                _sectionTitle('Delivery Address', textColor),
-                SizedBox(height: s(10)),
-                _inputField(
-                  controller: _addressController,
-                  hint:       'Enter your delivery address',
-                  icon:       IconsaxPlusLinear.location,
-                  cardColor:  cardColor,
-                  textColor:  textColor,
-                  maxLines:   2,
-                ),
-
-                SizedBox(height: s(16)),
-
-                _sectionTitle('Note (optional)', textColor),
-                SizedBox(height: s(10)),
-                _inputField(
-                  controller: _noteController,
-                  hint:       'Any special instructions?',
-                  icon:       IconsaxPlusLinear.message,
-                  cardColor:  cardColor,
-                  textColor:  textColor,
-                ),
-
-                SizedBox(height: s(20)),
-
-                _sectionTitle('Payment Method', textColor),
-                SizedBox(height: s(10)),
-                _paymentOption(
-                  value:     'wallet',
-                  label:     'Pay with Wallet',
-                  subtitle:  'Deducted from your Globalpay wallet',
-                  icon:      IconsaxPlusLinear.wallet_1,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                ),
-                SizedBox(height: s(10)),
-                _paymentOption(
-                  value:     'paystack',
-                  label:     'Pay with Paystack',
-                  subtitle:  'Card, bank transfer, USSD',
-                  icon:      IconsaxPlusLinear.card,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                ),
-                SizedBox(height: s(10)),
-                _paymentOption(
-                  value:     'flutterwave',
-                  label:     'Pay with Flutterwave',
-                  subtitle:  'Card, bank transfer, USSD, mobile money',
-                  icon:      IconsaxPlusLinear.card_pos,
-                  cardColor: cardColor,
-                  textColor: textColor,
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: s(20),
+                      vertical: s(16),
+                    ),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                    ),
+                    child: SafeArea(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: s(52),
+                        child: ElevatedButton(
+                          onPressed: _placing
+                              ? null
+                              : () {
+                                  switch (_paymentMethod) {
+                                    case 'paystack':
+                                      _initiatePaystack();
+                                      break;
+                                    case 'flutterwave':
+                                      _initiateFlutterwave();
+                                      break;
+                                    default:
+                                      _placeOrder();
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.deepOrange
+                                .withOpacity(0.5),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(s(16)),
+                            ),
+                          ),
+                          child: _placing
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              // FIX: this string can get long — e.g. "Pay
+                              // ₦123,456.00 with Flutterwave" — and had no
+                              // overflow protection at all inside a fixed
+                              // 52px-tall button. FittedBox shrinks it to
+                              // fit instead of overflowing.
+                              : FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _paymentMethod == 'wallet'
+                                        ? 'Place Order  ₦${_grandTotal.toStringAsFixed(2)}'
+                                        : 'Pay ₦${_grandTotal.toStringAsFixed(2)} with '
+                                              '${_paymentMethod == 'paystack' ? 'Paystack' : 'Flutterwave'}',
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: s(15),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: s(20), vertical: s(16)),
-              decoration: BoxDecoration(
-                color: cardColor,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 12,
-                      offset: const Offset(0, -4)),
-                ],
-              ),
-              child: SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: s(52),
-                  child: ElevatedButton(
-                    onPressed: _placing
-                        ? null
-                        : () {
-                      switch (_paymentMethod) {
-                        case 'paystack':
-                          _initiatePaystack();
-                          break;
-                        case 'flutterwave':
-                          _initiateFlutterwave();
-                          break;
-                        default:
-                          _placeOrder();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepOrange,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                      Colors.deepOrange.withOpacity(0.5),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(s(16))),
-                    ),
-                    child: _placing
-                        ? const SizedBox(
-                      width: 22, height: 22,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5),
-                    )
-                        : Text(
-                      _paymentMethod == 'wallet'
-                          ? 'Place Order  ₦${_grandTotal.toStringAsFixed(2)}'
-                          : 'Pay ₦${_grandTotal.toStringAsFixed(2)} with '
-                          '${_paymentMethod == 'paystack' ? 'Paystack' : 'Flutterwave'}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: s(15)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -958,9 +1201,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _sectionTitle(String title, Color textColor) => Text(
     title,
     style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: s(15),
-        color: textColor),
+      fontWeight: FontWeight.bold,
+      fontSize: s(15),
+      color: textColor,
+    ),
   );
 
   Widget _inputField({
@@ -970,26 +1214,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     required Color cardColor,
     required Color textColor,
     int maxLines = 1,
-  }) =>
-      Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(s(14)),
+  }) => Container(
+    decoration: BoxDecoration(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(s(14)),
+    ),
+    child: TextField(
+      controller: controller,
+      maxLines: maxLines,
+      style: TextStyle(color: textColor, fontSize: s(14)),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        prefixIcon: Icon(icon, color: Colors.deepOrange, size: s(20)),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: s(16),
+          vertical: s(14),
         ),
-        child: TextField(
-          controller: controller,
-          maxLines:   maxLines,
-          style:      TextStyle(color: textColor, fontSize: s(14)),
-          decoration: InputDecoration(
-            hintText:        hint,
-            hintStyle:       TextStyle(color: Colors.grey.shade400),
-            prefixIcon:      Icon(icon, color: Colors.deepOrange, size: s(20)),
-            border:          InputBorder.none,
-            contentPadding:  EdgeInsets.symmetric(
-                horizontal: s(16), vertical: s(14)),
-          ),
-        ),
-      );
+      ),
+    ),
+  );
 
   Widget _paymentOption({
     required String value,
@@ -1006,7 +1251,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.all(s(14)),
         decoration: BoxDecoration(
-          color:        cardColor,
+          color: cardColor,
           borderRadius: BorderRadius.circular(s(14)),
           border: Border.all(
             color: selected ? Colors.deepOrange : Colors.grey.withOpacity(0.15),
@@ -1023,29 +1268,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     : Colors.grey.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon,
-                  color: selected ? Colors.deepOrange : Colors.grey,
-                  size: s(22)),
+              child: Icon(
+                icon,
+                color: selected ? Colors.deepOrange : Colors.grey,
+                size: s(22),
+              ),
             ),
             SizedBox(width: s(12)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                          fontSize: s(14))),
-                  Text(subtitle,
-                      style: TextStyle(
-                          color: Colors.grey.shade500, fontSize: s(12))),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                      fontSize: s(14),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: s(12),
+                    ),
+                  ),
                 ],
               ),
             ),
-            if (selected)
-              const Icon(Icons.check_circle_rounded,
-                  color: Colors.deepOrange, size: 22),
+            if (selected) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.deepOrange,
+                size: 22,
+              ),
+            ],
           ],
         ),
       ),
@@ -1063,8 +1326,8 @@ class OrderSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final bgColor   = isDark ? const Color(0xFF121212) : Colors.white;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
 
     double s(double v) {
@@ -1072,74 +1335,118 @@ class OrderSuccessScreen extends StatelessWidget {
       return (sw / 375 * v).clamp(v * 0.85, v * 1.25);
     }
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(s(24)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: s(110), height: s(110),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F5E9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check_rounded,
-                    color: Colors.green, size: 60),
-              ),
-              SizedBox(height: s(28)),
-              Text('Order Placed!',
-                  style: TextStyle(
-                      fontSize: s(26),
-                      fontWeight: FontWeight.w900,
-                      color: textColor)),
-              SizedBox(height: s(10)),
-              Text(
-                'Your order has been placed successfully.\nWe\'ll notify you when it\'s confirmed.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: s(14),
-                    height: 1.5),
-              ),
-              SizedBox(height: s(16)),
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: s(20), vertical: s(12)),
-                decoration: BoxDecoration(
-                  color: Colors.deepOrange.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(s(12)),
-                ),
-                child: Text(
-                  'Order ID: $orderId',
-                  style: TextStyle(
-                      color: Colors.deepOrange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: s(13)),
-                ),
-              ),
-              SizedBox(height: s(40)),
-              SizedBox(
-                width: double.infinity,
-                height: s(52),
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context)
-                      .popUntil((route) => route.isFirst),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(s(16))),
-                  ),
-                  child: Text('Continue Shopping',
+    // ── Responsive helpers ──────────────────────────────────────────────
+    final mq = MediaQuery.of(context);
+    final clampedTextScaler = mq.textScaler.clamp(
+      minScaleFactor: 0.9,
+      maxScaleFactor: 1.25,
+    );
+
+    return MediaQuery(
+      data: mq.copyWith(textScaler: clampedTextScaler),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Padding(
+                padding: EdgeInsets.all(s(24)),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: s(110),
+                      height: s(110),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5E9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.green,
+                        size: 60,
+                      ),
+                    ),
+                    SizedBox(height: s(28)),
+                    Text(
+                      'Order Placed!',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: s(16))),
+                        fontSize: s(26),
+                        fontWeight: FontWeight.w900,
+                        color: textColor,
+                      ),
+                    ),
+                    SizedBox(height: s(10)),
+                    Text(
+                      'Your order has been placed successfully.\nWe\'ll notify you when it\'s confirmed.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: s(14),
+                        height: 1.5,
+                      ),
+                    ),
+                    SizedBox(height: s(16)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: s(20),
+                        vertical: s(12),
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(s(12)),
+                      ),
+                      // FIX: wrapped in Flexible + ellipsis in case of a
+                      // long order id, so it can't push past the card edge.
+                      child: Flexible(
+                        child: Text(
+                          'Order ID: $orderId',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: s(13),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: s(40)),
+                    SizedBox(
+                      width: double.infinity,
+                      height: s(52),
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(s(16)),
+                          ),
+                        ),
+                        // FIX: FittedBox so accessibility-large text can't
+                        // overflow the fixed-height button.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Continue Shopping',
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: s(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -1,11 +1,13 @@
 // help_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
 // import '../models/app_settings.dart'; // adjust path
 import 'package:url_launcher/url_launcher.dart';
 
+import '../profile_details/profile_upgrade.dart';
 import '../provider/settings_provider.dart';
 import 'fraud.dart';
 
@@ -111,15 +113,15 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
-                      //Spacer(),
+                      Spacer(),
                       Container(
-                        width: s(context, 50),
-                        height: s(context, 50),
+                        width: s(context, 110),
+                        height: s(context, 110),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
                             image: AssetImage(
-                              "assets/images/png/friendlyroboticsalesmanager.jpeg",
+                              "assets/images/png/glonestrobot.PNG",
                             ),
                             fit: BoxFit.cover,
                           ),
@@ -280,7 +282,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
       {
         'icon': IconsaxPlusLinear.call,
         'title': 'Call',
-        'onTap': () => launchUrl(Uri(scheme: 'tel', path: settings.callNumber)),
+        'onTap': () => _showInfoDialog(context, 'Call Us', '08161739306'),
       },
       {
         'icon': IconsaxPlusLinear.security,
@@ -314,33 +316,24 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
         'icon': IconsaxPlusLinear.direct_inbox,
         'title': 'Email',
         'onTap': () =>
-            launchUrl(Uri(scheme: 'mailto', path: settings.supportEmail)),
+            _showInfoDialog(context, 'Email Us', 'glonest.support@gmail.com'),
       },
       {
         'icon': IconsaxPlusLinear.profile_tick,
         'title': 'KYC Upgrade',
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => HelpDetailScreen(title: 'KYC Upgrade'),
-          ),
+          MaterialPageRoute(builder: (_) => const KycLevelsPage()),
         ),
       },
       {
         'icon': IconsaxPlusLinear.global,
         'title': 'Office',
-        'onTap': () {
-          // Show address in a snackbar or navigate to a map
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                settings.address.isNotEmpty
-                    ? settings.address
-                    : 'Address not available',
-              ),
-            ),
-          );
-        },
+        'onTap': () => _showInfoDialog(
+          context,
+          'Our Office',
+          'NO 47 Alulu Street Enugu Nigeria',
+        ),
       },
     ];
 
@@ -355,6 +348,31 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
           ),
         )
         .toList();
+  }
+
+  void _showInfoDialog(BuildContext context, String title, String value) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(value, style: const TextStyle(fontSize: 16)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Copied to clipboard')),
+              );
+            },
+            child: const Text('Copy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _actionCard(

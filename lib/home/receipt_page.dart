@@ -135,164 +135,181 @@ class _ReceiptPageState extends State<ReceiptPage> {
           thickness: 4,
           radius: const Radius.circular(8),
           child: SingleChildScrollView(
-            child: RepaintBoundary(
-              key: _receiptKey,
-              child: Container(
-                margin: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark
-                          ? Colors.black.withOpacity(0.4)
-                          : Colors.black.withOpacity(0.06),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
+            child: Center(
+              // ── Overflow/tablet fix: cap the card width so it reads as
+              // a receipt on tablets instead of stretching full-width ──
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: RepaintBoundary(
+                  key: _receiptKey,
+                  child: Container(
+                    margin: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withOpacity(0.4)
+                              : Colors.black.withOpacity(0.06),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    CustomPaint(
-                      painter: TearPainter(isDark: isDark),
-                      child: Container(height: 24),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: WatermarkPainter(isDark: isDark),
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: Column(
+                      children: [
+                        CustomPaint(
+                          painter: TearPainter(isDark: isDark),
+                          child: Container(height: 24),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                          child: Stack(
+                            alignment: Alignment.center,
                             children: [
-                              const SizedBox(height: 8),
-                              Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Image.asset(
-                                      'assets/images/png/logooooooooo.jpg',
-                                      fit: BoxFit.contain,
-                                      height: 50,
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: WatermarkPainter(isDark: isDark),
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/png/logooooooooo.jpg',
+                                          fit: BoxFit.contain,
+                                          height: 50,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // ── Overflow fix: wordmark shrinks
+                                        // to one line instead of pushing
+                                        // past the row on narrow phones ──
+                                        Flexible(
+                                          child: Text(
+                                            "Glonest",
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w800,
+                                              color: colorScheme.onSurface,
+                                              letterSpacing: -0.3,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      "Glonest",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 20,
+                                  ),
+
+                                  const SizedBox(height: 12),
+                                  // ── Overflow fix: long amounts shrink to fit instead of wrapping/clipping ──
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      "${CurrencyConfig().symbol}${widget.amount.toStringAsFixed(2)}",
+                                      style: const TextStyle(
+                                        fontSize: 30,
                                         fontWeight: FontWeight.w800,
-                                        color: colorScheme.onSurface,
-                                        letterSpacing: -0.3,
+                                        color: _accent,
+                                        letterSpacing: -0.5,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-                              // ── Overflow fix: long amounts shrink to fit instead of wrapping/clipping ──
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  "${CurrencyConfig().symbol}${widget.amount.toStringAsFixed(2)}",
-                                  style: const TextStyle(
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w800,
-                                    color: _accent,
-                                    letterSpacing: -0.5,
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                "Successful Transaction",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: subTextColor,
-                                ),
-                              ),
-                              const SizedBox(height: 22),
-                              Divider(
-                                color: subTextColor.withOpacity(0.15),
-                                height: 1,
-                              ),
-                              const SizedBox(height: 18),
-                              _buildInfoRow(
-                                "Recipient",
-                                widget.recipientName,
-                                colorScheme,
-                                subTextColor,
-                              ),
-                              _buildInfoRow(
-                                "Account",
-                                widget.accountNumber,
-                                colorScheme,
-                                subTextColor,
-                              ),
-                              _buildInfoRow(
-                                "Bank",
-                                widget.bankName,
-                                colorScheme,
-                                subTextColor,
-                              ),
-                              _buildInfoRow(
-                                "Payment Method",
-                                widget.paymentMethod,
-                                colorScheme,
-                                subTextColor,
-                              ),
-                              _buildInfoRow(
-                                "Date",
-                                formattedDate,
-                                colorScheme,
-                                subTextColor,
-                              ),
-                              _buildInfoRow(
-                                "Reference",
-                                "#TXN${DateTime.now().millisecondsSinceEpoch}",
-                                colorScheme,
-                                subTextColor,
-                              ),
-                              const SizedBox(height: 22),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? _accent.withOpacity(0.12)
-                                      : Colors.orange.shade50,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: _accent.withOpacity(0.3),
-                                    width: 1,
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    "Successful Transaction",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: subTextColor,
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  "Enjoy seamless, unlimited free transfers to all banks. Get cashback on airtime & data top-ups. Enjoy it all with Glonest.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                    height: 1.4,
+                                  const SizedBox(height: 22),
+                                  Divider(
+                                    color: subTextColor.withOpacity(0.15),
+                                    height: 1,
                                   ),
-                                ),
+                                  const SizedBox(height: 18),
+                                  _buildInfoRow(
+                                    "Recipient",
+                                    widget.recipientName,
+                                    colorScheme,
+                                    subTextColor,
+                                  ),
+                                  _buildInfoRow(
+                                    "Account",
+                                    widget.accountNumber,
+                                    colorScheme,
+                                    subTextColor,
+                                  ),
+                                  _buildInfoRow(
+                                    "Bank",
+                                    widget.bankName,
+                                    colorScheme,
+                                    subTextColor,
+                                  ),
+                                  _buildInfoRow(
+                                    "Payment Method",
+                                    widget.paymentMethod,
+                                    colorScheme,
+                                    subTextColor,
+                                  ),
+                                  _buildInfoRow(
+                                    "Date",
+                                    formattedDate,
+                                    colorScheme,
+                                    subTextColor,
+                                  ),
+                                  _buildInfoRow(
+                                    "Reference",
+                                    "#TXN${DateTime.now().millisecondsSinceEpoch}",
+                                    colorScheme,
+                                    subTextColor,
+                                  ),
+                                  const SizedBox(height: 22),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? _accent.withOpacity(0.12)
+                                          : Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _accent.withOpacity(0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      "Enjoy seamless, unlimited free transfers to all banks. Get cashback on airtime & data top-ups. Enjoy it all with Glonest.",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
                               ),
-                              const SizedBox(height: 24),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

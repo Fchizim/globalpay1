@@ -218,6 +218,15 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
     final headerBg = isDark ? const Color(0xFF222222) : const Color(0xFFF2F2F2);
     final dividerColor = isDark ? Colors.white10 : Colors.grey.shade200;
 
+    // Screen-size aware scaling so this sheet looks right on small and
+    // large phones/tablets instead of using fixed pixel values everywhere.
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double scale = (screenWidth / 390.0).clamp(0.85, 1.15);
+    // Index rail letters need a minimum tap target and must never overflow
+    // vertically even on short screens with 27 entries — keep font small
+    // and fixed rather than scaling it up on large phones.
+    final double railFontSize = (10 * scale).clamp(9.0, 11.0);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.92,
       minChildSize: 0.6,
@@ -235,16 +244,31 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
               children: [
                 // ── Top bar: X · Select Bank ──
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: EdgeInsets.fromLTRB(
+                    16 * scale,
+                    16 * scale,
+                    16 * scale,
+                    8 * scale,
+                  ),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Text(
-                        'Select Bank',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                      // FIX: title had no side padding accounting for the
+                      // close icon, so on narrow screens the centered
+                      // title could sit under/overlap the icon. Padding
+                      // now reserves space for it on both sides.
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 32 * scale),
+                        child: Text(
+                          'Select Bank',
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 18 * scale,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       Align(
@@ -254,7 +278,7 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                           child: Icon(
                             Icons.close_rounded,
                             color: textColor,
-                            size: 24,
+                            size: 24 * scale,
                           ),
                         ),
                       ),
@@ -264,21 +288,23 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
 
                 // ── Search ──
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16 * scale),
                   child: TextField(
                     controller: _searchController,
-                    style: TextStyle(color: textColor),
+                    style: TextStyle(color: textColor, fontSize: 14 * scale),
                     decoration: InputDecoration(
                       hintText: 'Search Bank Name',
                       hintStyle: TextStyle(color: subTextColor),
                       prefixIcon: Icon(
                         Icons.search,
                         color: subTextColor,
-                        size: 22,
+                        size: 22 * scale,
                       ),
                       filled: true,
                       fillColor: fieldFill,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 14 * scale,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
@@ -286,7 +312,7 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8 * scale),
 
                 // ── List + A-Z index rail ──
                 Expanded(
@@ -294,7 +320,10 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                       ? Center(
                           child: Text(
                             'No banks match your search',
-                            style: TextStyle(color: subTextColor, fontSize: 13),
+                            style: TextStyle(
+                              color: subTextColor,
+                              fontSize: 13 * scale,
+                            ),
                           ),
                         )
                       : Stack(
@@ -302,7 +331,11 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                             ListView.builder(
                               controller: _scrollController,
                               itemCount: _entries.length,
-                              padding: const EdgeInsets.only(right: 24),
+                              // Reserve room on the right for the A-Z rail
+                              // so long bank names never render underneath
+                              // it; scaled so the rail's own width (below)
+                              // and this padding stay in sync.
+                              padding: EdgeInsets.only(right: 28 * scale),
                               itemBuilder: (context, i) {
                                 final entry = _entries[i];
                                 if (entry.header != null) {
@@ -310,8 +343,8 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                                     width: double.infinity,
                                     height: _kHeaderHeight,
                                     alignment: Alignment.centerLeft,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16 * scale,
                                     ),
                                     color: headerBg,
                                     child: Text(
@@ -319,7 +352,7 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                                       style: TextStyle(
                                         color: subTextColor,
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 13,
+                                        fontSize: 13 * scale,
                                       ),
                                     ),
                                   );
@@ -334,13 +367,23 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                                         child: ListTile(
                                           onTap: () =>
                                               Navigator.pop(context, bank),
-                                          leading: _bankLogo(bank),
+                                          leading: _bankLogo(
+                                            bank,
+                                            size: 40 * scale,
+                                          ),
+                                          // FIX: bank name had no
+                                          // maxLines/overflow, so a long
+                                          // bank name could run past the
+                                          // row or under the index rail
+                                          // instead of clipping cleanly.
                                           title: Text(
                                             bank.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               color: textColor,
                                               fontWeight: FontWeight.w600,
-                                              fontSize: 14.5,
+                                              fontSize: 14.5 * scale,
                                             ),
                                           ),
                                         ),
@@ -348,7 +391,7 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                                       Divider(
                                         height: 1,
                                         color: dividerColor,
-                                        indent: 76,
+                                        indent: 76 * scale,
                                       ),
                                     ],
                                   ),
@@ -381,33 +424,46 @@ class _BankPickerSheetState extends State<BankPickerSheet> {
                                       barHeight,
                                     ),
                                     child: Container(
-                                      width: 18,
+                                      width: 20 * scale,
                                       alignment: Alignment.center,
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceEvenly,
-                                        children: _kAlphabet.map((letter) {
-                                          final available = _letterOffsets
-                                              .containsKey(letter);
-                                          final isActive =
-                                              _activeLetter == letter;
-                                          return Text(
-                                            letter,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: isActive
-                                                  ? FontWeight.w800
-                                                  : FontWeight.w600,
-                                              color: available
-                                                  ? (isActive
-                                                        ? _accent
-                                                        : subTextColor)
-                                                  : subTextColor.withOpacity(
-                                                      0.3,
-                                                    ),
-                                            ),
-                                          );
-                                        }).toList(),
+                                      // FIX: 27 fixed-size letters with
+                                      // spaceEvenly could get squeezed or
+                                      // clipped on short screens. Wrapping
+                                      // in FittedBox lets the whole rail
+                                      // shrink to fit the available height
+                                      // instead of overflowing.
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: _kAlphabet.map((letter) {
+                                            final available = _letterOffsets
+                                                .containsKey(letter);
+                                            final isActive =
+                                                _activeLetter == letter;
+                                            return Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 1 * scale,
+                                              ),
+                                              child: Text(
+                                                letter,
+                                                style: TextStyle(
+                                                  fontSize: railFontSize,
+                                                  fontWeight: isActive
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
+                                                  color: available
+                                                      ? (isActive
+                                                            ? _accent
+                                                            : subTextColor)
+                                                      : subTextColor
+                                                            .withOpacity(0.3),
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
                                       ),
                                     ),
                                   );

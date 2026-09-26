@@ -686,8 +686,13 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
           ),
         ),
         padding: const EdgeInsets.all(10),
+        // mainAxisSize.min + no Spacer lets the card size itself to its
+        // content, so it can never demand more vertical space than the
+        // grid cell actually has (which is what caused the overflow on
+        // smaller screens / larger system font sizes).
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // ── Category badge ──────────────────────────────────
             Container(
@@ -698,25 +703,32 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
               ),
               child: Text(
                 plan.category.toUpperCase(),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                   color: Colors.deepOrange,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(height: 4),
 
-            // ── Size ────────────────────────────────────────────
-            Text(
-              plan.size,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: isDark ? Colors.white : Colors.black87,
+            // ── Size ── shrinks to fit instead of overflowing when the
+            // plan text (e.g. "1.5TB") or a large text-scale setting
+            // needs more width than the card has.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                plan.size,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+                maxLines: 1,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 3),
 
@@ -727,16 +739,23 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
                 fontSize: 11,
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
 
-            // ── Price ───────────────────────────────────────────
-            Text(
-              '₦${_numFormat.format(int.tryParse(plan.amount) ?? 0)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Colors.deepOrange,
+            // ── Price ── same shrink-to-fit treatment for big totals ──
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '₦${_numFormat.format(int.tryParse(plan.amount) ?? 0)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.deepOrange,
+                ),
+                maxLines: 1,
               ),
             ),
           ],
@@ -805,16 +824,25 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: plans.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 0.85,
-      ),
-      itemBuilder: (_, i) => _planCard(plans[i], isDark: isDark),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // ~110 logical px per card reads well on a compact phone; on a
+        // wider phone or a tablet this naturally grows to 4, 5, 6+
+        // columns instead of stretching 3 fixed columns thin.
+        final crossAxisCount = (constraints.maxWidth / 110).floor().clamp(2, 6);
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: plans.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.9,
+          ),
+          itemBuilder: (_, i) => _planCard(plans[i], isDark: isDark),
+        );
+      },
     );
   }
 
@@ -832,270 +860,333 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Header ──────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Mobile Data',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+      body: MediaQuery(
+        // Clamp text scaling on this screen to a sane range. Without this,
+        // a user with a large system/accessibility font size can push the
+        // header row and plan cards past their available space no matter
+        // how much FittedBox/Flexible wrapping we do elsewhere.
+        data: MediaQuery.of(context).copyWith(
+          textScaler: MediaQuery.textScalerOf(
+            context,
+          ).clamp(minScaleFactor: 0.9, maxScaleFactor: 1.2),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // ── Header ──────────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
                         color: isDark ? Colors.white : Colors.black87,
                       ),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const DataHistoryScreen(),
+                    Expanded(
+                      child: Text(
+                        'Mobile Data',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      'History',
-                      style: TextStyle(color: Colors.deepOrange),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DataHistoryScreen(),
+                        ),
+                      ),
+                      child: Text(
+                        'History',
+                        style: TextStyle(color: Colors.deepOrange),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // ── Network + Phone card ───────────────────────────────────────
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              // ── Wrapped in Column to accommodate the badge row ──────────
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      // ── Network dropdown ──────────────────────────────────
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<int>(
-                          value: _selectedNetworkIndex,
-                          dropdownColor: cardBg,
-                          items: List.generate(networks.length, (i) {
-                            final net = networks[i];
-                            return DropdownMenuItem<int>(
-                              value: i,
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage: AssetImage(net['logo']!),
+              // ── Network + Phone card ───────────────────────────────────────
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                // ── Wrapped in Column to accommodate the badge row ──────────
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        // ── Network dropdown ── capped width so it can't
+                        // squeeze the phone field or contacts button off a
+                        // narrow screen; the selected item's own text still
+                        // shrinks to fit via FittedBox.
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 110),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: _selectedNetworkIndex,
+                              isDense: true,
+                              dropdownColor: cardBg,
+                              selectedItemBuilder: (context) {
+                                return networks.map((net) {
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 14,
+                                        backgroundImage: AssetImage(
+                                          net['logo']!,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            net['name']!,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                            ),
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList();
+                              },
+                              items: List.generate(networks.length, (i) {
+                                final net = networks[i];
+                                return DropdownMenuItem<int>(
+                                  value: i,
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 16,
+                                        backgroundImage: AssetImage(
+                                          net['logo']!,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        net['name']!,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    net['name']!,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                          onChanged: (val) {
-                            if (val != null && val != _selectedNetworkIndex) {
-                              setState(() => _selectedNetworkIndex = val);
-                              PlansCache.instance.invalidate();
-                              _fetchPlans();
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // ── Phone field ───────────────────────────────────────
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Enter mobile number',
-                            hintStyle: TextStyle(
-                              color: isDark ? Colors.white54 : Colors.grey,
-                            ),
-                            border: InputBorder.none,
-                          ),
-                          // ── UPDATED: auto-detect network on typing ────────
-                          onChanged: (val) {
-                            final raw = val ?? '';
-                            setState(() => _phoneError = null);
-
-                            // ── Auto-strip spaces/non-digits as user types or pastes ──
-                            final cleaned = raw.replaceAll(
-                              RegExp(r'[^0-9]'),
-                              '',
-                            );
-                            if (cleaned != raw) {
-                              _phoneController.value = TextEditingValue(
-                                text: cleaned,
-                                selection: TextSelection.collapsed(
-                                  offset: cleaned.length,
-                                ),
-                              );
-                            }
-
-                            if (cleaned.length >= 4) {
-                              final idx = _detectNetworkIndexFromPhone(cleaned);
-                              if (idx != null && idx != _selectedNetworkIndex) {
-                                setState(() => _selectedNetworkIndex = idx);
-                                PlansCache.instance.invalidate();
-                                _fetchPlans();
-                              }
-                            }
-                          },
-                        ),
-                      ),
-
-                      // ── Contacts icon ─────────────────────────────────────
-                      IconButton(
-                        onPressed: () {
-                          /* TODO: contacts picker */
-                        },
-                        icon: Container(
-                          height: 30,
-                          width: 30,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.deepOrange.withOpacity(0.1),
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.deepOrange,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // ── Detected-network badge ────────────────────────────────
-                  if (showBadge)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 12,
-                        top: 4,
-                        bottom: 2,
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 8,
-                            backgroundImage: AssetImage(
-                              networks[_selectedNetworkIndex]['logo']!,
+                                );
+                              }),
+                              onChanged: (val) {
+                                if (val != null &&
+                                    val != _selectedNetworkIndex) {
+                                  setState(() => _selectedNetworkIndex = val);
+                                  PlansCache.instance.invalidate();
+                                  _fetchPlans();
+                                }
+                              },
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${networks[_selectedNetworkIndex]['name']!} detected',
+                        ),
+                        const SizedBox(width: 8),
+
+                        // ── Phone field ───────────────────────────────────────
+                        Expanded(
+                          child: TextField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
                             style: TextStyle(
-                              color: Colors.deepOrange,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.check_circle,
-                            color: Color(0xFF22C55E),
-                            size: 13,
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                            decoration: InputDecoration(
+                              hintText: 'Enter mobile number',
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.white54 : Colors.grey,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            // ── UPDATED: auto-detect network on typing ────────
+                            onChanged: (val) {
+                              final raw = val ?? '';
+                              setState(() => _phoneError = null);
 
-            // ── Phone error ────────────────────────────────────────────────
-            if (_phoneError != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 24, top: 6),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _phoneError!,
-                    style: const TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                ),
-              ),
+                              // ── Auto-strip spaces/non-digits as user types or pastes ──
+                              final cleaned = raw.replaceAll(
+                                RegExp(r'[^0-9]'),
+                                '',
+                              );
+                              if (cleaned != raw) {
+                                _phoneController.value = TextEditingValue(
+                                  text: cleaned,
+                                  selection: TextSelection.collapsed(
+                                    offset: cleaned.length,
+                                  ),
+                                );
+                              }
 
-            const SizedBox(height: 10),
-
-            // ── Tabs + Grid ────────────────────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Column(
-                    children: [
-                      TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        labelColor: Colors.deepOrange,
-                        unselectedLabelColor: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey,
-                        indicatorColor: Colors.deepOrange,
-                        dividerColor: Colors.transparent,
-                        tabs: _tabs.map((t) => Tab(text: t)).toList(),
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: List.generate(
-                            _tabs.length,
-                            (i) => _plansGrid(i, isDark: isDark),
+                              if (cleaned.length >= 4) {
+                                final idx = _detectNetworkIndexFromPhone(
+                                  cleaned,
+                                );
+                                if (idx != null &&
+                                    idx != _selectedNetworkIndex) {
+                                  setState(() => _selectedNetworkIndex = idx);
+                                  PlansCache.instance.invalidate();
+                                  _fetchPlans();
+                                }
+                              }
+                            },
                           ),
                         ),
+
+                        // ── Contacts icon ─────────────────────────────────────
+                        IconButton(
+                          onPressed: () {
+                            /* TODO: contacts picker */
+                          },
+                          icon: Container(
+                            height: 30,
+                            width: 30,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.deepOrange.withOpacity(0.1),
+                            ),
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.deepOrange,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ── Detected-network badge ────────────────────────────────
+                    if (showBadge)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 12,
+                          top: 4,
+                          bottom: 2,
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 8,
+                              backgroundImage: AssetImage(
+                                networks[_selectedNetworkIndex]['logo']!,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${networks[_selectedNetworkIndex]['name']!} detected',
+                              style: TextStyle(
+                                color: Colors.deepOrange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFF22C55E),
+                              size: 13,
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                  ],
+                ),
+              ),
+
+              // ── Phone error ────────────────────────────────────────────────
+              if (_phoneError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 24, top: 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _phoneError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 10),
+
+              // ── Tabs + Grid ────────────────────────────────────────────────
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      children: [
+                        TabBar(
+                          controller: _tabController,
+                          isScrollable: true,
+                          tabAlignment: TabAlignment.start,
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                          ),
+                          labelColor: Colors.deepOrange,
+                          unselectedLabelColor: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey,
+                          indicatorColor: Colors.deepOrange,
+                          dividerColor: Colors.transparent,
+                          tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: List.generate(
+                              _tabs.length,
+                              (i) => _plansGrid(i, isDark: isDark),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 10),
-          ],
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );

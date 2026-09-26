@@ -12,6 +12,8 @@ import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
 import 'splash_screen/splash_screen.dart';
 import 'provider/authprovider.dart';
+import 'provider/theme_provider.dart';
+import 'registration_page/pin_login_page.dart';
 import 'apps/apps.dart';
 
 // Must be a top-level function (not inside a class) — runs in a separate isolate.
@@ -36,6 +38,7 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => KycProvider()),
@@ -58,14 +61,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool isDarkMode = false;
-
-  void toggleTheme() {
-    setState(() {
-      isDarkMode = !isDarkMode;
-    });
-  }
-
   @override
   void initState() {
     super.initState();
@@ -83,9 +78,25 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     print('🟡 [F] MyApp build() called');
+
+    // Read theme here, OUTSIDE the AuthProvider Consumer below. This is
+    // the key change: theme state no longer lives inside this State
+    // object, and MaterialApp's themeMode now comes from watching
+    // ThemeProvider directly. An AuthProvider notification only reruns
+    // the Consumer's builder (still needed for isCheckingAuth /
+    // needsPinUnlock / isLoggedIn routing) — it no longer also rebuilds
+    // MaterialApp for theme reasons, and a theme toggle no longer needs
+    // to touch AuthProvider at all. That removes the rebuild collision
+    // that could previously swallow a tap on the dark-mode switch.
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    void toggleTheme() => context.read<ThemeProvider>().toggle();
+
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        print('🟡 [G] Consumer builder called, isCheckingAuth=${auth.isCheckingAuth}, isLoggedIn=${auth.isLoggedIn}');
+        print(
+          '🟡 [G] Consumer builder called, isCheckingAuth=${auth.isCheckingAuth}, '
+          'needsPinUnlock=${auth.needsPinUnlock}, isLoggedIn=${auth.isLoggedIn}',
+        );
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'GlobalPay',
@@ -109,6 +120,14 @@ class _MyAppState extends State<MyApp> {
           // ← NO builder here
           home: auth.isCheckingAuth
               ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+              : auth.needsPinUnlock
+              // Saved session found but not yet PIN-verified this launch —
+              // this is the PalmPay-style unlock step, shown before the
+              // person ever reaches the authenticated app shell.
+              ? PinLoginPage(
+                  onToggleTheme: toggleTheme,
+                  user: auth.pendingUser!,
+                )
               : auth.isLoggedIn
               ? MyAppsPage(onToggleTheme: toggleTheme)
               : SplashScreen(onToggleTheme: toggleTheme),

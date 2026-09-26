@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'set_pin.dart';
-// import 'package:http/http.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -22,7 +21,6 @@ class _SignupPageState extends State<SignupPage> {
   final PageController _pageController = PageController();
 
   final fullNameController = TextEditingController();
-  // final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final otpController = TextEditingController();
@@ -31,15 +29,12 @@ class _SignupPageState extends State<SignupPage> {
   bool isLoading = false;
   int currentPage = 0;
 
-  // bool useEmail = true; // tab state
-
   final allowedDomains = ["gmail.com", "outlook.com", "yahoo.com"];
 
   @override
   void dispose() {
     _pageController.dispose();
     fullNameController.dispose();
-    // usernameController.dispose();
     emailController.dispose();
     phoneController.dispose();
     otpController.dispose();
@@ -58,7 +53,6 @@ class _SignupPageState extends State<SignupPage> {
     return allowedDomains.contains(domain);
   }
 
-  // Mirrors the backend's preg_match("/^[0-9]{10,15}$/", $phone) check
   bool _isValidPhone(String phone) {
     final regex = RegExp(r"^[0-9]{10,15}$");
     return regex.hasMatch(phone);
@@ -83,37 +77,43 @@ class _SignupPageState extends State<SignupPage> {
 
     setState(() => isLoading = true);
 
-    final res = await http.post(
-      Uri.parse("https://glopa.org/glo/reg.php"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "name": fullNameController.text.trim(),
-        "email": emailController.text.trim(),
-        "phone": phoneController.text.trim(),
-        "gender": selectedGender,
-        "pin": "0000",
-        "address": "Not set",
-      }),
-    );
-    setState(() => isLoading = false);
-
-    final data = jsonDecode(res.body);
-
-    if (data['status'] == 'success') {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+    try {
+      final res = await http.post(
+        Uri.parse("https://glopa.org/glo/reg.php"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "name": fullNameController.text.trim(),
+          "email": emailController.text.trim(),
+          "phone": phoneController.text.trim(),
+          "gender": selectedGender,
+          "pin": "0000",
+          "address": "Not set",
+        }),
       );
-    } else {
+
+      final data = jsonDecode(res.body);
+
+      if (data['status'] == 'success') {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(data['message'])));
+      }
+    } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(data['message'])));
+      ).showSnackBar(SnackBar(content: Text("Network error: $e")));
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
   void _verifyOtp() async {
     if (otpController.text.length != 4) {
-      // match PHP OTP
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Enter valid 4-digit OTP")));
@@ -135,7 +135,6 @@ class _SignupPageState extends State<SignupPage> {
       final data = jsonDecode(res.body);
 
       if (data['status'] == 'success') {
-        // navigate to SetPinPage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -172,15 +171,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  void _prevPage() {
-    if (currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   void _back() {
     if (currentPage == 0) {
       Navigator.pop(context);
@@ -192,41 +182,36 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  // ---- RESPONSIVE HELPERS ----
+
+  // Clamp a "phone-sized" width so it scales down on small phones
+  // and doesn't stretch too wide on tablets/foldables.
+  double _scale(BuildContext context, double base) {
+    final width = MediaQuery.of(context).size.width;
+    // 375 is a common baseline phone width (iPhone SE/8 class)
+    final factor = (width / 375).clamp(0.85, 1.25);
+    return base * factor;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lightBg = const Color(0xFFF5F6F8);
     final darkBg = const Color(0xFF121212);
 
-    final Color lightTop = const Color(0xFFF5F6F8);
-    final Color lightBottom = Colors.grey.shade200;
-
-    final Color darkTop = const Color(0xFF121212);
-    final Color darkBottom = Colors.grey.shade900;
-
-    final Color cardLight = Colors.white;
-    final Color cardDark = const Color(0xFF1E1E1E);
-
-    final Color textLight = Colors.black87;
-    final Color textDark = Colors.white;
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Cap the usable content width so it doesn't stretch edge-to-edge on tablets.
+    final maxContentWidth = screenWidth > 600 ? 480.0 : screenWidth;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: Container(
-          // decoration: BoxDecoration(
-          //   gradient: LinearGradient(
-          //     colors: isDark ? [darkTop, darkBottom] : [lightTop, lightBottom],
-          //     begin: Alignment.topCenter,
-          //     end: Alignment.bottomCenter,
-          //   ),
-          // ),
-        ),
+        flexibleSpace: Container(),
         title: Text(
           "Sign Up",
-          style: TextStyle(color: isDark ? textDark : textLight),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.deepOrange),
@@ -248,16 +233,20 @@ class _SignupPageState extends State<SignupPage> {
         child: SafeArea(
           child: Stack(
             children: [
-              PageView(
-                controller: _pageController,
-                onPageChanged: (i) => setState(() => currentPage = i),
-                children: [
-                  _pageBasic(isDark),
-                  _pageContactChoice(isDark),
-                  _pageOtp(isDark),
-                ],
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  child: PageView(
+                    controller: _pageController,
+                    onPageChanged: (i) => setState(() => currentPage = i),
+                    children: [
+                      _pageBasic(isDark),
+                      _pageContactChoice(isDark),
+                      _pageOtp(isDark),
+                    ],
+                  ),
+                ),
               ),
-
               if (isLoading)
                 Container(
                   color: Colors.black26,
@@ -279,7 +268,6 @@ class _SignupPageState extends State<SignupPage> {
       isDark: isDark,
       children: [
         _textField("Full Name", fullNameController, isDark),
-        // _textField("Username", usernameController, isDark),
         _genderDropdown(isDark),
         const SizedBox(height: 10),
         _nextBackButtons(isDark),
@@ -287,7 +275,7 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-// PAGE 2 EMAIL + PHONE (both required)
+  // PAGE 2 EMAIL + PHONE
   Widget _pageContactChoice(bool isDark) {
     return _buildPage(
       title: "Verify your contact",
@@ -305,24 +293,8 @@ class _SignupPageState extends State<SignupPage> {
           isDark,
           keyboardType: TextInputType.phone,
         ),
-
         const SizedBox(height: 15),
-
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
-            minimumSize: const Size(double.infinity, 55),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          onPressed: _gotoOtpScreen,
-          child: const Text(
-            "Send Code",
-            style: TextStyle(color: Colors.black),
-            selectionColor: Colors.black87,
-          ),
-        ),
+        _primaryButton("Send Code", _gotoOtpScreen),
       ],
     );
   }
@@ -340,48 +312,48 @@ class _SignupPageState extends State<SignupPage> {
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 15),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
-            minimumSize: const Size(double.infinity, 55),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          onPressed: _verifyOtp,
-          child: const Text("Continue", style: TextStyle(color: Colors.black)),
-        ),
+        _primaryButton("Continue", _verifyOtp),
       ],
     );
   }
 
-  // COMMON BUILDERS BELOW
+  // COMMON BUILDERS
 
   Widget _buildPage({
     required String title,
     required bool isDark,
     required List<Widget> children,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 30),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hPad = _scale(context, 20);
+        return SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 16),
+          child: ConstrainedBox(
+            // Ensures content can grow to fill height on tall/tablet screens
+            // without being forced to, avoiding both overflow and awkward gaps.
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: _scale(context, 20)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: _scale(context, 24),
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: _scale(context, 18)),
+                  ...children,
+                ],
               ),
             ),
-            const SizedBox(height: 18),
-            ...children,
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -392,10 +364,11 @@ class _SignupPageState extends State<SignupPage> {
     TextInputType? keyboardType,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: _scale(context, 8)),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        style: TextStyle(fontSize: _scale(context, 15)),
         decoration: InputDecoration(
           labelText: label,
           filled: true,
@@ -413,6 +386,7 @@ class _SignupPageState extends State<SignupPage> {
   Widget _genderDropdown(bool isDark) {
     return DropdownButtonFormField<String>(
       initialValue: selectedGender,
+      isExpanded: true, // prevents overflow if a value is long
       decoration: InputDecoration(
         labelText: "Gender",
         prefixIcon: const Icon(Icons.person_2, color: Colors.deepOrange),
@@ -432,15 +406,27 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Widget _nextBackButtons(bool isDark) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.deepOrange,
-        minimumSize: const Size(double.infinity, 55),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  Widget _primaryButton(String label, VoidCallback onPressed) {
+    return SizedBox(
+      width: double.infinity,
+      height: _scale(context, 55),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.deepOrange,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onPressed: onPressed,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: const TextStyle(color: Colors.black)),
+        ),
       ),
-      onPressed: _nextPage,
-      child: const Text("Next", style: TextStyle(color: Colors.black)),
     );
+  }
+
+  Widget _nextBackButtons(bool isDark) {
+    return _primaryButton("Next", _nextPage);
   }
 }
