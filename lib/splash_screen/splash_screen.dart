@@ -96,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         // rectangle, even on the smallest phones.
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          " lobalPay",
+                          " lonest",
                           style: TextStyle(
                             fontSize: _scale(context, 32),
                             fontWeight: FontWeight.bold,

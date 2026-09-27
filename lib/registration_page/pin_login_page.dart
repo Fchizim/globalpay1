@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../models/user_model.dart';
 import '../provider/authprovider.dart';
 import '../onboarding_screen/auto_choice_page.dart';
+import 'forgot_password.dart';
 
 /// Primary brand color used across interactive elements (cursor, dot,
 /// links, loading indicator). Kept as a single source of truth so the
@@ -447,7 +448,15 @@ class _PinLoginPageState extends State<PinLoginPage>
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        // TODO: route to your existing forgot-PIN flow
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordPage(
+                              email: '',
+                              phoneNumber: '',
+                            ),
+                          ),
+                        );
                       },
                       style: TextButton.styleFrom(foregroundColor: _primary),
                       child: Text(

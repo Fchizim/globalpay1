@@ -75,7 +75,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final res = await http
           .post(
-            Uri.parse('$_base/pin_login.php'),
+            Uri.parse('$_base/verify_pin.php'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'user_id': _pendingUser!.userId,

@@ -99,7 +99,7 @@ class _MyAppState extends State<MyApp> {
         );
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'GlobalPay',
+          title: 'Glonest',
           themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
           theme: ThemeData(
             brightness: Brightness.light,
