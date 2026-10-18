@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:globalpay/home/sucessful_transfer.dart';
@@ -46,6 +47,11 @@ class _AmountSendState extends State<AmountSend> {
   static const _accent = Colors.deepOrange;
   static const _gradientStart = Color(0xFFFF6A00);
   static const _gradientEnd = Color(0xFFFF3D00);
+
+  // Flat transfer fee charged on every transfer, in addition to the
+  // amount being sent. Shown in the confirm sheet and the PIN sheet, and
+  // included in the balance check + the amount actually deducted.
+  static const double _transferFee = 10.0;
 
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -121,8 +127,9 @@ class _AmountSendState extends State<AmountSend> {
       _toast('Minimum withdrawal is ${CurrencyConfig().symbol}100');
       return;
     }
-    if (amount > widget.balance) {
-      _toast('Insufficient balance');
+    // Balance must cover the transfer amount PLUS the flat fee.
+    if (amount + _transferFee > widget.balance) {
+      _toast('Insufficient balance to cover amount + fee');
       return;
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -250,6 +257,7 @@ class _AmountSendState extends State<AmountSend> {
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
     final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
+    final total = amount + _transferFee;
 
     showModalBottomSheet(
       context: context,
@@ -368,6 +376,21 @@ class _AmountSendState extends State<AmountSend> {
                     ),
                     SizedBox(height: 10 * _scale),
                     _infoRow(
+                      "Transfer fee",
+                      _currencyFormatter.format(_transferFee),
+                      textColor,
+                      subTextColor,
+                    ),
+                    SizedBox(height: 10 * _scale),
+                    _infoRow(
+                      "Total to be charged",
+                      _currencyFormatter.format(total),
+                      textColor,
+                      subTextColor,
+                      emphasize: true,
+                    ),
+                    SizedBox(height: 10 * _scale),
+                    _infoRow(
                       "Payment method",
                       _paymentMethod,
                       textColor,
@@ -386,7 +409,7 @@ class _AmountSendState extends State<AmountSend> {
                     ],
                     SizedBox(height: 22 * _scale),
                     _payButton(
-                      label: "Pay ${_currencyFormatter.format(amount)}",
+                      label: "Pay ${_currencyFormatter.format(total)}",
                       onPressed: () {
                         Navigator.pop(context);
                         _openPinSheet(amount, isDark);
@@ -464,131 +487,164 @@ class _AmountSendState extends State<AmountSend> {
           }
         });
 
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20 * scale,
-            right: 20 * scale,
-            top: 12 * scale,
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 28 * scale,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  margin: EdgeInsets.only(bottom: 22 * scale),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.all(12 * scale),
-                  decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.lock_rounded,
-                    color: _accent,
-                    size: 22 * scale,
-                  ),
-                ),
-                SizedBox(height: 14 * scale),
-                Text(
-                  "Enter Transaction PIN",
-                  style: TextStyle(
-                    fontSize: 17.5 * scale,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
-                  ),
-                ),
-                SizedBox(height: 6 * scale),
-                Text(
-                  "Confirm ${_currencyFormatter.format(amount)} to ${widget.accountHolderName}",
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12.5 * scale, color: subTextColor),
-                ),
-                SizedBox(height: 28 * scale),
-                GestureDetector(
-                  onTap: () =>
-                      FocusScope.of(sheetContext).requestFocus(hiddenFocus),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(4, (i) {
-                      final filled = pins[i].isNotEmpty;
-                      final currentLen = hiddenCtrl.text
-                          .replaceAll(RegExp(r'\s+'), '')
-                          .length;
-                      final isCursorBox = currentLen == i;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        width: pinBoxSize,
-                        height: pinBoxSize,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: filled || isCursorBox
-                                ? _accent
-                                : (isDark
-                                      ? Colors.white24
-                                      : Colors.grey.shade300),
-                            width: isCursorBox ? 2 : 1.2,
-                          ),
-                          color: filled
-                              ? _accent.withOpacity(0.1)
-                              : (isDark
-                                    ? Colors.white.withOpacity(0.03)
-                                    : Colors.grey.shade50),
-                        ),
-                        child: filled
-                            ? Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: _accent,
-                                  shape: BoxShape.circle,
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      );
-                    }),
-                  ),
-                ),
-                Opacity(
-                  opacity: 0,
-                  child: SizedBox(
-                    height: 1,
-                    child: TextField(
-                      controller: hiddenCtrl,
-                      focusNode: hiddenFocus,
-                      maxLength: 4,
-                      autofocus: true,
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) {
-                        final cleaned = v.replaceAll(RegExp(r'\s+'), '');
-                        for (int i = 0; i < 4; i++) {
-                          pins[i] = i < cleaned.length ? cleaned[i] : '';
-                        }
-                        setState(() {});
-                        if (cleaned.length == 4) {
-                          Future.delayed(const Duration(milliseconds: 200), () {
-                            Navigator.pop(sheetContext);
-                            // ── The actual fix: PIN is now passed through ──
-                            _processPayment(amount, cleaned);
-                          });
-                        }
-                      },
-                      decoration: const InputDecoration(counterText: ''),
+        // StatefulBuilder gives this sheet its own setState. A modal
+        // bottom sheet's content lives in a separate overlay from the
+        // page behind it, so calling the outer screen's setState() (the
+        // old bug) rebuilds the page, not the sheet — the PIN boxes
+        // stayed blank while typing because of this. setSheetState below
+        // rebuilds just this sheet, so the dots fill in live.
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              left: 20 * scale,
+              right: 20 * scale,
+              top: 12 * scale,
+              bottom:
+                  MediaQuery.of(sheetContext).viewInsets.bottom + 28 * scale,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 4,
+                    margin: EdgeInsets.only(bottom: 22 * scale),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ),
-              ],
+                  Container(
+                    padding: EdgeInsets.all(12 * scale),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_rounded,
+                      color: _accent,
+                      size: 22 * scale,
+                    ),
+                  ),
+                  SizedBox(height: 14 * scale),
+                  Text(
+                    "Enter Transaction PIN",
+                    style: TextStyle(
+                      fontSize: 17.5 * scale,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                  SizedBox(height: 6 * scale),
+                  Text(
+                    "Confirm ${_currencyFormatter.format(amount)} + "
+                    "${_currencyFormatter.format(_transferFee)} fee to "
+                    "${widget.accountHolderName}",
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5 * scale,
+                      color: subTextColor,
+                    ),
+                  ),
+                  SizedBox(height: 28 * scale),
+                  GestureDetector(
+                    onTap: () =>
+                        FocusScope.of(sheetContext).requestFocus(hiddenFocus),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(4, (i) {
+                        final filled = pins[i].isNotEmpty;
+                        final currentLen = hiddenCtrl.text
+                            .replaceAll(RegExp(r'\s+'), '')
+                            .length;
+                        final isCursorBox = currentLen == i;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: pinBoxSize,
+                          height: pinBoxSize,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: filled || isCursorBox
+                                  ? _accent
+                                  : (isDark
+                                        ? Colors.white24
+                                        : Colors.grey.shade300),
+                              width: isCursorBox ? 2 : 1.2,
+                            ),
+                            color: filled
+                                ? _accent.withOpacity(0.1)
+                                : (isDark
+                                      ? Colors.white.withOpacity(0.03)
+                                      : Colors.grey.shade50),
+                          ),
+                          child: filled
+                              ? Container(
+                                  // Bolder, more visible filled dot (was
+                                  // 10x10 flat) — scales with screen size
+                                  // and has a soft glow so it reads clearly
+                                  // as "entered" at a glance.
+                                  width: 10 * scale,
+                                  height: 10 * scale,
+                                  decoration: BoxDecoration(
+                                    color: _accent,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _accent.withOpacity(0.45),
+                                        // blurRadius: 6,
+                                        // spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        );
+                      }),
+                    ),
+                  ),
+                  Opacity(
+                    opacity: 0,
+                    child: SizedBox(
+                      height: 1,
+                      child: TextField(
+                        controller: hiddenCtrl,
+                        focusNode: hiddenFocus,
+                        maxLength: 4,
+                        autofocus: true,
+                        keyboardType: TextInputType.number,
+                        // Digits only — without this, some Android keyboards
+                        // show extra symbol keys (comma, dash, period) for
+                        // TextInputType.number, as seen in your screenshot.
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (v) {
+                          final cleaned = v.replaceAll(RegExp(r'\s+'), '');
+                          for (int i = 0; i < 4; i++) {
+                            pins[i] = i < cleaned.length ? cleaned[i] : '';
+                          }
+                          // setSheetState (not the outer setState) so the
+                          // PIN dots actually redraw as the user types.
+                          setSheetState(() {});
+                          if (cleaned.length == 4) {
+                            Future.delayed(const Duration(milliseconds: 200), () {
+                              Navigator.pop(sheetContext);
+                              // ── The actual fix: PIN is now passed through ──
+                              _processPayment(amount, cleaned);
+                            });
+                          }
+                        },
+                        decoration: const InputDecoration(counterText: ''),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -629,7 +685,11 @@ class _AmountSendState extends State<AmountSend> {
           'Withdrawal could not be processed.';
 
       if (status == 'success') {
-        UserBalance.instance.balance -= amount;
+        // Deduct the transfer amount PLUS the flat fee locally.
+        // NOTE: if WithdrawalService.withdraw's backend response already
+        // returns the post-fee balance, prefer that value instead of this
+        // local subtraction so the two never drift apart.
+        UserBalance.instance.balance -= (amount + _transferFee);
         widget.onTransaction(amount);
         Navigator.push(
           context,
@@ -830,6 +890,18 @@ class _AmountSendState extends State<AmountSend> {
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    SizedBox(height: 4 * _scale),
+                    // Small live hint of the flat fee under the amount
+                    // field, so the charge is visible before the user
+                    // even reaches the confirm sheet.
+                    Text(
+                      "+ ${_currencyFormatter.format(_transferFee)} transfer fee",
+                      style: TextStyle(
+                        color: subTextColor,
+                        fontSize: 11.5 * _scale,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     SizedBox(height: 12 * _scale),

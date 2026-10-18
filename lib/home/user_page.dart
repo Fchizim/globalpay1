@@ -53,6 +53,12 @@ class _UserPageState extends State<UserPage> {
   }
 
   @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final user = context.read<UserProvider>().user;
@@ -208,15 +214,20 @@ class _UserPageState extends State<UserPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bgColor = isDark ? const Color(0xFF121212) : Colors.grey.shade100;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF6F6F8);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subTextColor = isDark ? Colors.white38 : Colors.grey.shade600;
-    final hintColor = isDark ? Colors.white54 : Colors.grey.shade600;
+    final fieldColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFF2F3F5);
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final subTextColor = isDark ? Colors.white54 : Colors.grey.shade600;
+    final hintColor = isDark ? Colors.white : Colors.black;
+    final borderColor = isDark
+        ? Colors.white10
+        : Colors.black.withOpacity(0.06);
 
-    // ── Responsive helpers ──────────────────────────────────────────────
     // Clamp system font scaling so accessibility "large text" settings
-    // can't blow up fixed-height rows (e.g. the 50px "Next" button).
+    // can't blow up fixed-height rows.
     final mq = MediaQuery.of(context);
     final clampedTextScaler = mq.textScaler.clamp(
       minScaleFactor: 0.9,
@@ -229,215 +240,222 @@ class _UserPageState extends State<UserPage> {
         backgroundColor: bgColor,
         appBar: AppBar(
           title: Text(
-            "Transfer to GlobalPay",
-            style: TextStyle(color: textColor),
+            'Send to GlobalPay',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
+          centerTitle: true,
           backgroundColor: bgColor,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
+          iconTheme: IconThemeData(color: textColor),
         ),
-        // Center + cap content width so this doesn't stretch into
-        // oversized rows on tablets, while staying full-width (minus
-        // padding) on phones of any size.
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    /// To Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 15,
-                                top: 15,
-                                bottom: 5,
-                              ),
-                              child: Text(
-                                'To',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w500,
-                                  color: textColor,
-                                ),
-                              ),
+                    // ── Recipient card ─────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Recipient',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: subTextColor,
+                              letterSpacing: 0.3,
                             ),
-                            const SizedBox(height: 10),
+                          ),
+                          const SizedBox(height: 10),
 
-                            /// Phone Number Field
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                              ),
-                              child: TextField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                cursorColor: Colors.deepOrange,
-                                style: TextStyle(color: textColor),
-                                decoration: InputDecoration(
-                                  hintText: '   Enter phone number',
-                                  hintStyle: TextStyle(color: hintColor),
-                                  suffixIcon: _lookupLoading
-                                      ? const Padding(
-                                          padding: EdgeInsets.all(14),
-                                          child: SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.deepOrange,
-                                            ),
-                                          ),
-                                        )
-                                      : null,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: const BorderSide(
-                                      color: Colors.deepOrange,
-                                    ),
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
+                          // Phone field
+                          TextField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            cursorColor: Colors.deepOrange,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
                             ),
-                            const SizedBox(height: 15),
-
-                            /// Recipient confirmation / error card
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
+                            decoration: InputDecoration(
+                              hintText: 'Enter phone number',
+                              hintStyle: TextStyle(
+                                color: hintColor,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: 0,
                               ),
-                              child: _resolvedUser != null
-                                  ? _recipientFoundCard(
-                                      isDark,
-                                      textColor,
-                                      subTextColor,
+                              filled: true,
+                              fillColor: fieldColor,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 16,
+                              ),
+                              prefixIcon: Icon(
+                                IconsaxPlusLinear.call,
+                                size: 20,
+                                color: hintColor,
+                              ),
+                              suffixIcon: _lookupLoading
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(14),
+                                      child: SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.deepOrange,
+                                        ),
+                                      ),
                                     )
-                                  : _lookupError != null
-                                  ? _recipientErrorCard(isDark)
-                                  : Container(
-                                      decoration: BoxDecoration(
-                                        color: isDark
-                                            ? Colors.grey.shade800
-                                            : Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 16,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            IconsaxPlusBold.user,
-                                            color: Colors.deepOrange,
-                                            size: 24,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              'Enter a phone number to find a GlobalPay user',
-                                              style: TextStyle(
-                                                color: hintColor,
-                                                fontSize: 13,
-                                              ),
+                                  : (_phoneController.text.isNotEmpty
+                                        ? IconButton(
+                                            icon: Icon(
+                                              Icons.close_rounded,
+                                              size: 18,
+                                              color: hintColor,
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-
-                            const SizedBox(height: 20),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
+                                            onPressed: () {
+                                              _phoneController.clear();
+                                              setState(() {});
+                                            },
+                                          )
+                                        : null),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
                               ),
-                              child: SizedBox(
-                                height: 50,
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.deepOrange,
-                                    disabledBackgroundColor: Colors.deepOrange
-                                        .withOpacity(0.4),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: _resolvedUser == null
-                                      ? null
-                                      : () => _openTransferFlow(_resolvedUser!),
-                                  child: const FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      'Next',
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: Colors.deepOrange,
+                                  width: 1.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Recipient confirmation / error / hint
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: _resolvedUser != null
+                                ? _recipientFoundCard(
+                                    isDark,
+                                    textColor,
+                                    subTextColor,
+                                  )
+                                : _lookupError != null
+                                ? _recipientErrorCard(isDark)
+                                : _hintRow(hintColor),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          // Next button
+                          SizedBox(
+                            height: 52,
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepOrange,
+                                disabledBackgroundColor: isDark
+                                    ? Colors.white12
+                                    : Colors.deepOrange.shade100,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              onPressed: _resolvedUser == null
+                                  ? null
+                                  : () => _openTransferFlow(_resolvedUser!),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Continue',
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: _resolvedUser == null
+                                        ? hintColor
+                                        : Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
 
-                    /// Banner
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          gradient: const LinearGradient(
-                            colors: [Colors.deepOrange, Colors.orangeAccent],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                    // ── Info strip (replaces the loud gradient banner) ──
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange.withOpacity(
+                          isDark ? 0.12 : 0.07,
                         ),
-                        child: const Text(
-                          '⚡ Instant, Zero-Issue Transactions',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bolt_rounded,
+                            size: 18,
+                            color: Colors.deepOrange,
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Instant transfers between GlobalPay users',
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.85),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
-                    /// Recent Section — real data, derived from transaction history
-                    _sectionHeader(
-                      'Recent',
-                      _fetchRecentRecipients,
-                      textColor,
-                      subTextColor,
-                    ),
+                    const SizedBox(height: 26),
+
+                    // ── Recent ─────────────────────────────────────────
+                    _sectionHeader('Recent', textColor),
+                    const SizedBox(height: 12),
                     SizedBox(
-                      height: 110,
+                      height: 92,
                       child: _recentLoading
                           ? const Center(
                               child: SizedBox(
@@ -450,7 +468,8 @@ class _UserPageState extends State<UserPage> {
                               ),
                             )
                           : _recentRecipients.isEmpty
-                          ? Center(
+                          ? Align(
+                              alignment: Alignment.centerLeft,
                               child: Text(
                                 'No recent transfers yet',
                                 style: TextStyle(
@@ -459,56 +478,51 @@ class _UserPageState extends State<UserPage> {
                                 ),
                               ),
                             )
-                          : ListView.builder(
+                          : ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                              ),
                               itemCount: _recentRecipients.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 16),
                               itemBuilder: (context, index) {
                                 final r = _recentRecipients[index];
+                                final firstName = r.name.split(' ').first;
                                 return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
                                   onTap: () => _openTransferFlow({
                                     'user_id': r.userId,
                                     'name': r.name,
                                     'phone': '',
                                     'image': '',
                                   }),
-                                  child: Container(
-                                    width: 160,
-                                    margin: const EdgeInsets.only(right: 12),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: cardColor,
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: Row(
+                                  child: SizedBox(
+                                    width: 64,
+                                    child: Column(
                                       children: [
                                         CircleAvatar(
-                                          radius: 20,
+                                          radius: 28,
                                           backgroundColor: Colors.deepOrange
-                                              .withOpacity(0.15),
+                                              .withOpacity(isDark ? 0.2 : 0.12),
                                           child: Text(
                                             r.name.isNotEmpty
                                                 ? r.name[0].toUpperCase()
                                                 : '?',
                                             style: const TextStyle(
                                               color: Colors.deepOrange,
+                                              fontSize: 20,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            r.name,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: textColor,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          firstName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -519,43 +533,63 @@ class _UserPageState extends State<UserPage> {
                             ),
                     ),
 
-                    /// Favorites Section — no backing table exists yet for this.
-                    /// Honest empty state instead of fake/mock contacts.
-                    _sectionHeader('Favorites', () {}, textColor, subTextColor),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 28,
-                          horizontal: 16,
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.star_border_rounded,
-                              color: hintColor,
-                              size: 30,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Favorites coming soon',
-                              style: TextStyle(color: hintColor, fontSize: 13),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 26),
+
+                    // ── Favorites — no backing table yet; honest empty state
+                    _sectionHeader('Favorites', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.star_border_rounded,
+                            color: hintColor,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Favorites coming soon',
+                            style: TextStyle(color: hintColor, fontSize: 13),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 100),
                   ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── idle hint ─────────────────────────────────────────────────────────────
+  Widget _hintRow(Color hintColor) {
+    return Padding(
+      key: const ValueKey('hint'),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 16, color: hintColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Enter a phone number to find a GlobalPay user',
+              style: TextStyle(color: hintColor, fontSize: 12.5),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -568,14 +602,13 @@ class _UserPageState extends State<UserPage> {
     final image = (user['image'] as String?) ?? '';
 
     return Container(
+      key: const ValueKey('found'),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.green.withOpacity(0.12)
-            : Colors.green.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.withOpacity(0.4)),
+        color: Colors.green.withOpacity(isDark ? 0.12 : 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.green.withOpacity(0.35)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           CircleAvatar(
@@ -607,6 +640,7 @@ class _UserPageState extends State<UserPage> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   _maskPhone(phone),
                   maxLines: 1,
@@ -626,14 +660,13 @@ class _UserPageState extends State<UserPage> {
   // ── recipient not found / lookup failed ───────────────────────────────────
   Widget _recipientErrorCard(bool isDark) {
     return Container(
+      key: const ValueKey('error'),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.red.withOpacity(0.12)
-            : Colors.red.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withOpacity(0.35)),
+        color: Colors.red.withOpacity(isDark ? 0.12 : 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.red.withOpacity(0.3)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           const Icon(
@@ -655,46 +688,18 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
-  Widget _sectionHeader(
-    String title,
-    VoidCallback onViewAll,
-    Color textColor,
-    Color subTextColor,
-  ) {
+  Widget _sectionHeader(String title, Color textColor) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 21,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: onViewAll,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('View All', style: TextStyle(color: subTextColor)),
-                const SizedBox(width: 3),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 10,
-                  color: subTextColor,
-                ),
-              ],
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(left: 2),
+      child: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

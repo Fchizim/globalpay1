@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../profile_details/profile_upgrade.dart';
 import '../provider/settings_provider.dart';
 import 'fraud.dart';
+import 'tawk_chat_screen.dart'; // NEW: Tawk.to live chat screen (adjust path if needed)
 
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
@@ -271,18 +272,23 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
     final settings = context.read<SettingsProvider>().settings;
 
     final items = [
+      // NEW: Tawk.to live chat
       {
-        'icon': IconsaxPlusLinear.message,
-        'title': 'Chat',
-        'onTap': () => launchUrl(
-          Uri.parse('https://wa.me/${settings.whatsappNumber}'),
-          mode: LaunchMode.externalApplication,
+        'icon': Icons.support_agent_rounded,
+        'title': 'Live Chat',
+        'showDot': true, // green active circle
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                TawkChatScreen(whatsappNumber: settings.whatsappNumber),
+          ),
         ),
       },
       {
         'icon': IconsaxPlusLinear.call,
         'title': 'Call',
-        'onTap': () => _showInfoDialog(context, 'Call Us', '08161739306'),
+        'onTap': () => _showInfoDialog(context, 'Call Us', '09077958397'),
       },
       {
         'icon': IconsaxPlusLinear.security,
@@ -345,6 +351,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
             item['onTap'] as VoidCallback,
             theme,
             context,
+            showDot: item['showDot'] as bool? ?? false,
           ),
         )
         .toList();
@@ -380,22 +387,49 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
     String title,
     VoidCallback onTap,
     ThemeData theme,
-    BuildContext context,
-  ) {
+    BuildContext context, {
+    bool showDot = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: EdgeInsets.all(s(context, 12)),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(s(context, 16)),
-            ),
-            child: Icon(icon, color: Colors.deepOrange, size: s(context, 24)),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: EdgeInsets.all(s(context, 12)),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(s(context, 16)),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.deepOrange,
+                  size: s(context, 24),
+                ),
+              ),
+              if (showDot)
+                Positioned(
+                  top: -s(context, 1),
+                  right: -s(context, 3),
+                  child: Container(
+                    width: s(context, 12),
+                    height: s(context, 12),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.scaffoldBackgroundColor,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          SizedBox(height: s(context, 6)),
+          SizedBox(height: s(context, 2)),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(

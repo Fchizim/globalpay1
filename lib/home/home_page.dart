@@ -1,10 +1,13 @@
 import 'dart:ui';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:globalpay/home/bet_screen.dart';
 import 'package:globalpay/home/transaction.dart';
 import 'package:globalpay/home/tv.dart';
+import 'package:http/http.dart' as http;
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +25,7 @@ import '../qrcode_send/qrcode_send.dart' hide UserBalance;
 import '../registration_page/login_page.dart';
 import '../services/profile_service.dart';
 import '../services/secure_storage_service.dart';
+import 'account_strip.dart';
 import 'airtime_page.dart';
 import 'all_asset.dart';
 import 'coming_soon.dart';
@@ -47,11 +51,22 @@ class _HomePageState extends State<HomePage> {
   Timer? _autoRefreshTimer;
   String? _lastSyncedUserId;
 
+  // ── Virtual account (shown in the strip under the balance card) ──
+  Map<String, String>? _virtualAccount;
+  bool _accountLoading = true;
+  bool _accountPending = false;
+
+  // Height of the account strip. It sits directly below the balance card
+  // (no overlap), so it never shows through the card's gradient.
+  static const double _stripHeight = 38;
+
   @override
   void initState() {
     super.initState();
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _refreshUserData();
+      // Only re-check the account while it is still being set up.
+      if (_accountPending) _fetchVirtualAccount();
     });
   }
 
@@ -78,10 +93,73 @@ class _HomePageState extends State<HomePage> {
     // that's fine; this just becomes a no-op rather than something to guard.
   }
 
+  // ── Fetch the user's virtual account (same endpoint as WalletScreen) ──
+  Future<void> _fetchVirtualAccount() async {
+    final user = context.read<UserProvider>().user;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _virtualAccount = null;
+          _accountPending = false;
+          _accountLoading = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final res = await http.get(
+        Uri.parse(
+          'https://glopa.org/glo/get_virtual_account.php?user_id=${user.userId}',
+        ),
+      );
+      final data = jsonDecode(res.body);
+      if (!mounted) return;
+
+      setState(() {
+        _accountLoading = false;
+        switch (data['status']) {
+          case 'success':
+            final raw = data['data'] as Map<String, dynamic>;
+            _virtualAccount = {
+              'bank_name': raw['bank_name']?.toString() ?? '',
+              'account_name': raw['account_name']?.toString() ?? '',
+              'account_number': raw['account_number']?.toString() ?? '',
+            };
+            _accountPending = false;
+            break;
+          case 'pending':
+            _virtualAccount = null;
+            _accountPending = true;
+            break;
+          default: // 'not_found', 'failed', 'error'
+            _virtualAccount = null;
+            _accountPending = false;
+        }
+      });
+    } catch (_) {
+      // Network error: keep whatever we already had and stop the spinner.
+      if (mounted) setState(() => _accountLoading = false);
+    }
+  }
+
+  void _copyAccountNumber(String number) {
+    Clipboard.setData(ClipboardData(text: number));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Account number copied'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Future<void> _refresh() async {
     if (!mounted) return;
     setState(() => isRefreshing = true);
     await _refreshUserData();
+    await _fetchVirtualAccount();
     if (!mounted) return;
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
@@ -94,6 +172,8 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(builder: (context) => LoaderWrapper(child: page)),
     );
     await _refreshUserData();
+    // The user may have just generated an account on the wallet screen.
+    await _fetchVirtualAccount();
   }
 
   // ── Gate for actions that genuinely need a real, logged-in user
@@ -157,6 +237,22 @@ class _HomePageState extends State<HomePage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           UserBalance.instance.balance = walletValue;
+          // New (or newly logged-in) user: load their account number.
+          _fetchVirtualAccount();
+        }
+      });
+    }
+
+    // User logged out: clear the previous user's account details.
+    if (isGuest && _lastSyncedUserId != null) {
+      _lastSyncedUserId = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _virtualAccount = null;
+            _accountPending = false;
+            _accountLoading = false;
+          });
         }
       });
     }
@@ -248,128 +344,170 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                // ── Balance card ───────────────────────────────
+                // ── Balance card + account number strip (stacked) ──
+                // The strip is attached directly under the balance card. It
+                // does NOT overlap the card, so the card's gradient (which
+                // is partly translucent in dark mode) never shows the strip
+                // through it.
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: outerPad),
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AllAsset()),
-                    ),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDark
-                              ? [
-                                  Colors.deepOrange.shade500,
-                                  Colors.white12,
-                                  Colors.deepOrange.shade400,
-                                ]
-                              : [Colors.deepOrange.shade200, Colors.white],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                IconsaxPlusBold.shield_tick,
-                                color: Colors.green.shade600,
-                                size: 20 * s,
-                              ),
-                              const SizedBox(width: 4),
-                              // Flexible + FittedBox: on narrow screens this
-                              // label shrinks instead of pushing the eye /
-                              // toggle icons off the edge of the card.
-                              Flexible(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    'Available Balance',
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 20,
-                                      letterSpacing: -0.5,
-                                      color: textColor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              GestureDetector(
-                                onTap: () => balanceNotifier.toggleHidden(),
-                                child: Icon(
-                                  balanceNotifier.isHidden
-                                      ? IconsaxPlusLinear.eye_slash
-                                      : IconsaxPlusLinear.eye,
-                                  size: 20 * s,
-                                  color: hintColor,
-                                ),
-                              ),
-                              if (canToggle) ...[
-                                const SizedBox(width: 6),
-                                GestureDetector(
-                                  onTap: () => setState(
-                                    () => _showFullFormat = !_showFullFormat,
-                                  ),
-                                  child: Icon(
-                                    _showFullFormat
-                                        ? Icons.toggle_on
-                                        : Icons.toggle_off,
-                                    size: 20 * s,
-                                    color: _showFullFormat
-                                        ? Colors.deepOrange
-                                        : hintColor,
-                                  ),
-                                ),
-                              ],
-                            ],
+                  child: Stack(
+                    children: [
+                      // Layer 1: account number strip, inset from the card's
+                      // rounded corners so it joins the card cleanly.
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 0,
+                        height: _stripHeight,
+                        child: AccountStrip(
+                          isGuest: isGuest,
+                          isDark: isDark,
+                          loading: _accountLoading,
+                          pending: _accountPending,
+                          bank: _virtualAccount?['bank_name'] ?? '',
+                          number: _virtualAccount?['account_number'] ?? '',
+                          onCopy: () => _copyAccountNumber(
+                            _virtualAccount?['account_number'] ?? '',
                           ),
-                          const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: () => _requireAuth(
-                              isGuest,
-                              () => _navigateWithLoader(WalletScreen()),
+                          onGetAccount: () => _requireAuth(
+                            isGuest,
+                            () => _navigateWithLoader(WalletScreen()),
+                          ),
+                        ),
+                      ),
+
+                      // Layer 2: the balance card (original gradient). Bottom
+                      // padding reserves exactly the strip's height.
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: _stripHeight),
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => AllAsset()),
+                          ),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: isDark
+                                    ? [
+                                        Colors.deepOrange.shade500,
+                                        Colors.white12,
+                                        Colors.deepOrange.shade400,
+                                      ]
+                                    : [
+                                        Colors.deepOrange.shade200,
+                                        Colors.white,
+                                      ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(15),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
+                            child: Column(
                               children: [
-                                Flexible(
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      displayedBalance,
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        fontSize: 30,
-                                        letterSpacing: -2,
-                                        fontWeight: FontWeight.w500,
-                                        color: textColor,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      IconsaxPlusBold.shield_tick,
+                                      color: Colors.green.shade600,
+                                      size: 20 * s,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    // Flexible + FittedBox: on narrow screens this
+                                    // label shrinks instead of pushing the eye /
+                                    // toggle icons off the edge of the card.
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Available Balance',
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 20,
+                                            letterSpacing: -0.5,
+                                            color: textColor,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () =>
+                                          balanceNotifier.toggleHidden(),
+                                      child: Icon(
+                                        balanceNotifier.isHidden
+                                            ? IconsaxPlusLinear.eye_slash
+                                            : IconsaxPlusLinear.eye,
+                                        size: 20 * s,
+                                        color: hintColor,
+                                      ),
+                                    ),
+                                    if (canToggle) ...[
+                                      const SizedBox(width: 6),
+                                      GestureDetector(
+                                        onTap: () => setState(
+                                          () => _showFullFormat =
+                                              !_showFullFormat,
+                                        ),
+                                        child: Icon(
+                                          _showFullFormat
+                                              ? Icons.toggle_on
+                                              : Icons.toggle_off,
+                                          size: 20 * s,
+                                          color: _showFullFormat
+                                              ? Colors.deepOrange
+                                              : hintColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                const SizedBox(width: 5),
-                                Icon(
-                                  IconsaxPlusLinear.add_circle,
-                                  color: textColor,
-                                  size: 22 * s,
+                                const SizedBox(height: 10),
+                                GestureDetector(
+                                  onTap: () => _requireAuth(
+                                    isGuest,
+                                    () => _navigateWithLoader(WalletScreen()),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            displayedBalance,
+                                            maxLines: 1,
+                                            style: TextStyle(
+                                              fontSize: 30,
+                                              letterSpacing: -2,
+                                              fontWeight: FontWeight.w500,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Icon(
+                                        IconsaxPlusLinear.add_circle,
+                                        color: textColor,
+                                        size: 22 * s,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
 

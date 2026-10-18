@@ -50,8 +50,7 @@ class AuthChoicePage extends StatelessWidget {
                   ),
                   child: ConstrainedBox(
                     // Fills the screen height when there's room, but never
-                    // forces it — this is what was causing overflow on
-                    // short/small phones with the fixed 40px gaps.
+                    // forces it, so short phones don't overflow.
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight,
                     ),
@@ -86,7 +85,7 @@ class AuthChoicePage extends StatelessWidget {
                               color: subTextColor,
                             ),
                           ),
-                          SizedBox(height: _scale(context, 40)),
+                          SizedBox(height: _scale(context, 32)),
 
                           // Login Button
                           _authButton(
@@ -105,7 +104,7 @@ class AuthChoicePage extends StatelessWidget {
                               );
                             },
                           ),
-                          SizedBox(height: _scale(context, 15)),
+                          SizedBox(height: _scale(context, 12)),
 
                           // Signup Button
                           _authButton(
@@ -124,75 +123,10 @@ class AuthChoicePage extends StatelessWidget {
                               );
                             },
                           ),
-                          SizedBox(height: _scale(context, 40)),
+                          SizedBox(height: _scale(context, 32)),
 
-                          // Theme Toggle
-                          GestureDetector(
-                            onTap: onToggleTheme,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.easeInOut,
-                              width: _scale(context, 160),
-                              height: _scale(context, 48),
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.grey[850]
-                                    : Colors.grey[300],
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: Stack(
-                                children: [
-                                  AnimatedAlign(
-                                    duration: const Duration(milliseconds: 400),
-                                    alignment: isDark
-                                        ? Alignment.centerRight
-                                        : Alignment.centerLeft,
-                                    child: Container(
-                                      width: _scale(context, 75),
-                                      height: _scale(context, 38),
-                                      decoration: BoxDecoration(
-                                        color: Colors.deepOrange,
-                                        borderRadius: BorderRadius.circular(25),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.deepOrange
-                                                .withOpacity(0.5),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        isDark
-                                            ? Icons.dark_mode
-                                            : Icons.light_mode,
-                                        color: Colors.white,
-                                        size: _scale(context, 22),
-                                      ),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: isDark
-                                        ? Alignment.centerLeft
-                                        : Alignment.centerRight,
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: _scale(context, 20),
-                                      ),
-                                      child: Icon(
-                                        isDark
-                                            ? Icons.light_mode
-                                            : Icons.dark_mode,
-                                        size: _scale(context, 20),
-                                        color: Colors.grey.withOpacity(0.5),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          // Theme Toggle (compact pill)
+                          _themeToggle(context, isDark),
                         ],
                       ),
                     ),
@@ -206,34 +140,106 @@ class AuthChoicePage extends StatelessWidget {
     );
   }
 
+  /// Small, sleek light/dark toggle.
+  Widget _themeToggle(BuildContext context, bool isDark) {
+    final width = _scale(context, 76);
+    final height = _scale(context, 34);
+    final thumbSize = height - 6;
+
+    return Semantics(
+      button: true,
+      label: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+      child: GestureDetector(
+        onTap: onToggleTheme,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          width: width,
+          height: height,
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(height),
+          ),
+          child: Stack(
+            children: [
+              // Faint icon on the empty side
+              Align(
+                alignment: isDark
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: _scale(context, 8),
+                  ),
+                  child: Icon(
+                    isDark ? Icons.light_mode : Icons.dark_mode,
+                    size: _scale(context, 14),
+                    color: Colors.grey.withOpacity(0.6),
+                  ),
+                ),
+              ),
+              // Sliding thumb
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: isDark
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: Container(
+                  width: thumbSize,
+                  height: thumbSize,
+                  decoration: const BoxDecoration(
+                    color: Colors.deepOrange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isDark ? Icons.dark_mode : Icons.light_mode,
+                    color: Colors.white,
+                    size: _scale(context, 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _authButton({
     required BuildContext context,
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      height: _scale(context, 55),
-      child: ElevatedButton.icon(
-        icon: Icon(icon, color: Colors.white),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.deepOrange,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+    // Narrower than full width so the buttons don't look like big boxes.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: SizedBox(
+        width: double.infinity,
+        height: _scale(context, 44),
+        child: ElevatedButton.icon(
+          icon: Icon(icon, color: Colors.white, size: _scale(context, 18)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepOrange,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+            shadowColor: Colors.deepOrange.withOpacity(0.3),
+            padding: EdgeInsets.symmetric(horizontal: _scale(context, 16)),
           ),
-          elevation: 6,
-          shadowColor: Colors.deepOrange.withOpacity(0.4),
-        ),
-        onPressed: onPressed,
-        label: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: _scale(context, 16),
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          onPressed: onPressed,
+          label: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: _scale(context, 14),
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
           ),
         ),

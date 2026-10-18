@@ -88,13 +88,14 @@ class _MyAppsPageState extends State<MyAppsPage> {
             type: BottomNavigationBarType.fixed,
             selectedFontSize: 12,
             unselectedFontSize: 11,
-            iconSize: 24,
+            iconSize: 22,
             items: [
               BottomNavigationBarItem(
                 icon: Icon(
                   _selectedIndex == 0
                       ? IconsaxPlusBold.home
                       : IconsaxPlusLinear.home,
+                  // size: 22,
                 ),
                 label: 'Home',
               ),
@@ -103,12 +104,13 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   _selectedIndex == 1
                       ? IconsaxPlusBold.chart_3
                       : IconsaxPlusLinear.chart_3,
+                  //size: 22,
                 ),
                 label: 'Finance',
               ),
               BottomNavigationBarItem(
                 icon: Container(
-                  height: 48,
+                  height: 40,
                   width: 48,
                   decoration: BoxDecoration(
                     color: accentColor,
@@ -134,6 +136,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   _selectedIndex == 3
                       ? IconsaxPlusBold.card
                       : IconsaxPlusLinear.card,
+                  //size: 22,
                 ),
                 label: 'Cards',
               ),
@@ -142,6 +145,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   _selectedIndex == 4
                       ? IconsaxPlusBold.grammerly
                       : IconsaxPlusLinear.grammerly,
+                  // size: 22,
                 ),
                 label: 'Me',
               ),
@@ -166,13 +170,15 @@ class _MyAppsPageState extends State<MyAppsPage> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => ProfileDetails(onToggleTheme: () {  },)),
+            MaterialPageRoute(
+              builder: (_) => ProfileDetails(onToggleTheme: () {}),
+            ),
           );
         },
         child: Row(
           children: [
             CircleAvatar(
-              radius: 24,
+              radius: 19,
               backgroundColor: accentColor.withOpacity(0.1),
               backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
                   ? NetworkImage(imageUrl)
@@ -231,7 +237,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                   );
                 },
                 child: Container(
-                  height: 25,
+                  height: 23,
                   width: 43,
                   decoration: const BoxDecoration(
                     color: Colors.deepOrange,
@@ -246,7 +252,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                       "Help",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -254,7 +260,7 @@ class _MyAppsPageState extends State<MyAppsPage> {
                 ),
               ),
               const SizedBox(width: 10),
-              Icon(IconsaxPlusLinear.scan, color: textColor),
+              Icon(IconsaxPlusLinear.scan, color: textColor, size: 20),
 
               const SizedBox(width: 10),
               InkWell(
@@ -264,11 +270,19 @@ class _MyAppsPageState extends State<MyAppsPage> {
                     MaterialPageRoute(builder: (_) => const OrdersPage()),
                   );
                 },
-                child: Icon(IconsaxPlusLinear.bag_2, color: textColor), // or whichever order icon you prefer
+                child: Icon(
+                  IconsaxPlusLinear.bag_2,
+                  color: textColor,
+                  size: 20,
+                ), // or whichever order icon you prefer
               ),
               const SizedBox(width: 10),
 
-              Icon(IconsaxPlusLinear.notification_bing, color: textColor),
+              Icon(
+                IconsaxPlusLinear.notification_bing,
+                color: textColor,
+                size: 20,
+              ),
             ],
           ),
         ),

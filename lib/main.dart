@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -25,32 +27,40 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print('🚀 [0] WidgetsFlutterBinding ready');
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('🚀 [0.5] Firebase.initializeApp done');
+  // Run the two things the first frame needs IN PARALLEL instead of one
+  // after the other. This shortens the time the native splash stays up.
+  final results = await Future.wait([
+    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    ThemeProvider.load(),
+  ]);
+  final themeProvider = results[1] as ThemeProvider;
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  await PushNotificationService.initialize();
-  print('🚀 [A] About to call runApp()');
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => KycProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider.value(value: UserBalance.instance),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
-        ChangeNotifierProvider(create: (_) => CartProvider()), // ← here
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: const MyApp(),
     ),
   );
-  print('🚀 [B] runApp() returned');
+
+  // NOT awaited: the app draws first, push notifications set up in the
+  // background. Previously this blocked the first frame.
+  unawaited(
+    PushNotificationService.initialize().catchError((e) {
+      debugPrint('Push notification init failed: $e');
+    }),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -64,39 +74,24 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    print('🟢 [C] MyApp initState called');
     Future.microtask(_tryAutoLogin);
   }
 
   Future<void> _tryAutoLogin() async {
-    print('🟢 [D] _tryAutoLogin started');
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.tryAutoLogin(context); // ← pass context
-    print('🟢 [E] _tryAutoLogin finished');
+    await auth.tryAutoLogin(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    print('🟡 [F] MyApp build() called');
-
-    // Read theme here, OUTSIDE the AuthProvider Consumer below. This is
-    // the key change: theme state no longer lives inside this State
-    // object, and MaterialApp's themeMode now comes from watching
-    // ThemeProvider directly. An AuthProvider notification only reruns
-    // the Consumer's builder (still needed for isCheckingAuth /
-    // needsPinUnlock / isLoggedIn routing) — it no longer also rebuilds
-    // MaterialApp for theme reasons, and a theme toggle no longer needs
-    // to touch AuthProvider at all. That removes the rebuild collision
-    // that could previously swallow a tap on the dark-mode switch.
+    // Theme is read outside the AuthProvider Consumer, so auth changes
+    // don't interfere with theme toggles. toggle() also saves the choice
+    // to the phone so it is remembered after the app is closed.
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     void toggleTheme() => context.read<ThemeProvider>().toggle();
 
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        print(
-          '🟡 [G] Consumer builder called, isCheckingAuth=${auth.isCheckingAuth}, '
-          'needsPinUnlock=${auth.needsPinUnlock}, isLoggedIn=${auth.isLoggedIn}',
-        );
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Glonest',
@@ -117,13 +112,12 @@ class _MyAppState extends State<MyApp> {
               secondary: Colors.deepOrange,
             ),
           ),
-          // ← NO builder here
           home: auth.isCheckingAuth
-              ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+              // Shows the same logo as the native splash while the saved
+              // session is checked, so it looks like one continuous splash
+              // instead of a spinner appearing.
+              ? const _StartupScreen()
               : auth.needsPinUnlock
-              // Saved session found but not yet PIN-verified this launch —
-              // this is the PalmPay-style unlock step, shown before the
-              // person ever reaches the authenticated app shell.
               ? PinLoginPage(
                   onToggleTheme: toggleTheme,
                   user: auth.pendingUser!,
@@ -133,6 +127,25 @@ class _MyAppState extends State<MyApp> {
               : SplashScreen(onToggleTheme: toggleTheme),
         );
       },
+    );
+  }
+}
+
+/// Matches the native splash (same background + logo) so there is no
+/// visible jump between the native splash and the first Flutter screen.
+class _StartupScreen extends StatelessWidget {
+  const _StartupScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Image.asset(
+          'assets/images/png/logo222.PNG',
+          width: 150,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }

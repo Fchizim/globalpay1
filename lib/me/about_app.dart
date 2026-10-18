@@ -25,8 +25,11 @@ class AboutAppPage extends StatelessWidget {
             child: CircleAvatar(
               radius: 45,
               backgroundColor: Colors.deepOrange.withOpacity(0.1),
-              child: const Icon(IconsaxPlusBold.mobile,
-                  size: 40, color: Colors.deepOrange),
+              child: const Icon(
+                IconsaxPlusBold.mobile,
+                size: 40,
+                color: Colors.deepOrange,
+              ),
             ),
           ),
 
@@ -36,16 +39,13 @@ class AboutAppPage extends StatelessWidget {
           const Center(
             child: Text(
               "MyFinance App",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 4),
           Center(
             child: Text(
-              "Version 1.0.3",
+              "Version 1.0.2",
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),
           ),
@@ -55,8 +55,8 @@ class AboutAppPage extends StatelessWidget {
           // Description
           Text(
             "MyFinance is a secure and reliable digital wallet "
-                "that helps you send, receive, and manage money easily. "
-                "We prioritize your safety and provide tools to keep your finances in control.",
+            "that helps you send, receive, and manage money easily. "
+            "We prioritize your safety and provide tools to keep your finances in control.",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -69,7 +69,10 @@ class AboutAppPage extends StatelessWidget {
 
           // Links
           ListTile(
-            leading: const Icon(IconsaxPlusLinear.document, color: Colors.deepOrange),
+            leading: const Icon(
+              IconsaxPlusLinear.document,
+              color: Colors.deepOrange,
+            ),
             title: const Text("Terms of Service"),
             trailing: const Icon(IconsaxPlusLinear.arrow_right_3, size: 20),
             onTap: () {
@@ -79,7 +82,10 @@ class AboutAppPage extends StatelessWidget {
           Divider(color: Colors.grey.shade300, height: 0),
 
           ListTile(
-            leading: const Icon(IconsaxPlusLinear.shield, color: Colors.deepOrange),
+            leading: const Icon(
+              IconsaxPlusLinear.shield,
+              color: Colors.deepOrange,
+            ),
             title: const Text("Privacy Policy"),
             trailing: const Icon(IconsaxPlusLinear.arrow_right_3, size: 20),
             onTap: () {
@@ -89,7 +95,10 @@ class AboutAppPage extends StatelessWidget {
           Divider(color: Colors.grey.shade300, height: 0),
 
           ListTile(
-            leading: const Icon(IconsaxPlusLinear.sms, color: Colors.deepOrange),
+            leading: const Icon(
+              IconsaxPlusLinear.sms,
+              color: Colors.deepOrange,
+            ),
             title: const Text("Contact Support"),
             trailing: const Icon(IconsaxPlusLinear.arrow_right_3, size: 20),
             onTap: () {
@@ -103,10 +112,7 @@ class AboutAppPage extends StatelessWidget {
           Center(
             child: Text(
               "© 2025 MyFinance Inc. All rights reserved.",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
           ),
         ],

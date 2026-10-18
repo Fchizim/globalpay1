@@ -41,6 +41,72 @@ const _heroGradient = LinearGradient(
 // back to a plain code with no embedded logo — it never breaks the screen.
 const String _kLogoAsset = 'assets/images/png/logooooooooo.jpg';
 
+// ─── FEE ───────────────────────────────────────────────────────────────────
+// ₦10 for ₦100–10,000, then +₦10 for every extra ₦10,000 band,
+// capped at ₦1,000 (so ₦1,000,000 and above is always ₦1,000).
+// NOTE: this is for DISPLAY. gdrop_create.php must calculate and deduct the
+// fee itself with the same formula — never trust a fee sent from the app.
+int gdropFee(double amount) {
+  if (amount < 100) return 0;
+  final fee = (amount / 10000).ceil() * 10;
+  return fee > 1000 ? 1000 : fee;
+}
+
+// ─── NUMBER FORMATTING ─────────────────────────────────────────────────────
+// 1000 -> "1,000", 1250000 -> "1,250,000"
+String _commas(num n) {
+  final s = n.round().toString();
+  return s.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+}
+
+// Live thousands-separator formatter for the amount field: as the user
+// types 1000 it becomes 1,000. Digits only, capped at 12 digits, and the
+// cursor stays put even when editing in the middle of the number.
+class _ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+    if (digits.length > 12) digits = digits.substring(0, 12);
+
+    // How many digits sit before the cursor in the new text
+    final cursor = newValue.selection.end.clamp(0, newValue.text.length);
+    final digitsBeforeCursor = newValue.text
+        .substring(0, cursor)
+        .replaceAll(RegExp(r'\D'), '')
+        .length;
+
+    final formatted = _commas(int.parse(digits));
+
+    // Find the same digit position in the formatted text
+    var seen = 0;
+    var offset = formatted.length;
+    if (digitsBeforeCursor < digits.length) {
+      offset = 0;
+      for (var i = 0; i < formatted.length; i++) {
+        if (seen == digitsBeforeCursor) break;
+        if (formatted[i] != ',') seen++;
+        offset = i + 1;
+      }
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(
+        offset: offset.clamp(0, formatted.length),
+      ),
+    );
+  }
+}
+
 // ─── RESPONSIVE HELPERS ────────────────────────────────────────────────────
 // Shared scale factor, same baseline used across the app's other screens.
 // Clamped so text/padding shrink a bit on small phones and grow a bit on
@@ -239,6 +305,12 @@ class _SendTabState extends State<_SendTab> {
   String _voucherNote = '';
 
   final GlobalKey _qrKey = GlobalKey();
+
+  // The amount field now shows commas (1,000), so every read of it must
+  // strip them before parsing. Used to show the fee live under the box.
+  double get _amt =>
+      double.tryParse(_amountCtrl.text.replaceAll(',', '').trim()) ?? 0;
+
   @override
   void dispose() {
     _amountCtrl.dispose();
@@ -251,7 +323,7 @@ class _SendTabState extends State<_SendTab> {
     final user = context.read<UserProvider>().user;
     if (user == null) return;
 
-    final amt = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final amt = _amt;
     if (amt < 100) {
       _snack('Minimum amount is ₦100', error: true);
       return;
@@ -260,11 +332,12 @@ class _SendTabState extends State<_SendTab> {
     // PIN collection — NOT validation. The sheet just returns the 4 digits
     // the user typed; the actual check happens server-side in
     // gdrop_create.php (same as tfmg.php does for p2p transfers).
+    // The sheet also shows the total to pay (amount + fee).
     final pin = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _PinSheet(),
+      builder: (_) => _PinSheet(amount: amt, fee: gdropFee(amt)),
     );
     if (pin == null || pin.length != 4) return;
 
@@ -276,7 +349,7 @@ class _SendTabState extends State<_SendTab> {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'user_id': user.userId,
-              'amount': amt,
+              'amount': amt, // plain number, no commas
               'note': _noteCtrl.text.trim(),
               'design': _design,
               'pin': pin,
@@ -634,7 +707,11 @@ class _SendTabState extends State<_SendTab> {
             ),
             child: TextField(
               controller: _amountCtrl,
+              // Rebuild on every keystroke so the fee below stays live.
+              onChanged: (_) => setState(() {}),
               keyboardType: TextInputType.number,
+              // Live commas: 1000 -> 1,000 as the user types.
+              inputFormatters: [_ThousandsFormatter()],
               style: TextStyle(
                 color: tc,
                 fontWeight: FontWeight.w800,
@@ -673,6 +750,20 @@ class _SendTabState extends State<_SendTab> {
               ),
             ),
           ),
+
+          // Live fee, shown as soon as the amount is valid (₦100+)
+          if (_amt >= 100)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 4),
+              child: Text(
+                'Fee: ₦${_commas(gdropFee(_amt))}',
+                style: const TextStyle(
+                  color: Colors.deepOrange,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
 
           const SizedBox(height: 18),
 
@@ -2383,9 +2474,14 @@ class _FieldLabel extends StatelessWidget {
 // the PIN itself — there's nothing to validate against on the client. The
 // actual check happens server-side in gdrop_create.php, exactly the way
 // tfmg.php validates PINs for p2p transfers.
+//
+// Also shows the total the user is about to pay (amount + fee) so the
+// charge is never hidden at the moment of confirming.
 // ══════════════════════════════════════════════════════════════════════════════
 class _PinSheet extends StatefulWidget {
-  const _PinSheet();
+  final double amount;
+  final int fee;
+  const _PinSheet({required this.amount, required this.fee});
   @override
   State<_PinSheet> createState() => _PinSheetState();
 }
@@ -2476,6 +2572,23 @@ class _PinSheetState extends State<_PinSheet> {
                       ),
                     ],
                   ),
+
+                  // ── Total to pay: amount + fee ──
+                  const SizedBox(height: 6),
+                  Text(
+                    'Pay ₦${_commas(widget.amount + widget.fee)}',
+                    style: const TextStyle(
+                      color: Colors.deepOrange,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '₦${_commas(widget.amount)} + ₦${_commas(widget.fee)} fee',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+
                   const SizedBox(height: 16),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,

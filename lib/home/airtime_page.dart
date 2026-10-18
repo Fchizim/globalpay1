@@ -9,6 +9,7 @@ import '../models/user_model.dart';
 import '../provider/user_provider.dart';
 import 'airtime_history_screen.dart';
 import 'airtime_successful_page.dart';
+import 'recent_numbers.dart';
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 class AirtimeNetwork {
@@ -52,6 +53,10 @@ class _AirtimeScreenState extends State<AirtimeScreen>
   // ── Controllers & state ───────────────────────────────────────────────────
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController manualAmountController = TextEditingController();
+  final FocusNode _phoneFocus = FocusNode();
+
+  // ── Recent numbers ────────────────────────────────────────────────────────
+  List<RecentNumber> _recents = [];
 
   final List<int> quickAmounts = [100, 200, 500, 1000, 2000, 5000];
   int? selectedAmount;
@@ -79,9 +84,14 @@ class _AirtimeScreenState extends State<AirtimeScreen>
     _tabController = TabController(length: 2, vsync: this);
     _fetchAirtimeNetworks();
 
+    _phoneFocus.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final phone = _user?.phone ?? '';
       if (phone.isNotEmpty) phoneController.text = phone;
+      _loadRecents();
     });
 
     manualAmountController.addListener(
@@ -97,8 +107,30 @@ class _AirtimeScreenState extends State<AirtimeScreen>
     _tabController.dispose();
     phoneController.dispose();
     manualAmountController.dispose();
+    _phoneFocus.dispose();
     for (var b in bulkItems) b.dispose();
     super.dispose();
+  }
+
+  // ── Recent numbers ─────────────────────────────────────────────────────────
+  Future<void> _loadRecents() async {
+    final r = await RecentNumbersService.load(userId);
+    if (mounted) setState(() => _recents = r);
+  }
+
+  void _selectRecent(RecentNumber r) {
+    phoneController.text = r.phone;
+    final detected = _detectNetworkFromPhone(r.phone);
+    setState(() {
+      if (detected != null) _selectedNetwork = detected;
+      singlePhoneError = null;
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Future<void> _deleteRecent(RecentNumber r) async {
+    setState(() => _recents.removeWhere((e) => e.phone == r.phone));
+    await RecentNumbersService.remove(userId, r.phone);
   }
 
   // ── Detect network from phone prefix ──────────────────────────────────────
@@ -264,6 +296,12 @@ class _AirtimeScreenState extends State<AirtimeScreen>
       _dismissLoader(loaderContext);
 
       if (status == 'success') {
+        // ── Remember this number ──
+        await RecentNumbersService.add(
+          userId,
+          phone,
+          network.network.toUpperCase(),
+        );
         if (!mounted) return false;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -281,7 +319,14 @@ class _AirtimeScreenState extends State<AirtimeScreen>
         );
         return true;
       } else if (status == 'pending') {
+        // Wallet already debited, so remember the number here too
+        await RecentNumbersService.add(
+          userId,
+          phone,
+          network.network.toUpperCase(),
+        );
         if (!mounted) return false;
+        _loadRecents();
         _showAlertDialog(
           title: 'Transaction Processing',
           content:
@@ -386,6 +431,12 @@ class _AirtimeScreenState extends State<AirtimeScreen>
           successCount++;
           lastNewBalance =
               (data['new_balance'] as num?)?.toDouble() ?? lastNewBalance;
+          // ── Remember this number ──
+          await RecentNumbersService.add(
+            userId,
+            phone,
+            network.network.toUpperCase(),
+          );
         } else {
           failCount++;
           debugPrint('Bulk item $i failed: ${data['message']}');
@@ -1115,6 +1166,7 @@ class _AirtimeScreenState extends State<AirtimeScreen>
               Expanded(
                 child: TextField(
                   controller: phoneController,
+                  focusNode: _phoneFocus,
                   keyboardType: TextInputType.phone,
                   style: TextStyle(color: textColor),
                   decoration: InputDecoration(
@@ -1271,6 +1323,16 @@ class _AirtimeScreenState extends State<AirtimeScreen>
         const SizedBox(height: 12),
         // ── Network + Phone card ─────────────────────────────────────────
         _networkPhoneCard(cardColor, isDark, textColor),
+
+        // ── Recent numbers (shown while the phone field is focused) ──────
+        if (_phoneFocus.hasFocus)
+          RecentNumbersPanel(
+            items: _recents,
+            myPhone: userPhone,
+            isDark: isDark,
+            onSelect: _selectRecent,
+            onDelete: _deleteRecent,
+          ),
         const SizedBox(height: 12),
 
         // ── Amount card ──────────────────────────────────────────────────

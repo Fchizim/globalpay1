@@ -1,7 +1,7 @@
 name: globalpay
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.3+6
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -52,7 +52,7 @@ dependencies:
   google_fonts: any
   dio: ^5.9.0
   #  http: any
-  webview_flutter: any
+  webview_flutter: ^4.14.1
   shared_preferences: any
   flutter_animate: any
   marquee: ^2.2.3
@@ -61,7 +61,6 @@ dependencies:
   qr_flutter: any
   provider: ^6.1.2
   mobile_scanner: any
-  flutter_native_splash: ^2.4.0
   equatable: ^2.0.7
   lucide_icons_flutter: ^3.1.5
   #  gallery_saver: ^2.3.2
@@ -69,21 +68,30 @@ dependencies:
   device_info_plus: ^12.2.0
   crypto: ^3.0.7
 
-
-
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: any
   flutter_lints: ^5.0.0
+  flutter_native_splash: ^2.4.0
 
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icons/png/globapay.jpg"
   remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/png/logo222.PNG
+  color_dark: "#000000"
+  image_dark: assets/images/png/logo222.PNG
+
+  android_12:
+    color: "#FFFFFF"
+    image: assets/images/png/logo222.PNG
+    color_dark: "#000000"
+    image_dark: assets/images/png/logo222.PNG
 
 flutter:
   uses-material-design: true

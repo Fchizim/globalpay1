@@ -10,6 +10,7 @@ import 'data_history_screen.dart';
 import 'package:provider/provider.dart';
 import '../models/user_model.dart';
 import '../provider/user_provider.dart';
+import 'recent_numbers.dart';
 
 // ─── Data Plan model ──────────────────────────────────────────────────────────
 class DataPlan {
@@ -39,8 +40,12 @@ class DataScreen extends StatefulWidget {
 class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _phoneController = TextEditingController();
+  final FocusNode _phoneFocus = FocusNode();
   final NumberFormat _numFormat = NumberFormat.decimalPattern('en_US');
   int _fetchToken = 0; // add this as a field in _DataScreenState
+
+  // ── Recent numbers ────────────────────────────────────────────────────────
+  List<RecentNumber> _recents = [];
 
   // ── Networks ──────────────────────────────────────────────────────────────
   final List<Map<String, String>> networks = [
@@ -85,6 +90,10 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
 
+    _phoneFocus.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final phone = context.read<UserProvider>().user?.phone ?? '';
       if (phone.isNotEmpty) {
@@ -92,6 +101,7 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
         final idx = _detectNetworkIndexFromPhone(phone);
         if (idx != null) setState(() => _selectedNetworkIndex = idx);
       }
+      _loadRecents();
     });
 
     _isLoading = true;
@@ -107,7 +117,33 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
   void dispose() {
     _tabController.dispose();
     _phoneController.dispose();
+    _phoneFocus.dispose();
     super.dispose();
+  }
+
+  // ── Recent numbers ────────────────────────────────────────────────────────
+  String get _userId => context.read<UserProvider>().user?.userId ?? '';
+
+  Future<void> _loadRecents() async {
+    final r = await RecentNumbersService.load(_userId);
+    if (mounted) setState(() => _recents = r);
+  }
+
+  void _selectRecent(RecentNumber r) {
+    _phoneController.text = r.phone;
+    final idx = _detectNetworkIndexFromPhone(r.phone);
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _phoneError = null);
+    if (idx != null && idx != _selectedNetworkIndex) {
+      setState(() => _selectedNetworkIndex = idx);
+      PlansCache.instance.invalidate();
+      _fetchPlans();
+    }
+  }
+
+  Future<void> _deleteRecent(RecentNumber r) async {
+    setState(() => _recents.removeWhere((e) => e.phone == r.phone));
+    await RecentNumbersService.remove(_userId, r.phone);
   }
 
   Future<void> _waitForCache() async {
@@ -433,6 +469,7 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
 
     final phone = _cleanPhone(_phoneController.text); // ← was .trim()
     final networkName = networks[_selectedNetworkIndex]['name']!;
+    final networkApi = networks[_selectedNetworkIndex]['api']!;
 
     try {
       final response = await http
@@ -469,6 +506,10 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
               .toString();
 
       if (status == 'success') {
+        // ── Remember this number ──
+        await RecentNumbersService.add(userId, phone, networkApi);
+        _loadRecents();
+
         // ── Refresh wallet balance ──
         final userProvider = context.read<UserProvider>();
         final localUser = await SecureStorageService.getUser();
@@ -484,6 +525,11 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
           message: message,
         );
       } else if (status == 'pending') {
+        // Wallet already debited, so remember the number here too
+        await RecentNumbersService.add(userId, phone, networkApi);
+        _loadRecents();
+
+        if (!mounted) return;
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
@@ -1023,6 +1069,7 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
                         Expanded(
                           child: TextField(
                             controller: _phoneController,
+                            focusNode: _phoneFocus,
                             keyboardType: TextInputType.phone,
                             style: TextStyle(
                               color: isDark ? Colors.white : Colors.black87,
@@ -1127,6 +1174,19 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
+
+              // ── Recent numbers (shown while the phone field is focused) ────
+              if (_phoneFocus.hasFocus)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RecentNumbersPanel(
+                    items: _recents,
+                    myPhone: context.read<UserProvider>().user?.phone ?? '',
+                    isDark: isDark,
+                    onSelect: _selectRecent,
+                    onDelete: _deleteRecent,
+                  ),
+                ),
 
               // ── Phone error ────────────────────────────────────────────────
               if (_phoneError != null)
