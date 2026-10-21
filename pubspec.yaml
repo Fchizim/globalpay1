@@ -84,14 +84,10 @@ flutter_launcher_icons:
 flutter_native_splash:
   color: "#FFFFFF"
   image: assets/images/png/logo222.PNG
-  color_dark: "#000000"
-  image_dark: assets/images/png/logo222.PNG
 
   android_12:
     color: "#FFFFFF"
     image: assets/images/png/logo222.PNG
-    color_dark: "#000000"
-    image_dark: assets/images/png/logo222.PNG
 
 flutter:
   uses-material-design: true

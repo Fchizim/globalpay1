@@ -11,7 +11,13 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:marquee/marquee.dart';
-import 'package:mobile_scanner/mobile_scanner.dart' hide BarcodeFormat;
+// Both mobile_scanner and google_mlkit_barcode_scanning define `Barcode` and
+// `BarcodeFormat`. ML Kit's versions are used unprefixed (Redeem tab gallery
+// read); mobile_scanner's versions are reached through the `ms` prefix.
+import 'package:mobile_scanner/mobile_scanner.dart' hide BarcodeFormat, Barcode;
+import 'package:mobile_scanner/mobile_scanner.dart'
+    as ms
+    show BarcodeFormat, Barcode;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -123,6 +129,27 @@ double _maxContentWidth(BuildContext context) {
   return width > 600 ? 480.0 : width;
 }
 
+// Clamps the system font scale so a phone set to "Largest" text can't push
+// fixed-size layouts (tab pill, PIN sheet, stat rows) into overflow.
+class _TextScaleClamp extends StatelessWidget {
+  final Widget child;
+  const _TextScaleClamp({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return MediaQuery(
+      data: mq.copyWith(
+        textScaler: mq.textScaler.clamp(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.2,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────────
 class GDropPage extends StatefulWidget {
   const GDropPage({super.key});
@@ -160,119 +187,127 @@ class _GDropPageState extends State<GDropPage>
     return ValueListenableBuilder<bool>(
       valueListenable: _showTabBar,
       builder: (context, showTabBar, _) {
-        return Scaffold(
-          backgroundColor: bg,
-          appBar: AppBar(
+        return _TextScaleClamp(
+          child: Scaffold(
             backgroundColor: bg,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            surfaceTintColor: Colors.transparent,
-            centerTitle: false,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new, color: tc, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              'GDrop',
-              style: TextStyle(
-                color: tc,
-                fontWeight: FontWeight.w800,
-                fontSize: 21,
+            appBar: AppBar(
+              backgroundColor: bg,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              surfaceTintColor: Colors.transparent,
+              centerTitle: false,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back_ios_new, color: tc, size: 20),
+                onPressed: () => Navigator.pop(context),
               ),
-            ),
-            bottom: !showTabBar
-                ? null
-                : PreferredSize(
-                    preferredSize: const Size.fromHeight(60),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: _maxContentWidth(context),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: pillBg,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.06)
-                                    : Colors.black.withOpacity(0.04),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(
-                                    isDark ? 0.2 : 0.04,
-                                  ),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
+              title: Text(
+                'GDrop',
+                style: TextStyle(
+                  color: tc,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 21,
+                ),
+              ),
+              bottom: !showTabBar
+                  ? null
+                  : PreferredSize(
+                      // Pill needs 4+14 outer padding + 8 inner padding + 48
+                      // tab bar = 74. It was 60, which overflowed the AppBar.
+                      preferredSize: const Size.fromHeight(76),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: _maxContentWidth(context),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: pillBg,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.06)
+                                      : Colors.black.withOpacity(0.04),
                                 ),
-                              ],
-                            ),
-                            child: TabBar(
-                              controller: _tabs,
-                              dividerColor: Colors
-                                  .transparent, // kills the black underline
-                              indicatorSize: TabBarIndicatorSize.tab,
-                              indicatorPadding: EdgeInsets.zero,
-                              indicator: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                gradient: _accentGradient,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.deepOrange.withOpacity(0.35),
+                                    color: Colors.black.withOpacity(
+                                      isDark ? 0.2 : 0.04,
+                                    ),
                                     blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),
-                              splashFactory: NoSplash.splashFactory,
-                              overlayColor: const WidgetStatePropertyAll(
-                                Colors.transparent,
+                              child: TabBar(
+                                controller: _tabs,
+                                dividerColor: Colors
+                                    .transparent, // kills the black underline
+                                indicatorSize: TabBarIndicatorSize.tab,
+                                indicatorPadding: EdgeInsets.zero,
+                                indicator: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: _accentGradient,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.deepOrange.withOpacity(
+                                        0.35,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                splashFactory: NoSplash.splashFactory,
+                                overlayColor: const WidgetStatePropertyAll(
+                                  Colors.transparent,
+                                ),
+                                labelColor: Colors.white,
+                                unselectedLabelColor: Colors.grey.shade500,
+                                labelStyle: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                                unselectedLabelStyle: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                                tabs: const [
+                                  Tab(text: 'Send'),
+                                  Tab(text: 'Redeem'),
+                                  Tab(text: 'History'),
+                                ],
                               ),
-                              labelColor: Colors.white,
-                              unselectedLabelColor: Colors.grey.shade500,
-                              labelStyle: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
-                              unselectedLabelStyle: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                              tabs: const [
-                                Tab(text: 'Send'),
-                                Tab(text: 'Redeem'),
-                                Tab(text: 'History'),
-                              ],
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-          ),
-          // Cap width on tablets and center, same as the rest of the app.
-          body: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: _maxContentWidth(context)),
-              child: TabBarView(
-                controller: _tabs,
-                // Lock the swipe gesture too while a QR result is showing, so
-                // the user can't swipe sideways into another tab behind its back.
-                physics: showTabBar
-                    ? null
-                    : const NeverScrollableScrollPhysics(),
-                children: [
-                  _SendTab(
-                    onQrVisibilityChanged: (visible) =>
-                        _showTabBar.value = !visible,
-                  ),
-                  const _RedeemTab(),
-                  const _HistoryTab(),
-                ],
+            ),
+            // Cap width on tablets and center, same as the rest of the app.
+            body: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: _maxContentWidth(context),
+                ),
+                child: TabBarView(
+                  controller: _tabs,
+                  // Lock the swipe gesture too while a QR result is showing, so
+                  // the user can't swipe sideways into another tab behind its back.
+                  physics: showTabBar
+                      ? null
+                      : const NeverScrollableScrollPhysics(),
+                  children: [
+                    _SendTab(
+                      onQrVisibilityChanged: (visible) =>
+                          _showTabBar.value = !visible,
+                    ),
+                    const _RedeemTab(),
+                    const _HistoryTab(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -579,9 +614,11 @@ class _SendTabState extends State<_SendTab> {
               children: [
                 Icon(Icons.lock_rounded, size: 13, color: Colors.grey.shade400),
                 const SizedBox(width: 6),
-                Text(
-                  'Secured by Glonest Encryption',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                Flexible(
+                  child: Text(
+                    'Secured by Glonest Encryption',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  ),
                 ),
               ],
             ),
@@ -965,92 +1002,104 @@ class _RedeemTabState extends State<_RedeemTab> {
       final sender = _result!['sender_username'] ?? '';
       final note = _result!['note'] ?? '';
 
-      return SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Celebration icon — scaled down on small phones so it
-                // doesn't crowd the amount text below it.
-                Container(
-                  width: _scale(context, 110),
-                  height: _scale(context, 110),
-                  decoration: BoxDecoration(
-                    gradient: _accentGradient,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.deepOrange.withOpacity(0.3),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
+      // Centered on tall screens, scrolls on short ones.
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Celebration icon — scaled down on small phones so it
+                    // doesn't crowd the amount text below it.
+                    Container(
+                      width: _scale(context, 110),
+                      height: _scale(context, 110),
+                      decoration: BoxDecoration(
+                        gradient: _accentGradient,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.3),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.celebration_rounded,
-                    size: _scale(context, 55),
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 26),
-                Text(
-                  '🎉 You received',
-                  style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
-                ),
-                const SizedBox(height: 6),
-                ShaderMask(
-                  shaderCallback: (r) => _accentGradient.createShader(r),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      '₦${amt.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 46,
-                        fontWeight: FontWeight.w900,
+                      child: Icon(
+                        Icons.celebration_rounded,
+                        size: _scale(context, 55),
                         color: Colors.white,
                       ),
                     ),
-                  ),
-                ),
-                if (sender.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'from @$sender',
-                    style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
-                  ),
-                ],
-                if (note.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: card,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      '"$note"',
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 26),
+                    Text(
+                      '🎉 You received',
                       style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: tc.withOpacity(0.75),
+                        fontSize: 15,
+                        color: Colors.grey.shade500,
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 34),
-                _GradientButton(
-                  label: 'Redeem Another',
-                  onTap: () => setState(() {
-                    _result = null;
-                    _codeCtrl.clear();
-                  }),
+                    const SizedBox(height: 6),
+                    ShaderMask(
+                      shaderCallback: (r) => _accentGradient.createShader(r),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '₦${amt.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 46,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (sender.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'from @$sender',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                    if (note.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: card,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          '"$note"',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: tc.withOpacity(0.75),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 34),
+                    _GradientButton(
+                      label: 'Redeem Another',
+                      onTap: () => setState(() {
+                        _result = null;
+                        _codeCtrl.clear();
+                      }),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -1136,6 +1185,7 @@ class _RedeemTabState extends State<_RedeemTab> {
               ),
               decoration: InputDecoration(
                 hintText: 'GDRP-XXXXXXXX-XXXX-XXXX',
+                hintMaxLines: 1,
                 hintStyle: TextStyle(
                   color: Colors.grey.shade400,
                   fontSize: 13,
@@ -1317,194 +1367,203 @@ class _GDropDetailPage extends StatelessWidget {
         ? Colors.blue
         : Colors.red;
 
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
+    return _TextScaleClamp(
+      child: Scaffold(
         backgroundColor: bg,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          'GDrop Details',
-          style: TextStyle(
-            color: tc,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
+        appBar: AppBar(
+          backgroundColor: bg,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          title: Text(
+            'GDrop Details',
+            style: TextStyle(
+              color: tc,
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+            ),
           ),
         ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: _maxContentWidth(context)),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // ── Hero amount ──
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  decoration: BoxDecoration(
-                    color: card,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: (isSent ? Colors.deepOrange : Colors.green)
-                              .withOpacity(0.1),
-                          shape: BoxShape.circle,
+        body: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: _maxContentWidth(context)),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // ── Hero amount ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 30),
+                    decoration: BoxDecoration(
+                      color: card,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
                         ),
-                        child: Icon(
-                          isSent
-                              ? Icons.arrow_upward_rounded
-                              : Icons.arrow_downward_rounded,
-                          color: isSent ? Colors.deepOrange : Colors.green,
-                          size: 30,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: (isSent ? Colors.deepOrange : Colors.green)
+                                .withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isSent
+                                ? Icons.arrow_upward_rounded
+                                : Icons.arrow_downward_rounded,
+                            color: isSent ? Colors.deepOrange : Colors.green,
+                            size: 30,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        isSent ? 'You sent' : 'You received',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
+                        const SizedBox(height: 16),
+                        Text(
+                          isSent ? 'You sent' : 'You received',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.w900,
-                              color: isSent ? Colors.deepOrange : Colors.green,
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.w900,
+                                color: isSent
+                                    ? Colors.deepOrange
+                                    : Colors.green,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          status[0].toUpperCase() + status.substring(1),
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            status[0].toUpperCase() + status.substring(1),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // ── Detail rows ──
-                Container(
-                  decoration: BoxDecoration(
-                    color: card,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _row(
-                        context,
-                        'Voucher Code',
-                        voucherId,
-                        tc,
-                        copyable: true,
-                      ),
-                      _divider(),
-                      _row(
-                        context,
-                        isSent ? 'Sent To' : 'Received From',
-                        other.isNotEmpty ? '@$other' : '—',
-                        tc,
-                      ),
-                      _divider(),
-                      _row(context, 'Date Created', _formatDate(createdAt), tc),
-                      if (redeemedAt != null && redeemedAt.isNotEmpty) ...[
+                  // ── Detail rows ──
+                  Container(
+                    decoration: BoxDecoration(
+                      color: card,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _row(
+                          context,
+                          'Voucher Code',
+                          voucherId,
+                          tc,
+                          copyable: true,
+                        ),
                         _divider(),
                         _row(
                           context,
-                          'Date Redeemed',
-                          _formatDate(redeemedAt),
+                          isSent ? 'Sent To' : 'Received From',
+                          other.isNotEmpty ? '@$other' : '—',
                           tc,
                         ),
-                      ],
-                      if (note.isNotEmpty) ...[
                         _divider(),
-                        _row(context, 'Note', '"$note"', tc),
+                        _row(
+                          context,
+                          'Date Created',
+                          _formatDate(createdAt),
+                          tc,
+                        ),
+                        if (redeemedAt != null && redeemedAt.isNotEmpty) ...[
+                          _divider(),
+                          _row(
+                            context,
+                            'Date Redeemed',
+                            _formatDate(redeemedAt),
+                            tc,
+                          ),
+                        ],
+                        if (note.isNotEmpty) ...[
+                          _divider(),
+                          _row(context, 'Note', '"$note"', tc),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
 
-                // ── Re-share QR for unclaimed sent vouchers ──
-                if (isSent && status == 'active') ...[
-                  const SizedBox(height: 24),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Still unclaimed — share again',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: tc,
+                  // ── Re-share QR for unclaimed sent vouchers ──
+                  if (isSent && status == 'active') ...[
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Still unclaimed — share again',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: tc,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  _GDropHeroCard(
-                    qrData: jsonEncode({
-                      'voucher_id': voucherId,
-                      'amount': amount,
-                    }),
-                    voucherId: voucherId,
-                    note: note,
-                    status: 'Active',
-                  ),
-                  const SizedBox(height: 16),
-                  _OutlineBtn(
-                    icon: Icons.ios_share_rounded,
-                    label: 'Share Code',
-                    onTap: () => Share.share(
-                      '🎁 GDrop gift of ₦${amount.toStringAsFixed(0)}!\nCode: $voucherId\nRedeem on Glopa app.',
+                    const SizedBox(height: 14),
+                    _GDropHeroCard(
+                      qrData: jsonEncode({
+                        'voucher_id': voucherId,
+                        'amount': amount,
+                      }),
+                      voucherId: voucherId,
+                      note: note,
+                      status: 'Active',
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    _OutlineBtn(
+                      icon: Icons.ios_share_rounded,
+                      label: 'Share Code',
+                      onTap: () => Share.share(
+                        '🎁 GDrop gift of ₦${amount.toStringAsFixed(0)}!\nCode: $voucherId\nRedeem on Glopa app.',
+                      ),
+                    ),
+                  ],
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ),
@@ -1709,36 +1768,44 @@ class _GDropHeroCardState extends State<_GDropHeroCard> {
 
   void _enlarge() {
     final screenWidth = MediaQuery.of(context).size.width;
-    // Size off the actual screen instead of a fixed 260, so it never
-    // overflows the dialog on small phones.
-    final qrSize = (screenWidth - 120).clamp(180.0, 320.0);
+    // Dialog inset (28*2) + dialog padding (24*2) = 104 of horizontal space
+    // is used up, so the QR is sized off the real screen width.
+    final qrSize = (screenWidth - 120).clamp(150.0, 320.0);
 
     showDialog(
       context: context,
       barrierColor: Colors.black87,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(28),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildQr(size: qrSize),
-              const SizedBox(height: 16),
-              Text(
-                widget.voucherId,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  fontSize: 15,
-                ),
+      builder: (_) => _TextScaleClamp(
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(28),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            // Scrolls on short screens (landscape / small phones) instead of
+            // overflowing vertically.
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildQr(size: qrSize),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.voucherId,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1747,10 +1814,8 @@ class _GDropHeroCardState extends State<_GDropHeroCard> {
 
   @override
   Widget build(BuildContext context) {
-    // The QR was fixed at 200px before — the single biggest overflow risk
-    // in this card on a narrow phone (this card also gets embedded inside
-    // pages with their own side padding, e.g. the 24px in _SendTab). Size
-    // it off whatever width the card actually has instead.
+    // Size the QR off whatever width the card actually has instead of a
+    // fixed value, so it fits on narrow phones and looks right on big ones.
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth = constraints.maxWidth.isFinite
@@ -1811,6 +1876,7 @@ class _GDropHeroCardState extends State<_GDropHeroCard> {
               const SizedBox(height: 4),
               Text(
                 'Share. Redeem. Delight.',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.85),
                   fontSize: 14,
@@ -1948,9 +2014,13 @@ class _HeroStat extends StatelessWidget {
         child: Icon(icon, color: Colors.white, size: 16),
       ),
       const SizedBox(height: 8),
-      Text(
-        label,
-        style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+        ),
       ),
       const SizedBox(height: 3),
       Row(
@@ -1970,6 +2040,7 @@ class _HeroStat extends StatelessWidget {
           Flexible(
             child: Text(
               value,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: valueColor ?? Colors.white,
@@ -2004,7 +2075,7 @@ class _ActionSquare extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
@@ -2019,12 +2090,16 @@ class _ActionSquare extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.deepOrange, size: 22),
               const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -2042,16 +2117,23 @@ class _InfoBullet extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
-          Icons.check_circle_rounded,
-          size: 15,
-          color: Colors.deepOrange,
+        const Padding(
+          padding: EdgeInsets.only(top: 1),
+          child: Icon(
+            Icons.check_circle_rounded,
+            size: 15,
+            color: Colors.deepOrange,
+          ),
         ),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+        // Expanded so long lines wrap instead of overflowing the card.
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+          ),
         ),
       ],
     ),
@@ -2164,13 +2246,17 @@ class _DesignChip extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: selected ? color : Colors.grey.shade500,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? color : Colors.grey.shade500,
+                ),
               ),
             ),
           ],
@@ -2196,7 +2282,7 @@ class _ActionTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 22),
+        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 8),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
           borderRadius: BorderRadius.circular(18),
@@ -2219,13 +2305,24 @@ class _ActionTile extends StatelessWidget {
               child: Icon(icon, color: Colors.deepOrange, size: 26),
             ),
             const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
             ),
-            Text(
-              sub,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                sub,
+                maxLines: 1,
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              ),
             ),
           ],
         ),
@@ -2381,14 +2478,19 @@ class _HistoryCard extends StatelessWidget {
                           fontSize: 14,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Flexible(
-                        child: Text(
-                          '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            color: isSent ? Colors.deepOrange : Colors.green,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${isSent ? '-' : '+'}₦${amount.toStringAsFixed(0)}',
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: isSent ? Colors.deepOrange : Colors.green,
+                            ),
                           ),
                         ),
                       ),
@@ -2399,6 +2501,8 @@ class _HistoryCard extends StatelessWidget {
                     isSent
                         ? (status == 'active' ? 'Unclaimed' : 'To @$other')
                         : 'From @$other',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                   ),
                   if (note.isNotEmpty)
@@ -2406,6 +2510,8 @@ class _HistoryCard extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 3),
                       child: Text(
                         '"$note"',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.grey.shade400,
                           fontStyle: FontStyle.italic,
@@ -2434,12 +2540,17 @@ class _HistoryCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      Text(
-                        date,
-                        style: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 11,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          date,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ],
@@ -2525,141 +2636,169 @@ class _PinSheetState extends State<_PinSheet> {
     final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final tc = isDark ? Colors.white : Colors.black87;
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            // Caps the sheet width on tablets so the PIN boxes don't spread
-            // out across the full screen.
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Container(
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              decoration: BoxDecoration(
-                color: card,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+    return _TextScaleClamp(
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              // Caps the sheet width on tablets so the PIN boxes don't spread
+              // out across the full screen.
+              constraints: const BoxConstraints(maxWidth: 420),
+              // Scrolls when the keyboard leaves less room than the sheet
+              // needs (small phones), instead of overflowing vertically.
+              child: SingleChildScrollView(
+                child: Container(
+                  margin: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
                   ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  decoration: BoxDecoration(
+                    color: card,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(width: 40),
-                      Text(
-                        'Enter Payment PIN',
-                        style: TextStyle(
-                          color: tc,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: tc),
-                        onPressed: () => Navigator.pop(context, null),
-                      ),
-                    ],
-                  ),
-
-                  // ── Total to pay: amount + fee ──
-                  const SizedBox(height: 6),
-                  Text(
-                    'Pay ₦${_commas(widget.amount + widget.fee)}',
-                    style: const TextStyle(
-                      color: Colors.deepOrange,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '₦${_commas(widget.amount)} + ₦${_commas(widget.fee)} fee',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                  ),
-
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => FocusScope.of(context).requestFocus(_focus),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Boxes were a fixed 58px, which on a very small
-                        // phone (< ~300px usable width after the sheet's
-                        // margin+padding) could overflow the row. Derive
-                        // the size from what's actually available instead.
-                        final boxSize = ((constraints.maxWidth - 3 * 16) / 4)
-                            .clamp(46.0, 58.0);
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: List.generate(4, (i) {
-                            final filled = _pins[i].isNotEmpty;
-                            final isCursor = _ctrl.text.length == i;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: boxSize,
-                              height: boxSize,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: filled
-                                    ? Colors.deepOrange.withOpacity(0.06)
-                                    : null,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: filled || isCursor
-                                      ? Colors.deepOrange
-                                      : Colors.grey.shade400,
-                                  width: filled ? 1.6 : 1.0,
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          const SizedBox(width: 48),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Enter Payment PIN',
+                                style: TextStyle(
+                                  color: tc,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              child: filled
-                                  ? const Icon(
-                                      Icons.circle,
-                                      size: 14,
-                                      color: Colors.deepOrange,
-                                    )
-                                  : isCursor
-                                  ? Container(
-                                      width: 2,
-                                      height: 18,
-                                      color: Colors.deepOrange,
-                                    )
-                                  : null,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close, color: tc),
+                            onPressed: () => Navigator.pop(context, null),
+                          ),
+                        ],
+                      ),
+
+                      // ── Total to pay: amount + fee ──
+                      const SizedBox(height: 6),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Pay ₦${_commas(widget.amount + widget.fee)}',
+                          maxLines: 1,
+                          style: const TextStyle(
+                            color: Colors.deepOrange,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '₦${_commas(widget.amount)} + ₦${_commas(widget.fee)} fee',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () =>
+                            FocusScope.of(context).requestFocus(_focus),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Box size derives from what's actually available
+                            // so four boxes always fit the row.
+                            final boxSize =
+                                ((constraints.maxWidth - 3 * 16) / 4).clamp(
+                                  40.0,
+                                  58.0,
+                                );
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: List.generate(4, (i) {
+                                final filled = _pins[i].isNotEmpty;
+                                final isCursor = _ctrl.text.length == i;
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  width: boxSize,
+                                  height: boxSize,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: filled
+                                        ? Colors.deepOrange.withOpacity(0.06)
+                                        : null,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: filled || isCursor
+                                          ? Colors.deepOrange
+                                          : Colors.grey.shade400,
+                                      width: filled ? 1.6 : 1.0,
+                                    ),
+                                  ),
+                                  child: filled
+                                      ? const Icon(
+                                          Icons.circle,
+                                          size: 14,
+                                          color: Colors.deepOrange,
+                                        )
+                                      : isCursor
+                                      ? Container(
+                                          width: 2,
+                                          height: 18,
+                                          color: Colors.deepOrange,
+                                        )
+                                      : null,
+                                );
+                              }),
                             );
-                          }),
-                        );
-                      },
-                    ),
+                          },
+                        ),
+                      ),
+                      // hidden input
+                      TextField(
+                        controller: _ctrl,
+                        focusNode: _focus,
+                        keyboardType: TextInputType.number,
+                        obscureText: true,
+                        maxLength: 4,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          counterText: '',
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 0.01,
+                          color: Colors.transparent,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
-                  // hidden input
-                  TextField(
-                    controller: _ctrl,
-                    focusNode: _focus,
-                    keyboardType: TextInputType.number,
-                    obscureText: true,
-                    maxLength: 4,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      counterText: '',
-                    ),
-                    style: const TextStyle(
-                      fontSize: 0.01,
-                      color: Colors.transparent,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                ),
               ),
             ),
           ),
@@ -2671,21 +2810,351 @@ class _PinSheetState extends State<_PinSheet> {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // QR SCANNER PAGE
+// Returns the scanned QR string via Navigator.pop(context, raw).
 // ══════════════════════════════════════════════════════════════════════════════
-class _QRScannerPage extends StatelessWidget {
+class _QRScannerPage extends StatefulWidget {
   const _QRScannerPage();
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Scan GDrop QR'),
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-    ),
-    body: MobileScanner(
-      onDetect: (capture) {
-        final raw = capture.barcodes.first.rawValue;
-        if (raw != null) Navigator.pop(context, raw);
-      },
-    ),
+  State<_QRScannerPage> createState() => _QRScannerPageState();
+}
+
+class _QRScannerPageState extends State<_QRScannerPage> {
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    formats: const [ms.BarcodeFormat.qrCode],
   );
+  final ImagePicker _picker = ImagePicker();
+
+  bool _handled = false; // stops multiple pops from repeated detections
+  bool _busy = false; // true while analysing a gallery image
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _finish(String raw) {
+    if (_handled) return;
+    _handled = true;
+    HapticFeedback.mediumImpact();
+    Navigator.pop(context, raw);
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    for (final b in capture.barcodes) {
+      final raw = b.rawValue;
+      if (raw != null && raw.isNotEmpty) {
+        _finish(raw);
+        return;
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    if (_busy) return;
+    HapticFeedback.selectionClick();
+
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final BarcodeCapture? result = await _controller.analyzeImage(file.path);
+      String? raw;
+      for (final b in result?.barcodes ?? const <ms.Barcode>[]) {
+        if (b.rawValue != null && b.rawValue!.isNotEmpty) {
+          raw = b.rawValue;
+          break;
+        }
+      }
+
+      if (raw != null) {
+        _finish(raw);
+      } else if (mounted) {
+        _toast('No QR code found in that image');
+      }
+    } catch (_) {
+      if (mounted) _toast('Could not read that image');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    // Frame is 68% of the width, but never taller than half the screen so
+    // it can't collide with the bottom buttons on short/landscape screens.
+    final double frameBase = size.width < size.height * 0.5
+        ? size.width
+        : size.height * 0.5;
+    final double frame = frameBase * 0.68;
+
+    return _TextScaleClamp(
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 🔹 Camera
+            MobileScanner(controller: _controller, onDetect: _onDetect),
+
+            // 🔹 Dark gradients so white text stays readable on any feed
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x99000000),
+                        Color(0x00000000),
+                        Color(0x00000000),
+                        Color(0xCC000000),
+                      ],
+                      stops: [0.0, 0.22, 0.65, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // 🔹 Scan frame
+            Center(
+              child: IgnorePointer(
+                child: SizedBox(
+                  width: frame,
+                  height: frame,
+                  child: CustomPaint(painter: _CornerPainter()),
+                ),
+              ),
+            ),
+
+            // 🔹 Back button
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // 🔹 Label under the frame
+            Positioned(
+              left: 0,
+              right: 0,
+              top: (size.height / 2) + (frame / 2) + 24,
+              child: const IgnorePointer(
+                child: Text(
+                  'Scan QR Code',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+
+            // 🔹 Bottom actions: Album (left) + Flashlight (right)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 36),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _ScannerActionButton(
+                        icon: IconsaxPlusLinear.gallery,
+                        label: 'Album',
+                        loading: _busy,
+                        onTap: _pickFromGallery,
+                      ),
+                      ValueListenableBuilder<MobileScannerState>(
+                        valueListenable: _controller,
+                        builder: (_, state, __) {
+                          final bool on = state.torchState == TorchState.on;
+                          return _ScannerActionButton(
+                            icon: on
+                                ? IconsaxPlusBold.flash_1
+                                : IconsaxPlusLinear.flash_1,
+                            label: 'Flashlight',
+                            active: on,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _controller.toggleTorch();
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── SCANNER ACTION BUTTON ─────────────────────────
+
+/// Circle icon with a label underneath. The circle fills while pressed
+/// (and stays filled when [active], e.g. flashlight on).
+class _ScannerActionButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+  final bool loading;
+
+  const _ScannerActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+    this.loading = false,
+  });
+
+  @override
+  State<_ScannerActionButton> createState() => _ScannerActionButtonState();
+}
+
+class _ScannerActionButtonState extends State<_ScannerActionButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool filled = _pressed || widget.active;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: filled
+                  ? Colors.white.withOpacity(0.32)
+                  : Colors.transparent,
+            ),
+            child: Center(
+              child: widget.loading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      widget.icon,
+                      size: 28,
+                      color: widget.active
+                          ? Colors.deepOrange.shade300
+                          : Colors.white,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.label,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── SCAN FRAME ─────────────────────────
+
+class _CornerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.deepOrange
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    const double len = 28;
+    const double r = 16;
+    final w = size.width;
+    final h = size.height;
+
+    // top-left
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, len)
+        ..lineTo(0, r)
+        ..quadraticBezierTo(0, 0, r, 0)
+        ..lineTo(len, 0),
+      paint,
+    );
+    // top-right
+    canvas.drawPath(
+      Path()
+        ..moveTo(w - len, 0)
+        ..lineTo(w - r, 0)
+        ..quadraticBezierTo(w, 0, w, r)
+        ..lineTo(w, len),
+      paint,
+    );
+    // bottom-left
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, h - len)
+        ..lineTo(0, h - r)
+        ..quadraticBezierTo(0, h, r, h)
+        ..lineTo(len, h),
+      paint,
+    );
+    // bottom-right
+    canvas.drawPath(
+      Path()
+        ..moveTo(w - len, h)
+        ..lineTo(w - r, h)
+        ..quadraticBezierTo(w, h, w, h - r)
+        ..lineTo(w, h - len),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

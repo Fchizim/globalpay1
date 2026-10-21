@@ -17,13 +17,13 @@ import '../provider/authprovider.dart'; // your AuthProvider file
 class LoginPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
   final VoidCallback onLoginSuccess;
-  final String? prefillEmail; // 👈 add this
+  final String? prefillEmail;
 
   const LoginPage({
     super.key,
     required this.onToggleTheme,
     required this.onLoginSuccess,
-    this.prefillEmail, // 👈 add this
+    this.prefillEmail,
   });
 
   @override
@@ -36,6 +36,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isLoading = false;
 
+  // Scales a value with screen width, kept within a modest range.
   double s(double value) {
     final sw = MediaQuery.of(context).size.width;
     return (sw / 375 * value).clamp(value * 0.85, value * 1.2);
@@ -47,6 +48,13 @@ class _LoginPageState extends State<LoginPage> {
     if (widget.prefillEmail != null) {
       emailController.text = widget.prefillEmail!;
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    pinController.dispose();
+    super.dispose();
   }
 
   Future<void> _login() async {
@@ -92,10 +100,6 @@ class _LoginPageState extends State<LoginPage> {
 
       /// ✅ Parse user
       final user = UserModel.fromJson(data['user']);
-      print('LOGIN USERNAME: ${user.username} '); // ✅ Debug
-      print('Referral code: ${user.referralCode}');
-
-      // printrint('Referral code: ${user.referralCode}');
 
       await SecureStorageService.saveUser(user);
       if (!mounted) return;
@@ -128,15 +132,19 @@ class _LoginPageState extends State<LoginPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lightBg = const Color(0xFFF5F6F8);
     final darkBg = const Color(0xFF121212);
-    // Narrower cap than list/grid pages: a login form actually looks
-    // worse the wider it stretches, so this keeps text fields at a
-    // comfortable reading width on tablets instead of the full screen.
-    final maxFormWidth = 440.0;
+
+    // Keeps the form at a comfortable width on tablets.
+    const maxFormWidth = 420.0;
+
+    final topInset = MediaQuery.of(context).padding.top + kToolbarHeight;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Login"),
+        title: Text(
+          "Login",
+          style: TextStyle(fontSize: s(18), fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -153,50 +161,63 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: s(25), vertical: s(60)),
+            padding: EdgeInsets.fromLTRB(s(24), topInset + s(16), s(24), s(32)),
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxFormWidth),
+              constraints: const BoxConstraints(maxWidth: maxFormWidth),
               child: Column(
                 children: [
                   Icon(
                     Icons.lock_outline,
-                    size: s(60),
+                    size: s(52),
                     color: Colors.deepOrange,
                   ),
 
-                  SizedBox(height: s(20)),
+                  SizedBox(height: s(16)),
 
                   Text(
                     "Welcome Back 👋",
                     style: TextStyle(
-                      fontSize: s(26),
-                      fontWeight: FontWeight.bold,
+                      fontSize: s(24),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
 
-                  SizedBox(height: s(40)),
+                  SizedBox(height: s(6)),
+
+                  Text(
+                    "Login to continue",
+                    style: TextStyle(
+                      fontSize: s(14),
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+
+                  SizedBox(height: s(30)),
 
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
+                    style: TextStyle(fontSize: s(15)),
                     decoration: _inputDecoration(
                       "Email Address",
-                      Icons.email,
+                      Icons.email_outlined,
                       isDark,
                     ),
                   ),
 
-                  SizedBox(height: s(18)),
+                  SizedBox(height: s(16)),
 
                   TextField(
                     controller: pinController,
                     obscureText: true,
                     maxLength: 4,
                     keyboardType: TextInputType.number,
+                    style: TextStyle(fontSize: s(15)),
                     decoration: _inputDecoration(
                       "4-digit PIN",
-                      Icons.lock,
+                      Icons.lock_outline,
                       isDark,
                     ),
                   ),
@@ -216,25 +237,27 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         "Forgot PIN?",
                         style: TextStyle(
                           color: Colors.deepOrange,
                           fontWeight: FontWeight.w600,
+                          fontSize: s(14),
                         ),
                       ),
                     ),
                   ),
 
-                  SizedBox(height: s(10)),
+                  SizedBox(height: s(8)),
 
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepOrange,
                       foregroundColor: Colors.white,
-                      minimumSize: Size(double.infinity, s(55)),
+                      elevation: 0,
+                      minimumSize: Size(double.infinity, s(52)),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     onPressed: isLoading ? null : _login,
@@ -250,18 +273,16 @@ class _LoginPageState extends State<LoginPage> {
                         : Text(
                             "Login",
                             style: TextStyle(
-                              fontSize: s(17),
+                              fontSize: s(16),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
 
-                  SizedBox(height: s(20)),
+                  SizedBox(height: s(18)),
 
-                  // "Don't have an account? / Click to sign Up!" used to
-                  // be a plain Row with no wrap protection — on a narrow
-                  // phone this combination can overflow. Wrap lets it
-                  // fall onto a second line instead of overflowing.
+                  // Wrap lets this fall onto a second line on narrow phones
+                  // instead of overflowing.
                   Wrap(
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -289,6 +310,7 @@ class _LoginPageState extends State<LoginPage> {
                           "Click to sign Up!",
                           style: TextStyle(
                             color: Colors.deepOrange,
+                            fontWeight: FontWeight.w600,
                             fontSize: s(14),
                           ),
                         ),
@@ -296,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
 
-                  SizedBox(height: s(8)),
+                  SizedBox(height: s(4)),
 
                   // ── Guest entry point — intentionally does NOT touch
                   // AuthProvider / UserProvider / CartProvider, since none of
@@ -340,13 +362,19 @@ class _LoginPageState extends State<LoginPage> {
   InputDecoration _inputDecoration(String label, IconData icon, bool isDark) {
     return InputDecoration(
       labelText: label,
+      labelStyle: TextStyle(fontSize: s(14)),
       counterText: "",
-      prefixIcon: Icon(icon, color: Colors.deepOrange),
+      contentPadding: EdgeInsets.symmetric(horizontal: s(16), vertical: s(16)),
+      prefixIcon: Icon(icon, color: Colors.deepOrange, size: s(22)),
       filled: true,
       fillColor: isDark ? Colors.grey[850] : Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.deepOrange, width: 1.2),
       ),
     );
   }

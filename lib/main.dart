@@ -113,9 +113,9 @@ class _MyAppState extends State<MyApp> {
             ),
           ),
           home: auth.isCheckingAuth
-              // Shows the same logo as the native splash while the saved
-              // session is checked, so it looks like one continuous splash
-              // instead of a spinner appearing.
+              // Same white background + logo as the native splash while the
+              // saved session is checked, so it looks like one continuous
+              // splash.
               ? const _StartupScreen()
               : auth.needsPinUnlock
               ? PinLoginPage(
@@ -131,14 +131,16 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-/// Matches the native splash (same background + logo) so there is no
+/// Matches the native splash (white background + logo) so there is no
 /// visible jump between the native splash and the first Flutter screen.
+/// Background is forced white so dark mode can't cause a black flash.
 class _StartupScreen extends StatelessWidget {
   const _StartupScreen();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
         child: Image.asset(
           'assets/images/png/logo222.PNG',

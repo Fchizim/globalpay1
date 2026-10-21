@@ -90,10 +90,17 @@ class _ProfileDetailsState extends State<ProfileDetails> {
       appBar: AppBar(
         backgroundColor: scaffoldColor,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         title: const Text("My Profile"),
       ),
       body: SingleChildScrollView(
+        // Bouncy, springy scrolling on both iOS and Android.
+        // AlwaysScrollableScrollPhysics makes it bounce even when the
+        // content is shorter than the screen.
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           children: [

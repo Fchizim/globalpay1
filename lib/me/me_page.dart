@@ -55,7 +55,7 @@ class _MePageState extends State<MePage> {
 
   Future<void> _refresh() async {
     await Future.delayed(const Duration(seconds: 1));
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _onSettingTap(String title) {
@@ -136,6 +136,12 @@ class _MePageState extends State<MePage> {
         ? formatFull(balance)
         : formatBalance(balance);
 
+    // Clears the bottom nav bar + system inset so the last item is reachable
+    final double bottomSpace =
+        MediaQuery.of(context).padding.bottom +
+        kBottomNavigationBarHeight +
+        s(40);
+
     return Scaffold(
       backgroundColor: bgColor,
       body: Theme(
@@ -144,7 +150,9 @@ class _MePageState extends State<MePage> {
           onRefresh: _refresh,
           color: Colors.deepOrange,
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
             slivers: [
               SliverAppBar(
                 scrolledUnderElevation: 0,
@@ -430,7 +438,7 @@ class _MePageState extends State<MePage> {
 
                       SizedBox(height: s(15)),
                       _buildDarkModeSwitch(isDark, cardColor, textColor),
-                      SizedBox(height: s(30)),
+                      SizedBox(height: bottomSpace),
                     ],
                   ),
                 ),

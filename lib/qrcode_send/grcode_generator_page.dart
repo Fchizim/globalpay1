@@ -20,6 +20,27 @@ const _heroGradient = LinearGradient(
   end: Alignment.bottomRight,
 );
 
+// Clamps the system font scale so a phone set to "Largest" text can't push
+// fixed-size layouts into overflow.
+class _TextScaleClamp extends StatelessWidget {
+  final Widget child;
+  const _TextScaleClamp({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return MediaQuery(
+      data: mq.copyWith(
+        textScaler: mq.textScaler.clamp(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.2,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 class QrCodeGenerator extends StatefulWidget {
   final String qrData;
   final double amount;
@@ -151,36 +172,43 @@ class _QrCodeGeneratorState extends State<QrCodeGenerator> {
 
   void _enlarge() {
     final screenWidth = MediaQuery.of(context).size.width;
-    // Size the enlarged QR off the actual screen instead of a fixed 260,
-    // so it never overflows the dialog on small phones.
-    final qrSize = (screenWidth - 120).clamp(180.0, 320.0);
+    // Dialog inset (28*2) + dialog padding (24*2) = 104 of horizontal space
+    // is used up, so the QR is sized off the real screen width.
+    final qrSize = (screenWidth - 120).clamp(150.0, 320.0);
 
     showDialog(
       context: context,
       barrierColor: Colors.black87,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(28),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildQr(size: qrSize),
-              const SizedBox(height: 16),
-              Text(
-                _voucherId,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  fontSize: 15,
-                ),
+      builder: (_) => _TextScaleClamp(
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(28),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            // Scrolls on short screens instead of overflowing vertically.
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildQr(size: qrSize),
+                  const SizedBox(height: 16),
+                  Text(
+                    _voucherId,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -204,314 +232,330 @@ class _QrCodeGeneratorState extends State<QrCodeGenerator> {
     // Cap the usable content width so the card doesn't stretch edge-to-edge
     // on tablets/foldables.
     final maxContentWidth = screenWidth > 600 ? 480.0 : screenWidth;
-    // QR should be a fraction of the card width, not a fixed 200px, so it
-    // never overflows a narrow phone or looks tiny on a wide card.
-    final cardWidth = maxContentWidth - 40; // minus horizontal page padding
-    final qrSize = (cardWidth - 88).clamp(150.0, 260.0);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxContentWidth),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                _scale(context, 20),
-                8,
-                _scale(context, 20),
-                32,
-              ),
-              child: Column(
-                children: [
-                  // ── top bar ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Text(
-                        'GDrop',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: _scale(context, 20),
+    return _TextScaleClamp(
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFAFAFA),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxContentWidth),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  _scale(context, 20),
+                  8,
+                  _scale(context, 20),
+                  32,
+                ),
+                child: Column(
+                  children: [
+                    // ── top bar ──
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                          onPressed: () => Navigator.pop(context),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.help_outline_rounded, size: 22),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── hero gradient card (captured for share/save) ──
-                  RepaintBoundary(
-                    key: _captureKey,
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.fromLTRB(
-                        _scale(context, 24),
-                        _scale(context, 32),
-                        _scale(context, 24),
-                        _scale(context, 24),
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: _heroGradient,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepOrange.withOpacity(0.25),
-                            blurRadius: 26,
-                            offset: const Offset(0, 14),
+                        Text(
+                          'GDrop',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: _scale(context, 20),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          // logo badge
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: _logoAvailable
-                                ? Image.asset(
-                                    _kLogoAsset,
-                                    height: _scale(context, 56),
-                                    width: _scale(context, 56),
-                                    fit: BoxFit.cover,
-                                  )
-                                : Container(
-                                    height: _scale(context, 56),
-                                    width: _scale(context, 56),
-                                    color: Colors.white.withOpacity(0.15),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'G',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: _scale(context, 28),
-                                      ),
-                                    ),
-                                  ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.help_outline_rounded,
+                            size: 22,
                           ),
-                          SizedBox(height: _scale(context, 14)),
-                          Text(
-                            'GDrop',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: _scale(context, 30),
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ── hero gradient card (captured for share/save) ──
+                    // LayoutBuilder gives the QR the card's real width, so it
+                    // fits exactly on every screen size.
+                    RepaintBoundary(
+                      key: _captureKey,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final heroPad = _scale(context, 24);
+                          final qrPad = _scale(context, 20);
+                          final qrSize =
+                              (constraints.maxWidth - heroPad * 2 - qrPad * 2)
+                                  .clamp(140.0, 260.0);
+
+                          return Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.fromLTRB(
+                              heroPad,
+                              _scale(context, 32),
+                              heroPad,
+                              _scale(context, 24),
                             ),
-                          ),
-                          SizedBox(height: _scale(context, 4)),
-                          Text(
-                            'Share. Redeem. Delight.',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.85),
-                              fontSize: _scale(context, 14),
-                            ),
-                          ),
-
-                          SizedBox(height: _scale(context, 26)),
-
-                          // white QR card
-                          GestureDetector(
-                            onTap: _enlarge,
-                            child: Container(
-                              padding: EdgeInsets.all(_scale(context, 20)),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(22),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.12),
-                                    blurRadius: 18,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: _buildQr(size: qrSize),
-                            ),
-                          ),
-
-                          SizedBox(height: _scale(context, 14)),
-
-                          GestureDetector(
-                            onTap: _enlarge,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.open_in_full_rounded,
-                                  size: 14,
-                                  color: Colors.white.withOpacity(0.8),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Tap to enlarge',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.85),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                            decoration: BoxDecoration(
+                              gradient: _heroGradient,
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepOrange.withOpacity(0.25),
+                                  blurRadius: 26,
+                                  offset: const Offset(0, 14),
                                 ),
                               ],
                             ),
-                          ),
+                            child: Column(
+                              children: [
+                                // logo badge
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: _logoAvailable
+                                      ? Image.asset(
+                                          _kLogoAsset,
+                                          height: _scale(context, 56),
+                                          width: _scale(context, 56),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          height: _scale(context, 56),
+                                          width: _scale(context, 56),
+                                          color: Colors.white.withOpacity(0.15),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'G',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: _scale(context, 28),
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                                SizedBox(height: _scale(context, 14)),
+                                Text(
+                                  'GDrop',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: _scale(context, 30),
+                                  ),
+                                ),
+                                SizedBox(height: _scale(context, 4)),
+                                Text(
+                                  'Share. Redeem. Delight.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.85),
+                                    fontSize: _scale(context, 14),
+                                  ),
+                                ),
 
-                          SizedBox(height: _scale(context, 26)),
-                          Divider(
-                            color: Colors.white.withOpacity(0.2),
-                            height: 1,
-                          ),
-                          SizedBox(height: _scale(context, 20)),
+                                SizedBox(height: _scale(context, 26)),
 
-                          // stat row
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _HeroStat(
-                                  icon: Icons.tag_rounded,
-                                  label: 'Voucher ID',
-                                  value: _voucherId,
+                                // white QR card
+                                GestureDetector(
+                                  onTap: _enlarge,
+                                  child: Container(
+                                    padding: EdgeInsets.all(qrPad),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(22),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.12),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _buildQr(size: qrSize),
+                                  ),
                                 ),
-                              ),
-                              Expanded(
-                                child: _HeroStat(
-                                  icon: Icons.all_inclusive_rounded,
-                                  label: 'Validity',
-                                  value: 'No Expiry',
+
+                                SizedBox(height: _scale(context, 14)),
+
+                                GestureDetector(
+                                  onTap: _enlarge,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.open_in_full_rounded,
+                                        size: 14,
+                                        color: Colors.white.withOpacity(0.8),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Tap to enlarge',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.85),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Expanded(
-                                child: _HeroStat(
-                                  icon: Icons.verified_rounded,
-                                  label: 'Status',
-                                  value: widget.status,
-                                  valueColor: _statusColor,
-                                  showDot: true,
+
+                                SizedBox(height: _scale(context, 26)),
+                                Divider(
+                                  color: Colors.white.withOpacity(0.2),
+                                  height: 1,
                                 ),
-                              ),
-                            ],
+                                SizedBox(height: _scale(context, 20)),
+
+                                // stat row
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _HeroStat(
+                                        icon: Icons.tag_rounded,
+                                        label: 'Voucher ID',
+                                        value: _voucherId,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: _HeroStat(
+                                        icon: Icons.all_inclusive_rounded,
+                                        label: 'Validity',
+                                        value: 'No Expiry',
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: _HeroStat(
+                                        icon: Icons.verified_rounded,
+                                        label: 'Status',
+                                        value: widget.status,
+                                        valueColor: _statusColor,
+                                        showDot: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    SizedBox(height: _scale(context, 18)),
+
+                    // ── action row ──
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionSquare(
+                            icon: Icons.near_me_rounded,
+                            label: 'Share',
+                            onTap: _share,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionSquare(
+                            icon: Icons.download_rounded,
+                            label: 'Save Image',
+                            onTap: _saveImage,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionSquare(
+                            icon: Icons.copy_all_rounded,
+                            label: 'Copy Code',
+                            onTap: _copyCode,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: _scale(context, 18)),
+
+                    // ── info card ──
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(_scale(context, 18)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: _scale(context, 44),
+                            height: _scale(context, 44),
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.shield_rounded,
+                              color: Colors.deepOrange,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Anyone with this QR can redeem',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                const _InfoBullet('One-time use only'),
+                                const _InfoBullet(
+                                  'Never expires — valid until redeemed',
+                                ),
+                                const _InfoBullet('Secure and encrypted'),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ),
 
-                  SizedBox(height: _scale(context, 18)),
+                    SizedBox(height: _scale(context, 20)),
 
-                  // ── action row ──
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionSquare(
-                          icon: Icons.near_me_rounded,
-                          label: 'Share',
-                          onTap: _share,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ActionSquare(
-                          icon: Icons.download_rounded,
-                          label: 'Save Image',
-                          onTap: _saveImage,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ActionSquare(
-                          icon: Icons.copy_all_rounded,
-                          label: 'Copy Code',
-                          onTap: _copyCode,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: _scale(context, 18)),
-
-                  // ── info card ──
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(_scale(context, 18)),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: _scale(context, 44),
-                          height: _scale(context, 44),
-                          decoration: BoxDecoration(
-                            color: Colors.deepOrange.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.shield_rounded,
-                            color: Colors.deepOrange,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Anyone with this QR can redeem',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              const _InfoBullet('One-time use only'),
-                              const _InfoBullet(
-                                'Never expires — valid until redeemed',
-                              ),
-                              const _InfoBullet('Secure and encrypted'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: _scale(context, 20)),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.lock_rounded,
-                        size: 13,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Secured by GlobalPay Encryption',
-                        style: TextStyle(
-                          fontSize: 12,
+                        Icon(
+                          Icons.lock_rounded,
+                          size: 13,
                           color: Colors.grey.shade400,
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Secured by GlobalPay Encryption',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -552,9 +596,13 @@ class _HeroStat extends StatelessWidget {
         child: Icon(icon, color: Colors.white, size: 16),
       ),
       const SizedBox(height: 8),
-      Text(
-        label,
-        style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+        ),
       ),
       const SizedBox(height: 3),
       Row(
@@ -574,6 +622,7 @@ class _HeroStat extends StatelessWidget {
           Flexible(
             child: Text(
               value,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: valueColor ?? Colors.white,
@@ -606,7 +655,7 @@ class _ActionSquare extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
@@ -621,10 +670,17 @@ class _ActionSquare extends StatelessWidget {
           children: [
             Icon(icon, color: Colors.deepOrange, size: 22),
             const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ],
         ),
@@ -640,16 +696,23 @@ class _InfoBullet extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
-          Icons.check_circle_rounded,
-          size: 15,
-          color: Colors.deepOrange,
+        const Padding(
+          padding: EdgeInsets.only(top: 1),
+          child: Icon(
+            Icons.check_circle_rounded,
+            size: 15,
+            color: Colors.deepOrange,
+          ),
         ),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+        // Expanded so long lines wrap instead of overflowing the card.
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+          ),
         ),
       ],
     ),
