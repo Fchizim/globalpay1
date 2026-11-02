@@ -50,15 +50,16 @@ class _SendMoneyState extends State<SendMoney> {
   // If banks are still loading when the user finishes typing 10 digits,
   // remember to auto-detect as soon as they're ready.
   bool _pendingAutoDetect = false;
-  // Bumped every time a new _autoDetectBank() run starts. Each run
+
+  // Bumped every time the situation changes (new auto-detect run, account
+  // edited, manual bank pick, recipient tapped). Each detection run
   // captures its own value and checks it before applying results, so a
-  // stale run (e.g. one left over from before the user deleted a digit
-  // and retyped the exact same number) can never overwrite a newer
-  // run's results — without this, two overlapping detection calls could
-  // race and whichever happened to finish last silently "won", which is
-  // why the same account number could show a different number of
-  // matched banks on different tries.
+  // stale run can never overwrite newer state.
   int _detectionGeneration = 0;
+
+  // Same idea for single-bank verification: a stale verify response (the
+  // user edited the number or switched bank meanwhile) is discarded.
+  int _verifyGeneration = 0;
 
   // ── Recent + Favorites: fetched from the backend ──────────────────────
   List<RecipientInfo> recentRecipients = [];
@@ -71,7 +72,7 @@ class _SendMoneyState extends State<SendMoney> {
 
   Set<String> favoriteKeys = {};
 
-  // Caches a verified "account+bank" -> account name for this screen's
+  // Caches a verified "bank|account" -> account name for this screen's
   // lifetime, so re-checking the same combo (e.g. switching bank and back)
   // is instant instead of hitting the network again.
   final Map<String, String> _verifiedCache = {};
@@ -111,7 +112,7 @@ class _SendMoneyState extends State<SendMoney> {
     } catch (e) {
       if (!mounted) return;
       setState(
-        () => bankListError = 'Could not load banks. Check your connection.',
+            () => bankListError = 'Could not load banks. Check your connection.',
       );
     } finally {
       if (mounted) setState(() => bankListLoading = false);
@@ -179,7 +180,7 @@ class _SendMoneyState extends State<SendMoney> {
         }
       } else {
         setState(
-          () => favoriteRecipients = favoriteRecipients
+              () => favoriteRecipients = favoriteRecipients
               .where((f) => f.key != r.key)
               .toList(),
         );
@@ -203,6 +204,8 @@ class _SendMoneyState extends State<SendMoney> {
     setState(() {
       verifiedAccountName = null;
       verifyError = null;
+      verifying = false;
+      detectingBank = false;
       detectFailed = false;
       // A fresh account number invalidates whatever bank was showing,
       // unless the user has explicitly picked one — that pick should
@@ -212,11 +215,10 @@ class _SendMoneyState extends State<SendMoney> {
         bankWasAutoDetected = false;
       }
     });
-    // Invalidate any in-flight auto-detection immediately. Cancelling the
-    // debounce timer alone isn't enough: if a detection call is already
-    // running (started before this edit) it would otherwise keep running
-    // and could still apply its results afterwards, even though the text
-    // has since changed (or changed back to the same digits).
+    // Invalidate any in-flight verification or auto-detection immediately.
+    // Cancelling the debounce timer alone isn't enough: a call that is
+    // already running would otherwise still apply its results afterwards.
+    _verifyGeneration++;
     _detectionGeneration++;
     _debounce?.cancel();
     _pendingAutoDetect = false;
@@ -228,7 +230,7 @@ class _SendMoneyState extends State<SendMoney> {
       // — just verify against it as before.
       _debounce = Timer(
         const Duration(milliseconds: 250),
-        () => _verifyAccount(),
+            () => _verifyAccount(),
       );
       return;
     }
@@ -251,8 +253,8 @@ class _SendMoneyState extends State<SendMoney> {
   /// matches.
   ///
   /// Guards every await point with [_detectionGeneration] so a stale run
-  /// (superseded by the user editing the field again, even back to the
-  /// same digits) can never overwrite a newer run's results.
+  /// (superseded by the user editing the field, picking a bank manually,
+  /// or tapping a recipient) can never overwrite newer state.
   Future<void> _autoDetectBank() async {
     final accountNumber = _accountController.text.trim();
     if (accountNumber.length != 10 || banks.isEmpty) return;
@@ -270,7 +272,7 @@ class _SendMoneyState extends State<SendMoney> {
         banks: banks,
       );
       if (!mounted) return;
-      // A newer detection run has since started — discard these results.
+      // A newer run (or a manual action) has since happened — discard.
       if (myGeneration != _detectionGeneration) return;
       // The account number may have changed while we were waiting.
       if (_accountController.text.trim() != accountNumber) return;
@@ -324,8 +326,13 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Future<void> _verifyAccount() async {
-    if (selectedBank == null || _accountController.text.trim().length != 10)
+    if (selectedBank == null || _accountController.text.trim().length != 10) {
       return;
+    }
+
+    // Taken first so even the cache-hit path invalidates any slower
+    // verify that is still in flight for a previous bank/number.
+    final myGen = ++_verifyGeneration;
 
     final accountNumber = _accountController.text.trim();
     final bankCode = selectedBank!.code;
@@ -353,20 +360,29 @@ class _SendMoneyState extends State<SendMoney> {
         bankCode: bankCode,
       );
       if (!mounted) return;
+      // Safe to cache regardless of staleness: the key includes both the
+      // bank and the account number this response is actually for.
       _verifiedCache[cacheKey] = name;
+      if (myGen != _verifyGeneration) return; // stale: don't apply
       setState(() => verifiedAccountName = name);
     } on TimeoutException {
-      if (!mounted) return;
-      setState(
-        () => verifyError = 'Verification is taking too long — tap to retry.',
-      );
+      if (!mounted || myGen != _verifyGeneration) return;
+      setState(() {
+        // Clear any pre-filled (saved-recipient) name so a failed
+        // re-verify can't be continued with a stale name.
+        verifiedAccountName = null;
+        verifyError = 'Verification is taking too long — tap to retry.';
+      });
     } catch (e) {
-      if (!mounted) return;
-      setState(
-        () => verifyError = e.toString().replaceFirst('Exception: ', ''),
-      );
+      if (!mounted || myGen != _verifyGeneration) return;
+      setState(() {
+        verifiedAccountName = null;
+        verifyError = e.toString().replaceFirst('Exception: ', '');
+      });
     } finally {
-      if (mounted) setState(() => verifying = false);
+      if (mounted && myGen == _verifyGeneration) {
+        setState(() => verifying = false);
+      }
     }
   }
 
@@ -380,12 +396,18 @@ class _SendMoneyState extends State<SendMoney> {
       builder: (_) => BankPickerSheet(banks: banks),
     );
     if (result == null || !mounted) return;
+    // A manual pick always wins: cancel any auto-detection still running.
+    _detectionGeneration++;
+    _verifyGeneration++;
+    _debounce?.cancel();
     setState(() {
       selectedBank = result;
       bankWasAutoDetected = false;
+      detectingBank = false;
       detectFailed = false;
       verifiedAccountName = null;
       verifyError = null;
+      verifying = false;
     });
     if (_accountController.text.trim().length == 10) {
       _verifyAccount();
@@ -404,13 +426,20 @@ class _SendMoneyState extends State<SendMoney> {
 
   void _selectRecipient(RecipientInfo r) {
     FocusManager.instance.primaryFocus?.unfocus();
+    // Tapping a recipient is a manual choice: cancel any in-flight
+    // detection/verification. The text listener won't fire if the number
+    // is unchanged, so this must be done explicitly.
+    _detectionGeneration++;
+    _verifyGeneration++;
+    _debounce?.cancel();
     final match = banks.firstWhere(
-      (b) => b.code == r.bankCode,
+          (b) => b.code == r.bankCode,
       orElse: () => BankOption(name: r.bankName, code: r.bankCode),
     );
     setState(() {
       selectedBank = match;
       bankWasAutoDetected = false;
+      detectingBank = false;
       detectFailed = false;
       _accountController.text = r.accountNumber;
       verifiedAccountName = r.accountName;
@@ -615,127 +644,127 @@ class _SendMoneyState extends State<SendMoney> {
                           duration: const Duration(milliseconds: 200),
                           child: detectingBank
                               ? Row(
-                                  key: const ValueKey('detecting'),
-                                  children: [
-                                    const _ActivitySpinner(
-                                      size: 15,
-                                      color: _accent,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Matching banks…',
-                                      style: TextStyle(
-                                        color: subTextColor,
-                                        fontSize: 12.5,
-                                      ),
-                                    ),
-                                  ],
-                                )
+                            key: const ValueKey('detecting'),
+                            children: [
+                              const _ActivitySpinner(
+                                size: 15,
+                                color: _accent,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Matching banks…',
+                                style: TextStyle(
+                                  color: subTextColor,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          )
                               : verifying
                               ? Row(
-                                  key: const ValueKey('verifying'),
-                                  children: [
-                                    const _ActivitySpinner(
-                                      size: 15,
-                                      color: _accent,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Verifying account…',
-                                      style: TextStyle(
-                                        color: subTextColor,
-                                        fontSize: 12.5,
-                                      ),
-                                    ),
-                                  ],
-                                )
+                            key: const ValueKey('verifying'),
+                            children: [
+                              const _ActivitySpinner(
+                                size: 15,
+                                color: _accent,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Verifying account…',
+                                style: TextStyle(
+                                  color: subTextColor,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          )
                               : verifiedAccountName != null
                               ? Container(
-                                  key: const ValueKey('verified'),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
+                            key: const ValueKey('verified'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _success.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: _success,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    verifiedAccountName!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: _success,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: _success.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        color: _success,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          verifiedAccountName!,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: _success,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
+                                ),
+                              ],
+                            ),
+                          )
                               : detectFailed
                               ? GestureDetector(
-                                  key: const ValueKey('detect_failed'),
-                                  onTap: _showBankPicker,
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline_rounded,
-                                        color: subTextColor,
-                                        size: 15,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          "Couldn't find your bank automatically — tap to select it",
-                                          style: TextStyle(
-                                            color: subTextColor,
-                                            fontSize: 12.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                            key: const ValueKey('detect_failed'),
+                            onTap: _showBankPicker,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  color: subTextColor,
+                                  size: 15,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    "Couldn't find your bank automatically — tap to select it",
+                                    style: TextStyle(
+                                      color: subTextColor,
+                                      fontSize: 12.5,
+                                    ),
                                   ),
-                                )
+                                ),
+                              ],
+                            ),
+                          )
                               : verifyError != null
                               ? GestureDetector(
-                                  key: const ValueKey('error'),
-                                  onTap: _verifyAccount,
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline_rounded,
-                                        color: Colors.redAccent,
-                                        size: 15,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          verifyError!,
-                                          style: const TextStyle(
-                                            color: Colors.redAccent,
-                                            fontSize: 12.5,
-                                          ),
-                                        ),
-                                      ),
-                                      const Icon(
-                                        Icons.refresh_rounded,
-                                        color: Colors.redAccent,
-                                        size: 15,
-                                      ),
-                                    ],
+                            key: const ValueKey('error'),
+                            onTap: _verifyAccount,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Colors.redAccent,
+                                  size: 15,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    verifyError!,
+                                    style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 12.5,
+                                    ),
                                   ),
-                                )
+                                ),
+                                const Icon(
+                                  Icons.refresh_rounded,
+                                  color: Colors.redAccent,
+                                  size: 15,
+                                ),
+                              ],
+                            ),
+                          )
                               : const SizedBox.shrink(key: ValueKey('empty')),
                         ),
 
@@ -757,7 +786,7 @@ class _SendMoneyState extends State<SendMoney> {
                             // if (bankWasAutoDetected)
                             //   GestureDetector(
                             //     onTap: _showBankPicker,
-                            //     child: Text(xs
+                            //     child: Text(
                             //       'Not right? Change',
                             //       style: TextStyle(
                             //         color: _accent,
@@ -816,8 +845,8 @@ class _SendMoneyState extends State<SendMoney> {
                                 borderRadius: BorderRadius.circular(14),
                                 border: detectFailed
                                     ? Border.all(
-                                        color: _accent.withOpacity(0.4),
-                                      )
+                                  color: _accent.withOpacity(0.4),
+                                )
                                     : null,
                               ),
                               child: Row(
@@ -843,7 +872,7 @@ class _SendMoneyState extends State<SendMoney> {
                                           : detectingBank
                                           ? 'Matching banks…'
                                           : (selectedBank?.name ??
-                                                'Select Bank'),
+                                          'Select Bank'),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -937,11 +966,11 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Widget _buildRecentSection(
-    Color cardColor,
-    Color textColor,
-    Color subTextColor,
-    Color borderColor,
-  ) {
+      Color cardColor,
+      Color textColor,
+      Color subTextColor,
+      Color borderColor,
+      ) {
     if (recentLoading) {
       return const SizedBox(
         height: 80,
@@ -989,11 +1018,11 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Widget _buildFavoritesSection(
-    Color cardColor,
-    Color textColor,
-    Color subTextColor,
-    Color borderColor,
-  ) {
+      Color cardColor,
+      Color textColor,
+      Color subTextColor,
+      Color borderColor,
+      ) {
     if (favoritesLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
@@ -1083,9 +1112,7 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   /// Shows a bank's logo when available, falling back to the initials
-  /// avatar (network failure, missing logo, etc). `bank` may be null if a
-  /// recipient's bank code isn't in the loaded bank list — pass a name too
-  /// so the fallback still has something to show.
+  /// avatar (network failure, missing logo, etc).
   Widget _bankLogo(BankOption bank, {double size = 20}) {
     if (bank.logoUrl == null || bank.logoUrl!.isEmpty) {
       return _initialsAvatar(bank.name, radius: size / 2);
@@ -1103,12 +1130,12 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Widget _quickTile(
-    RecipientInfo r,
-    Color card,
-    Color text,
-    Color sub,
-    Color borderColor,
-  ) {
+      RecipientInfo r,
+      Color card,
+      Color text,
+      Color sub,
+      Color borderColor,
+      ) {
     final isFav = favoriteKeys.contains(r.key);
     final matchedBank = _bankFor(r);
     return GestureDetector(
@@ -1174,12 +1201,12 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Widget _favoriteTile(
-    RecipientInfo r,
-    Color card,
-    Color text,
-    Color sub,
-    Color borderColor,
-  ) {
+      RecipientInfo r,
+      Color card,
+      Color text,
+      Color sub,
+      Color borderColor,
+      ) {
     final matchedBank = _bankFor(r);
     return Container(
       decoration: BoxDecoration(
@@ -1247,11 +1274,11 @@ class _SendMoneyState extends State<SendMoney> {
   }
 
   Widget _sectionHeader(
-    String title,
-    Color text,
-    Color sub,
-    VoidCallback onTap,
-  ) {
+      String title,
+      Color text,
+      Color sub,
+      VoidCallback onTap,
+      ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1439,9 +1466,6 @@ class _BankMatchSheet extends StatelessWidget {
 
 /// A modern "iOS activity indicator" style spinner — 12 tapered dashes
 /// arranged in a circle with a fading trail, continuously rotating.
-/// Used in place of the plain [CircularProgressIndicator] ring throughout
-/// this screen for a more current, native-feeling loading state (matches
-/// the dashed spinner style used in e.g. bank verification flows).
 class _ActivitySpinner extends StatefulWidget {
   final double size;
   final Color color;

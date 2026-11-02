@@ -38,9 +38,9 @@ class RecipientInfo {
 
 /// Thrown by [WithdrawalService.verifyAccount] when the backend gave a
 /// clean, definitive answer that this account is not registered at this
-/// bank (as opposed to a timeout or network error, where we genuinely
-/// don't know the answer). Bank detection uses this distinction to avoid
-/// wastefully retrying banks that have already given a real "no" — see
+/// bank (as opposed to a timeout, rate limit or network error, where we
+/// genuinely don't know the answer). Bank detection uses this distinction
+/// to avoid retrying banks that have already given a real "no" — see
 /// [WithdrawalService.detectBanksForAccount].
 class BankVerificationRejected implements Exception {
   final String message;
@@ -53,16 +53,9 @@ class BankVerificationRejected implements Exception {
 class WithdrawalService {
   static const _base = 'https://glopa.org/glo';
 
-  // A single, long-lived client instead of the http.get/http.post
-  // top-level convenience functions. Those convenience functions spin
-  // up a brand-new client (and therefore a brand-new TCP+TLS connection)
-  // for every single call and throw it away afterwards — so a pool of
-  // 12 concurrent bank-detection requests to the same host was paying
-  // for 12 full handshakes instead of reusing one warm connection.
-  // Reusing this client lets the underlying connection to glopa.org
-  // stay open and be reused across requests, which removes a real
-  // chunk of per-request latency with no change in behavior or
-  // accuracy.
+  // A single, long-lived client so concurrent requests to the same host
+  // reuse warm connections instead of paying a fresh TCP+TLS handshake
+  // each time (which is what the top-level http.get/http.post do).
   static final http.Client _client = http.Client();
 
   // ── Logo sources ─────────────────────────────────────────────────────
@@ -76,52 +69,47 @@ class WithdrawalService {
   static const _fintechLogoSource = 'https://nigerianbanks.xyz';
   static const _placeholderLogoSuffix = 'default-image.png';
 
-  // Your own backend already ships pre-verified logos for ~25 major
-  // banks (banks.php's own `logo` field) — that always wins, it's the
-  // most authoritative source since it's yours.
+  // Logo resolution priority (deterministic, no fuzzy name matching):
+  //   1. banks.php's own `logo` field (always wins)
+  //   2. exact CODE match against the merged public sources
+  //   3. the hand-verified overrides below
+  //   4. null -> UI falls back to the generic bank icon
   //
-  // For everything else, resolution is CODE-ONLY against the two public
-  // sources — no fuzzy name matching. Fuzzy matching is what caused the
-  // "ChamsMobile" entry in your own banks.php to get Lotus Bank's logo
-  // by mistake, so it's been removed entirely to avoid wrong logos.
-  //
-  // The handful of major fintechs/banks below use non-standard codes on
-  // the public sources (e.g. PalmPay is "999991" there but "100033" in
-  // your backend), so no automatic code match can find them. These were
-  // checked by hand, one at a time, against your exact banks.php codes —
-  // this is the deterministic, zero-guessing fix for those specific
-  // banks. Anything not in this list and not code-matched simply has no
-  // publicly available logo anywhere (true for the hundreds of small
-  // MFBs in your list) and correctly falls back to the generic icon.
+  // NOTE: these override keys were matched against your OLD bank list.
+  // Paystack's codes differ for some banks, so an entry whose key no
+  // longer exists in the Paystack list is simply never used (harmless —
+  // that bank falls back to the generic icon). The major fintechs
+  // (PalmPay 999991, Kuda 50211, Moniepoint 50515, OPay 999992) are
+  // already covered by banks.php's own logo field.
   static const Map<String, String> _verifiedOverrides = {
-    '100033': 'https://nigerianbanks.xyz/logo/palmpay.png', // PalmPay
-    '090267': 'https://nigerianbanks.xyz/logo/kuda-bank.png', // Kuda
+    '100033': 'https://nigerianbanks.xyz/logo/palmpay.png', // PalmPay (old code)
+    '090267': 'https://nigerianbanks.xyz/logo/kuda-bank.png', // Kuda (old code)
     '090405':
-        'https://nigerianbanks.xyz/logo/moniepoint-mfb-ng.png', // Moniepoint MFB
+    'https://nigerianbanks.xyz/logo/moniepoint-mfb-ng.png', // Moniepoint (old code)
     '100026':
-        'https://supermx1.github.io/nigerian-banks-api/logos/carbon.png', // Carbon
+    'https://supermx1.github.io/nigerian-banks-api/logos/carbon.png', // Carbon
     '000027': 'https://nigerianbanks.xyz/logo/globus-bank.png', // Globus Bank
     '000029': 'https://nigerianbanks.xyz/logo/lotus-bank.png', // Lotus Bank
     '000025':
-        'https://supermx1.github.io/nigerian-banks-api/logos/titan-trust-bank.png', // Titan Trust Bank
+    'https://supermx1.github.io/nigerian-banks-api/logos/titan-trust-bank.png', // Titan Trust Bank
     '000031':
-        'https://supermx1.github.io/nigerian-banks-api/logos/premiumtrust-bank-ng.png', // PremiumTrust Bank
+    'https://supermx1.github.io/nigerian-banks-api/logos/premiumtrust-bank-ng.png', // PremiumTrust Bank
     '000026': 'https://nigerianbanks.xyz/logo/taj-bank.png', // Taj Bank
     '000030':
-        'https://supermx1.github.io/nigerian-banks-api/logos/parallex-bank.png', // Parallex Bank
+    'https://supermx1.github.io/nigerian-banks-api/logos/parallex-bank.png', // Parallex Bank
     '060001':
-        'https://supermx1.github.io/nigerian-banks-api/logos/coronation-merchant-bank-ng.png', // Coronation Merchant Bank
+    'https://supermx1.github.io/nigerian-banks-api/logos/coronation-merchant-bank-ng.png', // Coronation Merchant Bank
     '090325':
-        'https://supermx1.github.io/nigerian-banks-api/logos/sparkle-microfinance-bank.png', // Sparkle
+    'https://supermx1.github.io/nigerian-banks-api/logos/sparkle-microfinance-bank.png', // Sparkle
   };
 
   // ── Bank auto-detection priority list ──────────────────────────────
   // Account numbers don't carry their bank with them — the only way to
-  // find the right bank is to try verifying against real banks until
-  // ── Tier 1: the banks/fintechs that cover the overwhelming majority
-  // of real Nigerian accounts. Raced first, with the fewest concurrent
-  // requests, so the common case resolves fast and with the least
-  // network contention.
+  // find the right bank is to try verifying against real banks until one
+  // answers.
+  //
+  // Tier 1: the banks/fintechs that cover the overwhelming majority of
+  // real Nigerian accounts.
   static const List<String> _tier1Keywords = [
     'opay',
     'palmpay',
@@ -143,8 +131,7 @@ class WithdrawalService {
     'providus',
   ];
 
-  // ── Tier 2: less common but still real banks/fintechs. Only raced if
-  // tier 1 comes up empty.
+  // Tier 2: less common but still real banks/fintechs.
   static const List<String> _tier2Keywords = [
     'alat',
     'ecobank',
@@ -170,41 +157,28 @@ class WithdrawalService {
   ];
 
   // ── Detection concurrency/retry tuning ────────────────────────────
-  // Firing every candidate bank at once (previously ~39 concurrent
-  // requests) overwhelmed verify_account.php and caused legitimate
-  // matches to time out inconsistently — the same account number could
-  // come back with 1, 2, or 3 matches purely depending on network
-  // timing. A bounded worker pool (see _tryAllPooled) keeps this many
-  // requests in flight at once, and now that only genuinely-unresolved
-  // candidates get retried (definitive rejections are never re-asked —
-  // see BankVerificationRejected) and every request reuses one warm
-  // connection (see _client) instead of paying a fresh handshake each
-  // time, a slow response now genuinely reflects backend/network
-  // conditions rather than connection setup overhead — so both a
-  // higher concurrency limit and a shorter per-call timeout are safe
-  // here. 15 is still comfortably below the 39-at-once that caused the
-  // original problem.
-  static const int _maxConcurrentVerifications = 15;
+  // Paystack's account-resolve endpoint is rate-limited much more
+  // aggressively than Flutterwave's, so concurrency is kept low. A 429
+  // comes back from the backend as "UNAVAILABLE", which is treated as
+  // "unknown" (retried), never as a definitive rejection.
+  static const int _maxConcurrentVerifications = 5;
   static const int _maxDetectionAttempts = 2;
-  static const Duration _detectionRetryDelay = Duration(milliseconds: 100);
+  static const Duration _detectionRetryDelay = Duration(milliseconds: 600);
+  static const Duration _detectionCallTimeout = Duration(seconds: 6);
 
   /// Strips spaces/hyphens and lowercases, so keyword matching doesn't
-  /// silently miss a bank purely because of inconsistent spacing between
-  /// the keyword and how banks.php happens to spell that bank's name
-  /// (e.g. "ProvidusBank PLC" vs a keyword written as "providus bank" —
-  /// without this normalization that match fails and the bank never
-  /// even gets tried in the auto-detect race).
+  /// silently miss a bank purely because of inconsistent spacing.
   static String _normalize(String s) =>
       s.toLowerCase().replaceAll(RegExp(r'[\s\-]'), '');
 
-  /// Builds the ordered, deduped candidate list to race for auto-detection:
+  /// Builds the ordered, deduped candidate list for auto-detection:
   /// each priority keyword matched against the loaded bank list, in
   /// priority order, keeping only the first bank matched per keyword and
-  /// skipping duplicates (some banks appear under more than one keyword).
+  /// skipping duplicates.
   static List<BankOption> _priorityBanksFor(
-    List<BankOption> banks,
-    List<String> keywords,
-  ) {
+      List<BankOption> banks,
+      List<String> keywords,
+      ) {
     final seenCodes = <String>{};
     final result = <BankOption>[];
     for (final keyword in keywords) {
@@ -237,8 +211,8 @@ class WithdrawalService {
 
   /// The user's saved favorite recipients.
   static Future<List<RecipientInfo>> getFavoriteRecipients(
-    String userId,
-  ) async {
+      String userId,
+      ) async {
     final res = await _client
         .get(Uri.parse('$_base/get_favorite_recipients.php?user_id=$userId'))
         .timeout(const Duration(seconds: 15));
@@ -259,16 +233,16 @@ class WithdrawalService {
   }) async {
     final res = await _client
         .post(
-          Uri.parse('$_base/toggle_favorite_recipient.php'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'user_id': userId,
-            'account_number': recipient.accountNumber,
-            'bank_code': recipient.bankCode,
-            'bank_name': recipient.bankName,
-            'account_name': recipient.accountName,
-          }),
-        )
+      Uri.parse('$_base/toggle_favorite_recipient.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'account_number': recipient.accountNumber,
+        'bank_code': recipient.bankCode,
+        'bank_name': recipient.bankName,
+        'account_name': recipient.accountName,
+      }),
+    )
         .timeout(const Duration(seconds: 15));
 
     final decoded = jsonDecode(res.body);
@@ -278,12 +252,8 @@ class WithdrawalService {
     return decoded['is_favorite'] == true;
   }
 
-  /// Fetches banks from your backend and resolves a logo for each using
-  /// a strict, deterministic priority — no fuzzy matching anywhere:
-  ///   1. banks.php's own `logo` field, if already set (most authoritative)
-  ///   2. exact CODE match against the merged public sources
-  ///   3. the hand-verified `_verifiedOverrides` map above
-  ///   4. null → UI falls back to the generic bank icon
+  /// Fetches banks from your backend (now backed by Paystack's bank list)
+  /// and resolves a logo for each using the priority described above.
   static Future<List<BankOption>> getBanks() async {
     final bankFuture = _client
         .get(Uri.parse('$_base/banks.php'))
@@ -320,9 +290,9 @@ class WithdrawalService {
   }
 
   static Future<Map<String, String>> _fetchLogoByCode(
-    String source, {
-    String pathPrefix = '',
-  }) async {
+      String source, {
+        String pathPrefix = '',
+      }) async {
     final Map<String, String> logoByCode = {};
     try {
       final res = await _client
@@ -336,10 +306,8 @@ class WithdrawalService {
         final code = entry['code']?.toString();
         final logoPath = entry['logo']?.toString();
         if (code == null || logoPath == null || logoPath.isEmpty) continue;
-        // Some sources return a placeholder image for banks they don't
-        // actually have a logo for — skip those so the bank falls
-        // through to the override map or the generic icon instead of
-        // showing a blank/placeholder badge.
+        // Skip placeholder images so the bank falls through to the
+        // override map or the generic icon.
         if (logoPath.endsWith(_placeholderLogoSuffix)) continue;
 
         logoByCode[code] = logoPath.startsWith('http')
@@ -347,17 +315,20 @@ class WithdrawalService {
             : '$pathPrefix$logoPath';
       }
     } catch (_) {
-      // Network failure, bad JSON, whatever — logos are a nice-to-have,
-      // never let this take down bank loading.
+      // Logos are a nice-to-have, never let this take down bank loading.
     }
     return logoByCode;
   }
 
   /// Resolves an account number + bank code to the account holder's name.
-  /// Throws with a user-facing message on failure (invalid account, network, etc).
-  /// Throws [TimeoutException] as-is if the request takes too long, so
-  /// callers can show a "still slow? tap to retry" message instead of a
-  /// long silent wait.
+  ///
+  /// Failure modes:
+  ///  - [BankVerificationRejected]: backend gave a definitive "no".
+  ///  - plain [Exception] ("Verification temporarily unavailable"): the
+  ///    backend/Paystack was rate-limited or down — we don't know the
+  ///    answer, so callers should treat it as retryable.
+  ///  - [TimeoutException]: request took too long (thrown as-is so the UI
+  ///    can show a "tap to retry" message).
   static Future<String> verifyAccount({
     required String accountNumber,
     required String bankCode,
@@ -365,20 +336,22 @@ class WithdrawalService {
   }) async {
     final res = await _client
         .post(
-          Uri.parse('$_base/verify_account.php'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'account_number': accountNumber,
-            'bank_code': bankCode,
-          }),
-        )
+      Uri.parse('$_base/verify_account.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'account_number': accountNumber,
+        'bank_code': bankCode,
+      }),
+    )
         .timeout(timeout);
 
     final decoded = jsonDecode(res.body);
     if (decoded['status'] != 'success') {
-      // The backend responded normally and definitively said no — this
-      // is not a network problem, so callers doing bank detection know
-      // not to waste a retry on it.
+      // Temporary problem (e.g. Paystack rate limit): NOT a rejection.
+      if (decoded['code'] == 'UNAVAILABLE') {
+        throw Exception('Verification temporarily unavailable');
+      }
+      // The backend responded normally and definitively said no.
       throw BankVerificationRejected(
         decoded['message'] ?? 'Could not verify account',
       );
@@ -387,35 +360,19 @@ class WithdrawalService {
   }
 
   /// Tries to identify which bank(s) an account number belongs to,
-  /// without the user picking one first. The same 10-digit account
-  /// number can be a valid, distinct account at more than one bank at
-  /// once (e.g. a PalmPay wallet and an Opay wallet sharing the same
-  /// number) — so this doesn't stop at the first success. It checks
-  /// every candidate bank and returns every one that came back valid,
-  /// in priority order (tier 1 — the common banks — before tier 2).
+  /// without the user picking one first. The same 10-digit number can be
+  /// a valid, distinct account at more than one bank, so this checks
+  /// every candidate and returns every match, in priority order (tier 1
+  /// before tier 2).
   ///
-  /// Candidates are verified through a bounded worker pool (see
-  /// [_tryAllPooled] and [_maxConcurrentVerifications]) rather than all
-  /// at once — firing dozens of requests at verify_account.php
-  /// simultaneously overloaded it and caused legitimate matches to time
-  /// out inconsistently, which is why the same account number used to
-  /// return a different number of matches on different runs. The pool
-  /// keeps requests flowing continuously (no batch ever waits on a
-  /// straggler), which is both faster and more reliable than fixed
-  /// chunking. Unmatched candidates get up to [_maxDetectionAttempts]
-  /// total passes, with a short pause between passes, so a transient
-  /// slow response gets a fair chance to succeed instead of being
-  /// crowded out permanently.
+  /// Candidates are verified through a bounded worker pool. Candidates
+  /// that were neither matched nor definitively rejected (timeouts, rate
+  /// limits) get up to [_maxDetectionAttempts] total passes.
   ///
-  /// Returns an empty list if nothing matches — callers should fall
-  /// back to letting the user pick a bank manually from the full list
-  /// at that point. Callers should let the user choose when more than
-  /// one match comes back.
+  /// Returns an empty list if nothing matches — callers should fall back
+  /// to letting the user pick a bank manually.
   ///
-  /// This intentionally does NOT search the full 600+ bank list: doing
-  /// so would mean firing hundreds of requests at verify_account.php
-  /// for every account number typed, which is both slow and unfriendly
-  /// to your backend.
+  /// This intentionally does NOT search the full 600+ bank list.
   static Future<List<DetectedBank>> detectBanksForAccount({
     required String accountNumber,
     required List<BankOption> banks,
@@ -426,22 +383,16 @@ class WithdrawalService {
     ];
     if (candidates.isEmpty) return [];
 
-    // Keyed by bank code so repeated attempts never double-count the
-    // same match.
+    // Keyed by bank code so repeated attempts never double-count a match.
     final matched = <String, DetectedBank>{};
-    // Banks that gave a definitive "not this bank" answer — excluded
-    // from every future pass, since asking again can't change a
-    // deterministic answer. Most of the ~39 candidates end up here on
-    // the first pass (a real account only lives at 1-3 banks), so this
-    // is what keeps retry passes small and fast instead of re-running
-    // almost the whole candidate list a second time for no benefit.
+    // Banks that gave a definitive "not this bank" — never re-asked.
     final rejected = <String>{};
     var remaining = candidates;
 
     for (
-      var attempt = 0;
-      attempt < _maxDetectionAttempts && remaining.isNotEmpty;
-      attempt++
+    var attempt = 0;
+    attempt < _maxDetectionAttempts && remaining.isNotEmpty;
+    attempt++
     ) {
       final result = await _tryAllPooled(accountNumber, remaining);
       for (final r in result.matches) {
@@ -451,16 +402,14 @@ class WithdrawalService {
       remaining = remaining
           .where(
             (b) => !matched.containsKey(b.code) && !rejected.contains(b.code),
-          )
+      )
           .toList();
       if (remaining.isNotEmpty && attempt < _maxDetectionAttempts - 1) {
         await Future.delayed(_detectionRetryDelay);
       }
     }
 
-    // Keep the priority ordering (tier 1 before tier 2, and each
-    // tier's own keyword order) rather than arrival order, so the most
-    // likely/common bank shows first if the caller presents a list.
+    // Keep priority ordering rather than arrival order.
     final order = {
       for (var i = 0; i < candidates.length; i++) candidates[i].code: i,
     };
@@ -470,33 +419,19 @@ class WithdrawalService {
     return results;
   }
 
-  /// Verifies every candidate against [accountNumber] using a bounded
-  /// worker pool (size [_maxConcurrentVerifications]) rather than fixed
-  /// sequential batches.
+  /// Verifies every candidate using a bounded worker pool (size
+  /// [_maxConcurrentVerifications]): the moment any worker finishes a
+  /// candidate it starts the next one, so no batch waits on a straggler.
   ///
-  /// With fixed batches of N, a single slow candidate holds up starting
-  /// the *next* N candidates even though the other N-1 slots in its own
-  /// batch already finished and sat idle — with ~39 candidates that
-  /// meant up to 7 sequential batches, each only as fast as its
-  /// slowest member. A worker pool instead keeps a fixed number of
-  /// requests continuously in flight: the moment any one candidate
-  /// resolves (success, "not found", or timeout), that worker
-  /// immediately starts the next candidate in line. No batch ever
-  /// waits on a straggler, which is what makes this noticeably faster
-  /// than the old chunked approach at the same concurrency limit.
-  ///
-  /// Also separates failures into two buckets, which matters for how
-  /// [detectBanksForAccount] decides what's worth retrying:
-  ///   - a [BankVerificationRejected] means the backend definitively
-  ///     said "not this bank" — retrying it can never change the
-  ///     answer, so it's tracked separately and never retried.
-  ///   - any other failure (timeout, connection error, bad response)
-  ///     means we genuinely don't know yet, so it stays a candidate
-  ///     for the next pass.
+  /// Failures are split into two buckets:
+  ///   - [BankVerificationRejected]: definitive "no", tracked separately
+  ///     and never retried.
+  ///   - anything else (timeout, rate limit, connection error, bad
+  ///     response): unknown, stays a candidate for the next pass.
   static Future<_PooledDetectionResult> _tryAllPooled(
-    String accountNumber,
-    List<BankOption> candidates,
-  ) async {
+      String accountNumber,
+      List<BankOption> candidates,
+      ) async {
     final results = <DetectedBank>[];
     final rejectedCodes = <String>{};
     var nextIndex = 0;
@@ -511,15 +446,13 @@ class WithdrawalService {
           final name = await verifyAccount(
             accountNumber: accountNumber,
             bankCode: bank.code,
-            timeout: const Duration(seconds: 4),
+            timeout: _detectionCallTimeout,
           );
           results.add(DetectedBank(bank: bank, accountName: name));
         } on BankVerificationRejected {
-          // Definitive "no" — never worth asking again.
           rejectedCodes.add(bank.code);
         } catch (_) {
-          // Timeout or other network hiccup — genuinely unknown, leave
-          // it out of rejectedCodes so it's eligible for a retry pass.
+          // Unknown outcome — eligible for a retry pass.
         }
       }
     }
@@ -534,6 +467,10 @@ class WithdrawalService {
   /// Submits the withdrawal. Returns the raw parsed response — check
   /// `status` ('success'/'error') and, on success, `payment_status`
   /// ('success'/'pending') to decide what to show the user.
+  ///
+  /// With the Paystack backend, a transfer whose outcome is still unknown
+  /// (timeout / 5xx from Paystack) is returned as status 'success' with
+  /// payment_status 'pending' — treat that as "processing", not a failure.
   static Future<Map<String, dynamic>> withdraw({
     required String userId,
     required String accountNumber,
@@ -545,18 +482,18 @@ class WithdrawalService {
   }) async {
     final res = await _client
         .post(
-          Uri.parse('$_base/withdraw.php'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'user_id': userId,
-            'account_number': accountNumber,
-            'bank_code': bankCode,
-            'bank_name': bankName,
-            'account_name': accountName,
-            'amount': amount,
-            'pin': pin,
-          }),
-        )
+      Uri.parse('$_base/withdraw.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'account_number': accountNumber,
+        'bank_code': bankCode,
+        'bank_name': bankName,
+        'account_name': accountName,
+        'amount': amount,
+        'pin': pin,
+      }),
+    )
         .timeout(const Duration(seconds: 40));
 
     if (res.body.isEmpty) {
