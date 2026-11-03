@@ -12,7 +12,7 @@ import 'signup_page.dart';
 import '../models/user_model.dart';
 import '../services/secure_storage_service.dart';
 import 'package:provider/provider.dart';
-import '../provider/authprovider.dart'; // your AuthProvider file
+import '../provider/authprovider.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -36,7 +36,6 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isLoading = false;
 
-  // Scales a value with screen width, kept within a modest range.
   double s(double value) {
     final sw = MediaQuery.of(context).size.width;
     return (sw / 375 * value).clamp(value * 0.85, value * 1.2);
@@ -57,23 +56,23 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  void _showMessage(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _login() async {
     final email = emailController.text.trim();
     final pin = pinController.text.trim();
 
     if (email.isEmpty || pin.length != 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter valid email and 4-digit PIN")),
-      );
+      _showMessage("Enter valid email and 4-digit PIN");
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      // ── Get the FCM token for this device before logging in ──
-      // If this fails for any reason (permissions denied, etc.), fall back
-      // to null rather than blocking login entirely.
       String? fcmToken;
       try {
         fcmToken = await PushNotificationService.getToken();
@@ -92,36 +91,43 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
-      final data = jsonDecode(res.body);
-
-      if (data['status'] != 'success') {
-        throw data['message'];
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(res.body) as Map<String, dynamic>;
+      } catch (_) {
+        throw 'Server error. Please try again.';
       }
 
-      /// ✅ Parse user
-      final user = UserModel.fromJson(data['user']);
+      if (data['status'] != 'success') {
+        throw (data['message'] ?? 'Login failed').toString();
+      }
 
+      // NEW: save the token first
+      final token = data['token'];
+      if (token == null || token.toString().isEmpty) {
+        throw 'Login failed. Please try again.';
+      }
+      await SecureStorageService.saveToken(token.toString());
+
+      final user = UserModel.fromJson(data['user']);
       await SecureStorageService.saveUser(user);
+
       if (!mounted) return;
       context.read<AuthProvider>().setUser(user);
       context.read<UserProvider>().setUser(user);
       context.read<CartProvider>().fetchCount(user.userId);
 
-      /// OPTIONAL callback
       widget.onLoginSuccess();
 
-      /// 🚀 Navigate
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => MyAppsPage(onToggleTheme: widget.onToggleTheme),
         ),
-        (_) => false,
+            (_) => false,
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      _showMessage(e.toString());
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -132,10 +138,7 @@ class _LoginPageState extends State<LoginPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lightBg = const Color(0xFFF5F6F8);
     final darkBg = const Color(0xFF121212);
-
-    // Keeps the form at a comfortable width on tablets.
     const maxFormWidth = 420.0;
-
     final topInset = MediaQuery.of(context).padding.top + kToolbarHeight;
 
     return Scaffold(
@@ -166,14 +169,9 @@ class _LoginPageState extends State<LoginPage> {
               constraints: const BoxConstraints(maxWidth: maxFormWidth),
               child: Column(
                 children: [
-                  Icon(
-                    Icons.lock_outline,
-                    size: s(52),
-                    color: Colors.deepOrange,
-                  ),
-
+                  Icon(Icons.lock_outline,
+                      size: s(52), color: Colors.deepOrange),
                   SizedBox(height: s(16)),
-
                   Text(
                     "Welcome Back 👋",
                     style: TextStyle(
@@ -183,9 +181,7 @@ class _LoginPageState extends State<LoginPage> {
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
-
                   SizedBox(height: s(6)),
-
                   Text(
                     "Login to continue",
                     style: TextStyle(
@@ -193,22 +189,15 @@ class _LoginPageState extends State<LoginPage> {
                       color: isDark ? Colors.white60 : Colors.black54,
                     ),
                   ),
-
                   SizedBox(height: s(30)),
-
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
                     style: TextStyle(fontSize: s(15)),
                     decoration: _inputDecoration(
-                      "Email Address",
-                      Icons.email_outlined,
-                      isDark,
-                    ),
+                        "Email Address", Icons.email_outlined, isDark),
                   ),
-
                   SizedBox(height: s(16)),
-
                   TextField(
                     controller: pinController,
                     obscureText: true,
@@ -216,13 +205,8 @@ class _LoginPageState extends State<LoginPage> {
                     keyboardType: TextInputType.number,
                     style: TextStyle(fontSize: s(15)),
                     decoration: _inputDecoration(
-                      "4-digit PIN",
-                      Icons.lock_outline,
-                      isDark,
-                    ),
+                        "4-digit PIN", Icons.lock_outline, isDark),
                   ),
-
-                  // 🔹 FORGOT PIN BUTTON ----------------------------------
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -247,9 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-
                   SizedBox(height: s(8)),
-
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepOrange,
@@ -263,26 +245,22 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: isLoading ? null : _login,
                     child: isLoading
                         ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
                         : Text(
-                            "Login",
-                            style: TextStyle(
-                              fontSize: s(16),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                      "Login",
+                      style: TextStyle(
+                        fontSize: s(16),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-
                   SizedBox(height: s(18)),
-
-                  // Wrap lets this fall onto a second line on narrow phones
-                  // instead of overflowing.
                   Wrap(
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -317,30 +295,23 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-
                   SizedBox(height: s(4)),
-
-                  // ── Guest entry point — intentionally does NOT touch
-                  // AuthProvider / UserProvider / CartProvider, since none of
-                  // them have a real user to work with here. Screens that
-                  // assume a logged-in user (cart, wallet, anything reading
-                  // UserProvider's user as non-null) will need their own
-                  // guest handling wherever that assumption lives. ──
+                  // Guest: no token is saved, so protected endpoints return 401.
                   TextButton(
                     onPressed: isLoading
                         ? null
                         : () {
-                            widget.onLoginSuccess();
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => MyAppsPage(
-                                  onToggleTheme: widget.onToggleTheme,
-                                ),
-                              ),
-                              (_) => false,
-                            );
-                          },
+                      widget.onLoginSuccess();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MyAppsPage(
+                            onToggleTheme: widget.onToggleTheme,
+                          ),
+                        ),
+                            (_) => false,
+                      );
+                    },
                     child: Text(
                       "Continue as Guest",
                       style: TextStyle(

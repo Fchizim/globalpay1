@@ -7,6 +7,9 @@ class SecureStorageService {
   static const _storage = FlutterSecureStorage();
 
   static const String _userKey = 'logged_in_user';
+  static const String _tokenKey = 'api_token';
+
+  // ───────────── USER ─────────────
 
   /// Save user
   static Future<void> saveUser(UserModel user) async {
@@ -26,14 +29,38 @@ class SecureStorageService {
     return UserModel.fromJson(json);
   }
 
-  /// Check if user is logged in
-  static Future<bool> isLoggedIn() async {
-    return await _storage.containsKey(key: _userKey);
+  // ───────────── TOKEN ─────────────
+
+  /// Save API token (called right after a successful login)
+  static Future<void> saveToken(String token) async {
+    await _storage.write(key: _tokenKey, value: token);
   }
 
-  /// Logout
+  /// Get API token
+  static Future<String?> getToken() async {
+    return await _storage.read(key: _tokenKey);
+  }
+
+  /// Clear only the token
+  static Future<void> clearToken() async {
+    await _storage.delete(key: _tokenKey);
+  }
+
+  // ───────────── SESSION ─────────────
+
+  /// Logged in only if BOTH the user and a token exist.
+  /// Users who logged in before this update have no token,
+  /// so they are treated as logged out and must log in once more.
+  static Future<bool> isLoggedIn() async {
+    final hasUser = await _storage.containsKey(key: _userKey);
+    final token = await _storage.read(key: _tokenKey);
+    return hasUser && token != null && token.isNotEmpty;
+  }
+
+  /// Logout: remove the user AND the token
   static Future<void> logout() async {
     await _storage.delete(key: _userKey);
+    await _storage.delete(key: _tokenKey);
   }
 
   /// Clear everything (optional)
